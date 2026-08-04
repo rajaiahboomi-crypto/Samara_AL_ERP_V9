@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.2';
-  const APP_BUILD_DATE = '04-Aug-2026 23:48 IST';
+  const APP_VERSION = '2.1.3';
+  const APP_BUILD_DATE = '05-Aug-2026 00:05 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -49,32 +49,37 @@
     { title:'MANAGER', items:['Reports','Intelligent Reports','Medication Errors','Recovery Timeline'] },
     { title:'NURSING', items:['Clinical Dashboard','Clinical Alerts','Shift Tasks','Daily Care','Vital Signs','Medicines','Physiotherapy','Special Nurse','Shift Handover','Incidents'] },
     { title:'FOOD & DIET', items:['Food & Diet'] },
-    { title:'ACCOUNTS / BILLING', items:['Clinical Charges','Billing & Payments'] }
+    { title:'ACCOUNTS / BILLING', items:['Accounts Dashboard','Charge Approvals','Payments','Final Billing','Discharge Clearance','Refunds','Accounts Reports'] }
   ];
   const ALL_NAV = NAV_SECTIONS.flatMap(section=>section.items);
   const ROLE_NAV={
     Admin:ALL_NAV,
-    Manager:ALL_NAV.filter(item=>!['System Maintenance','Alert Settings'].includes(item)),
-    Nurse:['Clinical Dashboard','Clinical Alerts','Patients','Discharge','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Billing & Payments','Notifications'],
+    Manager:ALL_NAV.filter(item=>!['System Maintenance','Alert Settings','Payments','Final Billing','Refunds'].includes(item)),
+    Nurse:['Clinical Dashboard','Clinical Alerts','Patients','Discharge','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Charge Approvals','Notifications'],
     Caregiver:['Clinical Dashboard','Clinical Alerts','Patients','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Notifications'],
-    Accounts:['Notifications','Patients','Discharge','Physiotherapy','Special Nurse','Clinical Charges','Billing & Payments','Reports','Intelligent Reports'],
+    Accounts:['Accounts Dashboard','Charge Approvals','Payments','Final Billing','Discharge Clearance','Refunds','Accounts Reports','Patients','Notifications'],
     Kitchen:['Notifications','Patients','Discharge','Physiotherapy','Special Nurse','Food & Diet']
   };
-  const ROLE_HOME={Admin:'Dashboard',Manager:'Dashboard',Nurse:'Clinical Dashboard',Caregiver:'Clinical Dashboard',Accounts:'Billing & Payments',Kitchen:'Food & Diet'};
+  const ROLE_HOME={Admin:'Dashboard',Manager:'Dashboard',Nurse:'Clinical Dashboard',Caregiver:'Clinical Dashboard',Accounts:'Accounts Dashboard',Kitchen:'Food & Diet'};
   const CLINICAL_ROLES=['Nurse','Caregiver'];
   const ROLE_LABELS={
     'Clinical Dashboard':'Nursing Dashboard',
     'Patients':'My Patients',
     'Medicines':'Medication Administration',
-    'Clinical Charges':'Clinical Charges',
-    'Billing & Payments':'Bills & Charges',
+    'Charge Approvals':'Bills & Charges',
+    'Accounts Dashboard':'Accounts Dashboard',
+    'Payments':'Payments',
+    'Final Billing':'Final Billing',
+    'Discharge Clearance':'Discharge Clearance',
+    'Refunds':'Refunds',
+    'Accounts Reports':'Accounts Reports',
     'Notifications':'Alerts'
   };
   const displayNavLabel=(item,role)=>CLINICAL_ROLES.includes(role)?(ROLE_LABELS[item]||item):item;
   const sectionsFor = (allowed,role) => {
     if(CLINICAL_ROLES.includes(role)){
       return [
-        {title:'NURSING WORKSPACE',items:['Clinical Dashboard','Clinical Alerts','Patients','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Billing & Payments','Discharge','Notifications'].filter(item=>allowed.includes(item))}
+        {title:'NURSING WORKSPACE',items:['Clinical Dashboard','Clinical Alerts','Patients','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Discharge','Charge Approvals','Notifications'].filter(item=>allowed.includes(item))}
       ];
     }
     return NAV_SECTIONS.map(section=>({...section,items:section.items.filter(item=>allowed.includes(item))})).filter(section=>section.items.length);
@@ -806,8 +811,13 @@ Caring with Compassion. Living with Dignity.`;
           page==='Shift Handover'&&h(ShiftHandover,{profile,onNavigate:setPage}),
           page==='Incidents'&&h(Incidents,{profile,onNavigate:setPage}),
           page==='Documents'&&h(Documents,{profile}),
-          page==='Clinical Charges'&&h(ClinicalCharges,{profile}),
-          page==='Billing & Payments'&&(profile?.role==='Nurse'?h(ClinicalCharges,{profile}):h(BillingPayments,{profile})),
+          page==='Accounts Dashboard'&&h(AccountsDashboard,{profile,onNavigate:setPage}),
+          page==='Charge Approvals'&&h(ClinicalCharges,{profile}),
+          page==='Payments'&&h(BillingPayments,{profile}),
+          page==='Final Billing'&&h(FinalBillingView,{profile,onNavigate:setPage}),
+          page==='Discharge Clearance'&&h(DischargeManagement,{profile}),
+          page==='Refunds'&&h(RefundsView,{profile,onNavigate:setPage}),
+          page==='Accounts Reports'&&h(Reports),
           page==='Recovery Timeline'&&h(RecoveryTimeline,{profile}),
           page==='Reports'&&h(Reports),
           page==='Intelligent Reports'&&h(IntelligentReports,{profile}),
@@ -4675,6 +4685,221 @@ function ShiftHandover({profile,onNavigate}){
   }
 
   
+
+
+  const ensureAccountsWorkspaceStyle = () => {
+    if(document.getElementById('samara-accounts-workspace-style'))return;
+    const style=document.createElement('style');
+    style.id='samara-accounts-workspace-style';
+    style.textContent=`
+      .accounts-dashboard-card{
+        border:0;
+        text-align:left;
+        cursor:pointer;
+        font:inherit;
+      }
+      .accounts-dashboard-card:hover{
+        transform:translateY(-2px);
+        box-shadow:0 10px 24px rgba(7,75,60,.12);
+      }
+      .management-cards{
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+        gap:12px;
+      }
+      .management-card{
+        display:grid;
+        gap:7px;
+        min-height:115px;
+        padding:16px;
+        border:1px solid #dce8e4;
+        border-radius:13px;
+        background:#fff;
+        text-align:left;
+        cursor:pointer;
+        font:inherit;
+      }
+      .management-card:hover{
+        border-color:#75b5a4;
+        background:#f3faf7;
+      }
+      .management-card strong{font-size:16px;color:#0b5d4b}
+      .management-card span{font-size:13px;line-height:1.45;color:#667085}
+    `;
+    document.head.appendChild(style);
+  };
+
+  function AccountsDashboard({profile,onNavigate}){
+    React.useEffect(()=>{ensureAccountsWorkspaceStyle()},[]);
+    const [state,setState]=React.useState({
+      loading:true,
+      pendingCharges:0,
+      approvedCharges:0,
+      pendingDischarges:0,
+      todayCollections:0,
+      pendingBalance:0,
+      refunds:0
+    });
+
+    async function load(){
+      const today=todayISOIndia();
+      const [charges,discharges,transactions]=await Promise.all([
+        client.from('bill_charge_requests').select('approval_status,approved_amount,final_amount,requested_amount'),
+        client.from('patient_discharges').select('management_status,accounts_status,status'),
+        client.from('billing_transactions').select('transaction_type,amount,transaction_date')
+      ]);
+
+      const chargeRows=charges.data||[];
+      const dischargeRows=discharges.data||[];
+      const transactionRows=transactions.data||[];
+
+      const totalCharges=transactionRows
+        .filter(row=>row.transaction_type==='Charge')
+        .reduce((sum,row)=>sum+Number(row.amount||0),0);
+      const payments=transactionRows
+        .filter(row=>['Payment','Advance'].includes(row.transaction_type))
+        .reduce((sum,row)=>sum+Number(row.amount||0),0);
+      const discounts=transactionRows
+        .filter(row=>row.transaction_type==='Discount')
+        .reduce((sum,row)=>sum+Number(row.amount||0),0);
+      const refunds=transactionRows
+        .filter(row=>row.transaction_type==='Refund')
+        .reduce((sum,row)=>sum+Number(row.amount||0),0);
+
+      setState({
+        loading:false,
+        pendingCharges:chargeRows.filter(row=>(row.approval_status||'Pending')==='Pending').length,
+        approvedCharges:chargeRows
+          .filter(row=>['Approved','Partially Approved'].includes(row.approval_status))
+          .reduce((sum,row)=>sum+Number(row.approved_amount||row.final_amount||row.requested_amount||0),0),
+        pendingDischarges:dischargeRows.filter(row=>
+          row.management_status==='Approved'&&
+          row.accounts_status!=='Cleared'&&
+          row.status!=='Completed'
+        ).length,
+        todayCollections:transactionRows
+          .filter(row=>
+            ['Payment','Advance'].includes(row.transaction_type)&&
+            String(row.transaction_date||'').slice(0,10)===today
+          )
+          .reduce((sum,row)=>sum+Number(row.amount||0),0),
+        pendingBalance:Math.max(0,totalCharges-payments-discounts+refunds),
+        refunds
+      });
+    }
+
+    React.useEffect(()=>{
+      load();
+      const channel=client.channel('accounts-dashboard-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'bill_charge_requests'},load)
+        .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
+        .on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load)
+        .subscribe();
+      return()=>client.removeChannel(channel);
+    },[]);
+
+    const cards=[
+      ['Pending Charge Approvals',state.pendingCharges,'Charge Approvals'],
+      ['Approved Charge Value',`₹${Number(state.approvedCharges||0).toLocaleString('en-IN')}`,'Charge Approvals'],
+      ['Pending Discharge Clearance',state.pendingDischarges,'Discharge Clearance'],
+      ["Today's Collections",`₹${Number(state.todayCollections||0).toLocaleString('en-IN')}`,'Payments'],
+      ['Overall Pending Balance',`₹${Number(state.pendingBalance||0).toLocaleString('en-IN')}`,'Final Billing'],
+      ['Refunds Recorded',`₹${Number(state.refunds||0).toLocaleString('en-IN')}`,'Refunds']
+    ];
+
+    return h(React.Fragment,null,
+      h('div',{className:'clinical-charges-hero'},
+        h('div',null,
+          h('small',null,'ACCOUNTS WORKSPACE'),
+          h('h3',null,'Accounts Dashboard'),
+          h('p',null,profile?.role==='Admin'
+            ?'Admin has complete Accounts access and may perform the Accountant role for the facility.'
+            :'Billing, collections, final settlement and discharge clearance.'
+          )
+        ),
+        h('button',{className:'btn btn-secondary',onClick:load},state.loading?'Loading…':'Refresh')
+      ),
+      h('div',{className:'grid stats'},
+        cards.map(([label,value,page])=>h('button',{
+          type:'button',
+          className:'card stat accounts-dashboard-card',
+          key:label,
+          onClick:()=>onNavigate?.(page)
+        },h('span',null,label),h('strong',null,value)))
+      ),
+      h(Section,{title:'Accounts Workflow',subtitle:'Use the cards below to complete each financial stage'},
+        h('div',{className:'management-cards'},
+          [
+            ['Charge Approvals','Review Nurse-raised additional services and approve, partially approve or reject.'],
+            ['Payments','Record advances, payments and other financial transactions.'],
+            ['Final Billing','Review patient-wise charges, payments, discounts and outstanding balance.'],
+            ['Discharge Clearance','Close only Management-approved discharges after the balance becomes zero.'],
+            ['Refunds','Review advance refunds and refund history.'],
+            ['Accounts Reports','Open financial and management reports.']
+          ].map(([title,text])=>h('button',{
+            type:'button',
+            className:'management-card',
+            key:title,
+            onClick:()=>onNavigate?.(title)
+          },h('strong',null,title),h('span',null,text)))
+        )
+      )
+    );
+  }
+
+  function FinalBillingView({profile,onNavigate}){
+    return h(React.Fragment,null,
+      h(Section,{
+        title:'Final Billing',
+        subtitle:'Patient-wise final account review before discharge clearance'
+      },
+        h('div',{className:'message info'},
+          'Review the selected patient’s complete transaction history, approved charges, advance, payments, Admin-approved discounts and final outstanding balance.'
+        ),
+        h('button',{className:'btn btn-primary',onClick:()=>onNavigate?.('Payments')},'Open Patient Transactions')
+      ),
+      h(BillingPayments,{profile})
+    );
+  }
+
+  function RefundsView({profile,onNavigate}){
+    const [rows,setRows]=React.useState([]);
+    const [loading,setLoading]=React.useState(true);
+
+    async function load(){
+      setLoading(true);
+      const {data}=await client.from('billing_transactions')
+        .select('*,patients(full_name,title,patient_id)')
+        .eq('transaction_type','Refund')
+        .order('transaction_date',{ascending:false})
+        .limit(300);
+      setRows(data||[]);
+      setLoading(false);
+    }
+
+    React.useEffect(()=>{load()},[]);
+
+    return h(React.Fragment,null,
+      h(Section,{title:'Refunds',subtitle:'Advance and payment refund register'},
+        h('div',{className:'panel-head'},
+          h('p',{className:'small-note'},'Refund entries are recorded through Payments and remain permanently available in this register.'),
+          h('button',{className:'btn btn-primary',onClick:()=>onNavigate?.('Payments')},'Record Refund')
+        )
+      ),
+      h(LogTable,{
+        title:loading?'Loading refunds…':`Refund History (${rows.length})`,
+        heads:['Date','Patient','Patient ID','Amount','Mode','Description'],
+        rows:rows.map(row=>[
+          fmt(row.transaction_date),
+          formalName(row.patients||{})||row.patients?.full_name||'—',
+          row.patients?.patient_id||'—',
+          `₹${Number(row.amount||0).toLocaleString('en-IN')}`,
+          row.payment_mode||'—',
+          row.description||'—'
+        ])
+      })
+    );
+  }
 
   function BillingPayments({profile}){
     const [patients]=usePatients();

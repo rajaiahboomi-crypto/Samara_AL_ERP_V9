@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.3';
-  const APP_BUILD_DATE = '05-Aug-2026 00:05 IST';
+  const APP_VERSION = '2.1.4';
+  const APP_BUILD_DATE = '05-Aug-2026 00:18 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -815,7 +815,7 @@ Caring with Compassion. Living with Dignity.`;
           page==='Charge Approvals'&&h(ClinicalCharges,{profile}),
           page==='Payments'&&h(BillingPayments,{profile}),
           page==='Final Billing'&&h(FinalBillingView,{profile,onNavigate:setPage}),
-          page==='Discharge Clearance'&&h(DischargeManagement,{profile}),
+          page==='Discharge Clearance'&&h(DischargeManagement,{profile,mode:'accounts'}),
           page==='Refunds'&&h(RefundsView,{profile,onNavigate:setPage}),
           page==='Accounts Reports'&&h(Reports),
           page==='Recovery Timeline'&&h(RecoveryTimeline,{profile}),
@@ -2573,11 +2573,12 @@ Caring with Compassion. Living with Dignity.`;
   function Section({title,subtitle,actions,children}){return h('div',{className:'card panel'},h('div',{className:'panel-head'},h('div',null,h('h3',null,title),subtitle&&h('small',null,subtitle)),actions),children)}
 
   
-  function DischargeManagement({profile}){
+  function DischargeManagement({profile,mode='workflow'}){
     const isNurse=profile?.role==='Nurse';
-    const canInitiate=['Admin','Manager','Nurse'].includes(profile?.role);
-    const canApprove=['Admin','Manager'].includes(profile?.role);
-    const canCloseAccounts=profile?.role==='Accounts';
+    const isAccountsClearance=mode==='accounts';
+    const canInitiate=!isAccountsClearance&&['Admin','Manager','Nurse'].includes(profile?.role);
+    const canApprove=!isAccountsClearance&&['Admin','Manager'].includes(profile?.role);
+    const canCloseAccounts=isAccountsClearance&&['Admin','Accounts'].includes(profile?.role);
     const [rows,setRows]=React.useState([]);
     const [patients,setPatients]=React.useState([]);
     const [show,setShow]=React.useState(false);
@@ -2611,7 +2612,17 @@ Caring with Compassion. Living with Dignity.`;
         client.from('patient_discharges').select('*').order('created_at',{ascending:false}),
         client.from('patients').select('id,title,full_name,patient_id,mobile,room_no,bed_no,is_active,attendant_name,attendant_phone,treating_doctor,doctor_phone').order('full_name')
       ]);
-      if(d.error){setMessage(d.error.message);setRows([])}else{setMessage('');setRows(d.data||[])};
+      if(d.error){
+        setMessage(d.error.message);
+        setRows([]);
+      }else{
+        setMessage('');
+        const allRows=d.data||[];
+        setRows(isAccountsClearance
+          ?allRows.filter(row=>row.management_status==='Approved'&&row.accounts_status!=='Cleared'&&row.status!=='Completed')
+          :allRows
+        );
+      };
       if(!p.error)setPatients(p.data||[]);
     }
     React.useEffect(()=>{
@@ -2759,14 +2770,27 @@ Caring with Compassion. Living with Dignity.`;
     ]);
 
     return h(React.Fragment,null,
-      h(Section,{title:'Patient Discharge',subtitle:'Nursing initiation → Admin/Manager approval → Accounts payment closure → automatic return to Nursing'},
+      h(Section,{
+        title:isAccountsClearance?'Discharge Clearance':'Patient Discharge',
+        subtitle:isAccountsClearance
+          ?'Management-approved cases only — verify final billing, receive/adjust payment and complete financial clearance'
+          :'Nursing initiation → Admin/Manager approval → Accounts payment closure → automatic return to Nursing'
+      },
         message&&h('div',{className:'message error'},message),
         h('div',{className:'panel-head'},
-          h('p',{className:'small-note'},isNurse?'Initiate only under Consultant/Doctor instruction or a clearly recorded voluntary request.':canApprove?'Approve or reject after clinical review.':'Verify full payment before final closure. Discount is Admin-only.'),
+          h('p',{className:'small-note'},
+            isAccountsClearance
+              ?'Accounts does not initiate or clinically approve discharge. Complete only Management-approved cases after the final outstanding balance becomes zero.'
+              :isNurse
+                ?'Initiate only under Consultant/Doctor instruction or a clearly recorded voluntary request.'
+                :canApprove
+                  ?'Approve or reject after clinical review.'
+                  :'Review discharge status.'
+          ),
           canInitiate&&h('button',{className:'btn btn-primary',onClick:openNew},'Initiate Discharge')
         )
       ),
-      h(LogTable,{title:`Discharge Workflow Register (${tableRows.length})`,
+      h(LogTable,{title:isAccountsClearance?`Pending Financial Clearance (${tableRows.length})`:`Discharge Workflow Register (${tableRows.length})`,
         heads:['Patient','Initiation Basis','Instruction / Request','Date','Management','Decision By','Decision Time','Accounts','Closed By','Closure Time','Final Status','Action'],
         rows:tableRows
       }),

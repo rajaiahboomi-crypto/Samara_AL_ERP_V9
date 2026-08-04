@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.0.0';
-  const APP_BUILD_DATE = '04-Aug-2026 18:30 IST';
+  const APP_VERSION = '2.0.1';
+  const APP_BUILD_DATE = '04-Aug-2026 19:20 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -179,6 +179,22 @@
   const returnAfterSuccessfulAction = (returnPage,onNavigate,delay=650) =>
     finishSuccessfulAction({returnPage,onNavigate,delay});
 
+
+  const localDateTimeValue = (date=new Date()) => {
+    const value=date instanceof Date?date:new Date(date);
+    const safe=Number.isNaN(value.getTime())?new Date():value;
+    const parts=new Intl.DateTimeFormat('en-CA',{
+      timeZone:'Asia/Kolkata',
+      year:'numeric',
+      month:'2-digit',
+      day:'2-digit',
+      hour:'2-digit',
+      minute:'2-digit',
+      hour12:false
+    }).formatToParts(safe);
+    const get=type=>parts.find(part=>part.type===type)?.value||'00';
+    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+  };
 
   const todayISOIndia = () => {
     const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
@@ -4378,6 +4394,175 @@ function ShiftHandover({profile,onNavigate}){
   }
 
   
+
+  function BillingPayments({profile}){
+    const [patients]=usePatients();
+    const [rows,setRows]=React.useState([]);
+    const [loading,setLoading]=React.useState(true);
+    const [saving,setSaving]=React.useState(false);
+    const [message,setMessage]=React.useState('');
+    const canEnter=['Admin','Manager','Accounts'].includes(profile?.role);
+    const [patientFilter,setPatientFilter]=React.useState('');
+    const [form,setForm]=React.useState({
+      patient_id:'',
+      transaction_type:'Charge',
+      category:'Room Charges',
+      amount:'',
+      description:'',
+      payment_mode:'Cash'
+    });
+
+    async function load(){
+      setLoading(true);
+      const {data,error}=await client.from('billing_transactions')
+        .select('*,patients(full_name,title,patient_id,room_no,bed_no)')
+        .order('transaction_date',{ascending:false})
+        .limit(500);
+      if(error){
+        console.error('Billing transactions could not be loaded:',error);
+        setRows([]);
+        setMessage(error.message||'Billing information could not be loaded.');
+      }else{
+        setRows(data||[]);
+        setMessage('');
+      }
+      setLoading(false);
+    }
+
+    React.useEffect(()=>{
+      load();
+      const channel=client.channel('billing-payments-live-v201')
+        .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
+        .subscribe();
+      return()=>client.removeChannel(channel);
+    },[]);
+
+    async function save(e){
+      e.preventDefault();
+      if(!canEnter||saving)return;
+      if(!form.patient_id){
+        setMessage('Select a patient before saving the transaction.');
+        return;
+      }
+      const amount=Number(form.amount);
+      if(!Number.isFinite(amount)||amount<=0){
+        setMessage('Enter a valid amount greater than zero.');
+        return;
+      }
+      setSaving(true);
+      const payload={
+        ...form,
+        amount,
+        payment_mode:form.transaction_type==='Charge'?'Not applicable':form.payment_mode,
+        transaction_date:new Date().toISOString(),
+        entered_by:profile.id
+      };
+      const {data,error}=await client.from('billing_transactions')
+        .insert(payload)
+        .select('id')
+        .single();
+      if(error){
+        setMessage(error.message||'Transaction could not be saved.');
+        setSaving(false);
+        return;
+      }
+      writeAuditEvent(
+        'Billing Transaction Saved',
+        'Billing',
+        data?.id||form.patient_id,
+        {
+          patient_id:form.patient_id,
+          transaction_type:form.transaction_type,
+          category:form.category,
+          amount
+        },
+        'Success'
+      );
+      setForm(current=>({...current,amount:'',description:''}));
+      setMessage('Transaction saved successfully.');
+      await load();
+      setSaving(false);
+    }
+
+    const visibleRows=patientFilter
+      ?rows.filter(row=>row.patient_id===patientFilter)
+      :rows;
+
+    const totals=visibleRows.reduce((sum,row)=>{
+      const type=row.transaction_type||'Charge';
+      sum[type]=(sum[type]||0)+Number(row.amount||0);
+      return sum;
+    },{Charge:0,Payment:0,Discount:0,Refund:0});
+
+    const outstanding=totals.Charge-totals.Payment-totals.Discount+totals.Refund;
+
+    return h(React.Fragment,null,
+      h('div',{className:'grid stats'},
+        [
+          ['Total Charges',totals.Charge],
+          ['Payments / Advance',totals.Payment],
+          ['Discounts',totals.Discount],
+          ['Refunds',totals.Refund],
+          ['Pending Bills',Math.max(0,outstanding)],
+          ['Advance Balance',Math.max(0,-outstanding)]
+        ].map(([label,value])=>h('div',{className:'card stat',key:label},
+          h('span',null,label),
+          h('strong',null,`₹${Number(value||0).toLocaleString('en-IN')}`)
+        ))
+      ),
+      h(Section,{
+        title:'Patient Bills, Charges & Transaction History',
+        subtitle:'Select a patient to view only that patient’s financial records'
+      },
+        h('div',{className:'panel-head'},
+          h('div',{className:'field',style:{minWidth:'320px',marginBottom:0}},
+            h('label',null,'Patient'),
+            h('select',{value:patientFilter,onChange:e=>setPatientFilter(e.target.value)},
+              h('option',{value:''},'All patients'),
+              patients.map(patient=>h('option',{key:patient.id,value:patient.id},
+                `${formalName(patient)||patient.full_name} · ${patient.patient_id||'No ID'}`
+              ))
+            )
+          ),
+          h('button',{type:'button',className:'btn btn-secondary',onClick:load},loading?'Loading…':'Refresh')
+        ),
+        message&&h('div',{className:`message ${message.includes('successfully')?'success':'error'}`},message)
+      ),
+      canEnter&&h(Section,{
+        title:'Manual Billing & Payment Entry',
+        subtitle:'Accounts, Admin and Manager only'
+      },
+        h('form',{className:'modal-grid',onSubmit:save},
+          patientSelect(patients,form.patient_id,value=>setForm({...form,patient_id:value})),
+          miniSelect('Transaction',form.transaction_type,['Charge','Payment','Discount','Refund'],value=>setForm({...form,transaction_type:value})),
+          miniSelect('Category',form.category,[
+            'Admission Fee','Room Charges','Nursing Charges','Special Nurse Charges',
+            'Food Charges','Medicine Charges','Physiotherapy','Consumables',
+            'Doctor Visit','Lab Charges','Hospital Charges','Ambulance / Transport',
+            'Equipment','Advance','Other'
+          ],value=>setForm({...form,category:value})),
+          miniInput('Amount',form.amount,value=>setForm({...form,amount:value}),true,'number'),
+          miniSelect('Payment mode',form.payment_mode,['Cash','UPI','Bank transfer','Card','Cheque','Not applicable'],value=>setForm({...form,payment_mode:value})),
+          miniInput('Description / reference',form.description,value=>setForm({...form,description:value})),
+          h('button',{className:'btn btn-primary',disabled:saving},saving?'Saving…':'Save Transaction')
+        )
+      ),
+      h(LogTable,{
+        title:patientFilter?'Selected Patient Transaction History':'Complete Transaction History',
+        heads:['Patient','Type','Category','Amount','Mode','Description','Date'],
+        rows:visibleRows.map(row=>[
+          formalName(row.patients||{})||row.patients?.full_name||'—',
+          row.transaction_type,
+          row.category,
+          `₹${Number(row.amount||0).toLocaleString('en-IN')}`,
+          row.payment_mode||'—',
+          row.description||'—',
+          fmt(row.transaction_date)
+        ])
+      })
+    );
+  }
+
   function ClinicalCharges({profile}){
     const canRaise=['Admin','Manager','Nurse','Accounts'].includes(profile?.role);
     const canApprove=['Admin','Manager','Accounts'].includes(profile?.role);

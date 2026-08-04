@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.5';
-  const APP_BUILD_DATE = '05-Aug-2026 00:31 IST';
+  const APP_VERSION = '2.1.6';
+  const APP_BUILD_DATE = '05-Aug-2026 00:55 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -4993,43 +4993,114 @@ function ShiftHandover({profile,onNavigate}){
     );
   }
 
+  const ensurePaymentSettlementStyle = () => {
+    if(document.getElementById('samara-payment-settlement-style'))return;
+    const style=document.createElement('style');
+    style.id='samara-payment-settlement-style';
+    style.textContent=`
+      .payment-filter-grid,
+      .payment-entry-grid{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:12px;
+      }
+      .payment-quick-buttons{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:12px;
+        margin-top:10px;
+      }
+      .payment-summary-grid{
+        display:grid;
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        gap:12px;
+        margin:0 0 14px;
+      }
+      .payment-summary-card{
+        min-height:84px;
+        display:grid;
+        align-content:center;
+        gap:7px;
+        padding:15px;
+        border:1px solid #dce8e4;
+        border-radius:15px;
+        background:#fff;
+      }
+      .payment-summary-card span{font-size:13px;color:#68758a}
+      .payment-summary-card strong{font-size:25px;line-height:1}
+      .payment-summary-card.summary-red{
+        background:#fff0f0;border-color:#f3b2b2;color:#b42318
+      }
+      .payment-summary-card.summary-green{
+        background:#eaf8ef;border-color:#a8dfbb;color:#067333
+      }
+      .payment-summary-card.summary-orange{
+        background:#fff6e7;border-color:#f4c475;color:#b54708
+      }
+      .payment-summary-card.summary-blue{
+        background:#eef5ff;border-color:#adcbf8;color:#175cd3
+      }
+      .payment-entry-grid .field{margin:0}
+      .payment-submit{min-height:48px}
+      @media(max-width:1000px){
+        .payment-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      }
+      @media(max-width:700px){
+        .payment-filter-grid,
+        .payment-entry-grid,
+        .payment-quick-buttons,
+        .payment-summary-grid{grid-template-columns:1fr}
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
   function BillingPayments({profile}){
     const [patients]=usePatients();
     const [rows,setRows]=React.useState([]);
     const [loading,setLoading]=React.useState(true);
     const [saving,setSaving]=React.useState(false);
     const [message,setMessage]=React.useState('');
+    const [toast,setToast]=React.useState(null);
     const canEnter=['Admin','Manager','Accounts'].includes(profile?.role);
     const canDiscount=profile?.role==='Admin';
-    const [patientFilter,setPatientFilter]=React.useState(()=>{
-      try{
-        const target=JSON.parse(sessionStorage.getItem('samara_discharge_payment_target')||'null');
-        return target?.patient_id||'';
-      }catch(_error){return ''}
-    });
+
     const [dischargeTarget,setDischargeTarget]=React.useState(()=>{
       try{return JSON.parse(sessionStorage.getItem('samara_discharge_payment_target')||'null')}catch(_error){return null}
     });
+
+    const [patientFilter,setPatientFilter]=React.useState(dischargeTarget?.patient_id||'');
+    const [quickView,setQuickView]=React.useState('Pending Bills');
     const [form,setForm]=React.useState({
-      patient_id:(()=>{
-        try{
-          const target=JSON.parse(sessionStorage.getItem('samara_discharge_payment_target')||'null');
-          return target?.patient_id||'';
-        }catch(_error){return ''}
-      })(),
+      patient_id:dischargeTarget?.patient_id||'',
       transaction_type:'Payment',
-      category:'Room Charges',
+      category:'Final Settlement',
       amount:'',
+      payment_mode:'Cash',
+      payment_reference:'',
       description:'',
-      payment_mode:'Cash'
+      closure_remarks:'All payments received and final account settled.'
     });
+
+    function notify(type,title,text){
+      setToast({type,title,text});
+      setTimeout(()=>setToast(null),5000);
+    }
+
+    function money(value){
+      return `₹${Number(value||0).toLocaleString('en-IN',{
+        minimumFractionDigits:0,
+        maximumFractionDigits:2
+      })}`;
+    }
 
     async function load(){
       setLoading(true);
       const {data,error}=await client.from('billing_transactions')
         .select('*,patients(full_name,title,patient_id,room_no,bed_no)')
         .order('transaction_date',{ascending:false})
-        .limit(500);
+        .limit(1000);
+
       if(error){
         console.error('Billing transactions could not be loaded:',error);
         setRows([]);
@@ -5042,60 +5113,14 @@ function ShiftHandover({profile,onNavigate}){
     }
 
     React.useEffect(()=>{
+      ensurePaymentSettlementStyle();
       load();
-      const channel=client.channel('billing-payments-live-v201')
+      const channel=client.channel('billing-payments-live-v216')
         .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
+        .on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load)
         .subscribe();
       return()=>client.removeChannel(channel);
     },[]);
-
-    async function save(e){
-      e.preventDefault();
-      if(!canEnter||saving)return;
-      if(!form.patient_id){
-        setMessage('Select a patient before saving the transaction.');
-        return;
-      }
-      const amount=Number(form.amount);
-      if(form.transaction_type==='Discount'&&!canDiscount){setMessage('Discount can be entered only by the Admin.');return}
-      if(!Number.isFinite(amount)||amount<=0){
-        setMessage('Enter a valid amount greater than zero.');
-        return;
-      }
-      setSaving(true);
-      const payload={
-        ...form,
-        amount,
-        payment_mode:form.transaction_type==='Charge'?'Not applicable':form.payment_mode,
-        transaction_date:new Date().toISOString(),
-        entered_by:profile.id
-      };
-      const {data,error}=await client.from('billing_transactions')
-        .insert(payload)
-        .select('id')
-        .single();
-      if(error){
-        setMessage(error.message||'Transaction could not be saved.');
-        setSaving(false);
-        return;
-      }
-      writeAuditEvent(
-        'Billing Transaction Saved',
-        'Billing',
-        data?.id||form.patient_id,
-        {
-          patient_id:form.patient_id,
-          transaction_type:form.transaction_type,
-          category:form.category,
-          amount
-        },
-        'Success'
-      );
-      setForm(current=>({...current,amount:'',description:''}));
-      setMessage('Transaction saved successfully.');
-      await load();
-      setSaving(false);
-    }
 
     const visibleRows=patientFilter
       ?rows.filter(row=>row.patient_id===patientFilter)
@@ -5105,74 +5130,374 @@ function ShiftHandover({profile,onNavigate}){
       const type=row.transaction_type||'Charge';
       sum[type]=(sum[type]||0)+Number(row.amount||0);
       return sum;
-    },{Charge:0,Payment:0,Discount:0,Refund:0});
+    },{Charge:0,Payment:0,Advance:0,Discount:0,Refund:0});
 
-    const outstanding=totals.Charge-totals.Payment-totals.Discount+totals.Refund;
+    const paidTotal=totals.Payment+totals.Advance;
+    const netPayable=totals.Charge-paidTotal-totals.Discount+totals.Refund;
+    const pendingBills=Math.max(0,netPayable);
+    const advanceBalance=Math.max(0,-netPayable);
+
+    React.useEffect(()=>{
+      if(dischargeTarget&&patientFilter===dischargeTarget.patient_id&&pendingBills>0){
+        setForm(current=>({
+          ...current,
+          patient_id:dischargeTarget.patient_id,
+          transaction_type:'Payment',
+          category:'Final Settlement',
+          amount:String(pendingBills),
+          description:`Final payment for discharge clearance of ${dischargeTarget.patient_name||'patient'}`
+        }));
+      }
+    },[dischargeTarget?.discharge_id,patientFilter,pendingBills]);
+
+    const pendingRows=visibleRows.filter(row=>row.transaction_type==='Charge');
+    const paymentRows=visibleRows.filter(row=>['Payment','Advance'].includes(row.transaction_type));
+    const filteredRows=
+      quickView==='Pending Bills'?pendingRows:
+      quickView==='Payments / Advances'?paymentRows:
+      quickView==='Discounts'?visibleRows.filter(row=>row.transaction_type==='Discount'):
+      quickView==='Refunds'?visibleRows.filter(row=>row.transaction_type==='Refund'):
+      visibleRows;
+
+    async function savePaymentAndPossiblyClose(e){
+      e.preventDefault();
+      if(!canEnter||saving)return;
+
+      if(!form.patient_id){
+        setMessage('Select a patient before saving the transaction.');
+        return;
+      }
+
+      const amount=Number(form.amount);
+      if(!Number.isFinite(amount)||amount<=0){
+        setMessage('Enter a valid amount greater than zero.');
+        return;
+      }
+
+      if(form.transaction_type==='Discount'&&!canDiscount){
+        setMessage('Discount can be entered only by the Admin.');
+        return;
+      }
+
+      if(
+        dischargeTarget &&
+        form.transaction_type==='Payment' &&
+        amount>pendingBills+0.009
+      ){
+        setMessage(`Payment cannot exceed the Net Payable amount of ${money(pendingBills)}.`);
+        return;
+      }
+
+      if(
+        dischargeTarget &&
+        form.transaction_type==='Payment' &&
+        !String(form.payment_reference||'').trim()
+      ){
+        setMessage('Payment reference / receipt number is mandatory for discharge settlement.');
+        return;
+      }
+
+      if(
+        dischargeTarget &&
+        form.transaction_type==='Payment' &&
+        amount>=pendingBills-0.009 &&
+        !String(form.closure_remarks||'').trim()
+      ){
+        setMessage('Closure remarks are mandatory before completing discharge settlement.');
+        return;
+      }
+
+      setSaving(true);
+      setMessage('');
+
+      const payload={
+        patient_id:form.patient_id,
+        transaction_type:form.transaction_type,
+        category:form.category,
+        amount,
+        payment_mode:form.transaction_type==='Charge'?'Not applicable':form.payment_mode,
+        description:[
+          form.description,
+          form.payment_reference?`Reference: ${form.payment_reference}`:''
+        ].filter(Boolean).join(' | '),
+        transaction_date:new Date().toISOString(),
+        entered_by:profile.id
+      };
+
+      const {data,error}=await client.from('billing_transactions')
+        .insert(payload)
+        .select('id')
+        .single();
+
+      if(error){
+        setMessage(error.message||'Transaction could not be saved.');
+        setSaving(false);
+        return;
+      }
+
+      writeAuditEvent(
+        'Billing Transaction Saved',
+        'Billing',
+        data?.id||form.patient_id,
+        {
+          patient_id:form.patient_id,
+          transaction_type:form.transaction_type,
+          category:form.category,
+          amount,
+          payment_mode:form.payment_mode,
+          payment_reference:form.payment_reference||null
+        },
+        'Success'
+      );
+
+      const expectedBalance=
+        form.transaction_type==='Payment'||form.transaction_type==='Advance'
+          ?netPayable-amount
+          :form.transaction_type==='Discount'
+            ?netPayable-amount
+            :form.transaction_type==='Refund'
+              ?netPayable+amount
+              :netPayable+amount;
+
+      if(dischargeTarget && expectedBalance<=0.009){
+        const closeResult=await client.rpc('close_patient_discharge_accounts_v2',{
+          p_discharge_id:dischargeTarget.discharge_id,
+          p_remarks:[
+            form.closure_remarks,
+            `Payment mode: ${form.payment_mode}`,
+            form.payment_reference?`Reference: ${form.payment_reference}`:''
+          ].filter(Boolean).join(' | ')
+        });
+
+        if(closeResult.error){
+          notify(
+            'error',
+            'Payment recorded, but discharge not closed',
+            closeResult.error.message||'Return to Discharge Clearance and complete closure.'
+          );
+          await load();
+          setSaving(false);
+          return;
+        }
+
+        try{sessionStorage.removeItem('samara_discharge_payment_target')}catch(_error){}
+        setDischargeTarget(null);
+
+        notify(
+          'success',
+          'Payment received and discharge closed successfully',
+          'The account is cleared, the patient status has been updated, the room is released and the completed discharge has been forwarded automatically to Nursing.'
+        );
+
+        await load();
+        setSaving(false);
+        setTimeout(()=>window.dispatchEvent(new CustomEvent('samara-return-discharge-clearance')),3800);
+        return;
+      }
+
+      notify(
+        'success',
+        `${form.transaction_type} recorded successfully`,
+        `${money(amount)} received through ${form.payment_mode}${form.payment_reference?` · Reference ${form.payment_reference}`:''}.`
+      );
+
+      setForm(current=>({
+        ...current,
+        amount:'',
+        payment_reference:'',
+        description:''
+      }));
+
+      await load();
+      setSaving(false);
+    }
+
+    const summaryCards=[
+      ['Total Charges',totals.Charge,'summary-red'],
+      ['Payments / Advance',paidTotal,'summary-green'],
+      ['Discounts',totals.Discount,'summary-orange'],
+      ['Pending Bills',pendingBills,pendingBills>0?'summary-red':'summary-green'],
+      ['Advance Balance',advanceBalance,'summary-blue'],
+      ['Net Payable',pendingBills,pendingBills>0?'summary-red':'summary-green']
+    ];
 
     return h(React.Fragment,null,
-      h('div',{className:'grid stats'},
-        [
-          ['Total Charges',totals.Charge],
-          ['Payments / Advance',totals.Payment],
-          ['Discounts',totals.Discount],
-          ['Refunds',totals.Refund],
-          ['Pending Bills',Math.max(0,outstanding)],
-          ['Advance Balance',Math.max(0,-outstanding)]
-        ].map(([label,value])=>h('div',{className:'card stat',key:label},
-          h('span',null,label),
-          h('strong',null,`₹${Number(value||0).toLocaleString('en-IN')}`)
-        ))
+      dischargeTarget&&h(Section,{
+        title:'Discharge Final Payment',
+        subtitle:`${dischargeTarget.patient_name} · ${dischargeTarget.patient_code||'No ID'} · Room ${dischargeTarget.room_no||'—'}${dischargeTarget.bed_no?`-${dischargeTarget.bed_no}`:''}`
+      },
+        h('div',{className:'message info'},
+          'Complete the final payment below. When Net Payable becomes zero, the system will close the discharge automatically and return the completed status to Nursing.'
+        )
       ),
+
       h(Section,{
         title:'Patient Bills, Charges & Transaction History',
-        subtitle:'Select a patient to view only that patient’s financial records'
+        subtitle:'Select one patient to display only that patient’s financial records'
       },
-        h('div',{className:'panel-head'},
-          h('div',{className:'field',style:{minWidth:'320px',marginBottom:0}},
+        h('div',{className:'payment-filter-grid'},
+          h('div',{className:'field'},
             h('label',null,'Patient'),
-            h('select',{value:patientFilter,onChange:e=>setPatientFilter(e.target.value)},
-              h('option',{value:''},'All patients'),
+            h('select',{
+              value:patientFilter,
+              disabled:!!dischargeTarget,
+              onChange:e=>{
+                const value=e.target.value;
+                setPatientFilter(value);
+                setForm(current=>({...current,patient_id:value}));
+              }
+            },
+              h('option',{value:''},'Select patient'),
               patients.map(patient=>h('option',{key:patient.id,value:patient.id},
                 `${formalName(patient)||patient.full_name} · ${patient.patient_id||'No ID'}`
               ))
             )
           ),
-          h('button',{type:'button',className:'btn btn-secondary',onClick:load},loading?'Loading…':'Refresh')
+          h('div',{className:'field'},
+            h('label',null,'Quick View'),
+            h('select',{value:quickView,onChange:e=>setQuickView(e.target.value)},
+              ['Pending Bills','Payments / Advances','Discounts','Refunds','Complete Transaction History']
+                .map(option=>h('option',{key:option,value:option},option))
+            )
+          )
         ),
-        message&&h('div',{className:`message ${message.includes('successfully')?'success':'error'}`},message)
-      ),
-      canEnter&&h(Section,{
-        title:'Manual Billing & Payment Entry',
-        subtitle:'Accounts, Admin and Manager only'
-      },
-        h('form',{className:'modal-grid',onSubmit:save},
-          patientSelect(patients,form.patient_id,value=>setForm({...form,patient_id:value})),
-          miniSelect('Transaction',form.transaction_type,canDiscount?['Charge','Payment','Discount','Refund']:['Charge','Payment','Refund'],value=>setForm({...form,transaction_type:value})),
-          miniSelect('Category',form.category,[
-            'Admission Fee','Room Charges','Nursing Charges','Special Nurse Charges',
-            'Food Charges','Medicine Charges','Physiotherapy','Consumables',
-            'Doctor Visit','Lab Charges','Hospital Charges','Ambulance / Transport',
-            'Equipment','Advance','Other'
-          ],value=>setForm({...form,category:value})),
-          miniInput('Amount',form.amount,value=>setForm({...form,amount:value}),true,'number'),
-          miniSelect('Payment mode',form.payment_mode,['Cash','UPI','Bank transfer','Card','Cheque','Not applicable'],value=>setForm({...form,payment_mode:value})),
-          miniInput('Description / reference',form.description,value=>setForm({...form,description:value})),
-          h('button',{className:'btn btn-primary',disabled:saving},saving?'Saving…':'Save Transaction')
+        h('div',{className:'payment-quick-buttons'},
+          h('button',{type:'button',className:'btn btn-primary',onClick:()=>setQuickView('Pending Bills')},'Pending Bills as on Date'),
+          h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setQuickView('Complete Transaction History')},'Complete Transaction History')
         )
       ),
+
+      h('div',{className:'payment-summary-grid'},
+        summaryCards.map(([label,value,klass])=>h('div',{className:`payment-summary-card ${klass}`,key:label},
+          h('span',null,label),
+          h('strong',null,money(value))
+        ))
+      ),
+
+      h(Section,{
+        title:dischargeTarget?'Final Payment & Discharge Settlement':'Manual Billing & Payment Entry',
+        subtitle:dischargeTarget
+          ?'Enter payment details. Exact settlement will close the discharge automatically.'
+          :'Accounts, Admin and Manager only'
+      },
+        h('form',{className:'payment-entry-grid',onSubmit:savePaymentAndPossiblyClose},
+          h('div',{className:'field'},
+            h('label',null,'Patient'),
+            h('select',{
+              value:form.patient_id,
+              disabled:!!dischargeTarget,
+              onChange:e=>setForm({...form,patient_id:e.target.value})
+            },
+              h('option',{value:''},'Select patient'),
+              patients.map(patient=>h('option',{key:patient.id,value:patient.id},
+                `${patient.patient_id||'No ID'} · ${formalName(patient)||patient.full_name} · Room ${patient.room_no||'—'}-${patient.bed_no||'—'}`
+              ))
+            )
+          ),
+          h('div',{className:'field'},
+            h('label',null,'Transaction'),
+            h('select',{
+              value:form.transaction_type,
+              disabled:!!dischargeTarget,
+              onChange:e=>setForm({...form,transaction_type:e.target.value})
+            },
+              (canDiscount?['Payment','Advance','Charge','Discount','Refund']:['Payment','Advance','Charge','Refund'])
+                .map(option=>h('option',{key:option,value:option},option))
+            )
+          ),
+          h('div',{className:'field'},
+            h('label',null,'Category'),
+            h('select',{
+              value:form.category,
+              onChange:e=>setForm({...form,category:e.target.value})
+            },
+              [
+                'Final Settlement','Advance','Room Charges','Nursing Charges',
+                'Special Nurse Charges','Food Charges','Medicine Charges',
+                'Physiotherapy','Consumables','Doctor Visit','Lab Charges',
+                'Hospital Charges','Ambulance / Transport','Equipment','Other'
+              ].map(option=>h('option',{key:option,value:option},option))
+            )
+          ),
+          h('div',{className:'field'},
+            h('label',null,dischargeTarget?'Net Payable Amount':'Amount'),
+            h('input',{
+              type:'number',
+              min:'0.01',
+              step:'0.01',
+              required:true,
+              value:form.amount,
+              onChange:e=>setForm({...form,amount:e.target.value})
+            })
+          ),
+          h('div',{className:'field'},
+            h('label',null,'Payment Mode'),
+            h('select',{value:form.payment_mode,onChange:e=>setForm({...form,payment_mode:e.target.value})},
+              ['Cash','UPI','Card','Bank Transfer','Cheque']
+                .map(option=>h('option',{key:option,value:option},option))
+            )
+          ),
+          h('div',{className:'field'},
+            h('label',null,'Payment Reference / Receipt No.'),
+            h('input',{
+              value:form.payment_reference,
+              required:!!dischargeTarget,
+              placeholder:'UPI reference, receipt number, card slip or cheque number',
+              onChange:e=>setForm({...form,payment_reference:e.target.value})
+            })
+          ),
+          h('div',{className:'field span-2'},
+            h('label',null,'Description'),
+            h('input',{
+              value:form.description,
+              placeholder:'Payment particulars',
+              onChange:e=>setForm({...form,description:e.target.value})
+            })
+          ),
+          dischargeTarget&&h('div',{className:'field span-2'},
+            h('label',null,'Accounts Closure Remarks'),
+            h('textarea',{
+              rows:3,
+              required:true,
+              value:form.closure_remarks,
+              onChange:e=>setForm({...form,closure_remarks:e.target.value}),
+              placeholder:'Confirm final settlement, receipt details, advance adjustment or refund, if any.'
+            })
+          ),
+          h('button',{
+            className:'btn btn-primary span-2 payment-submit',
+            disabled:saving||!form.patient_id
+          },saving
+            ?'Processing…'
+            :dischargeTarget
+              ?`Receive ${money(Number(form.amount||pendingBills))} & Close Discharge`
+              :'Save Transaction'
+          )
+        ),
+        message&&h('div',{className:'message error'},message)
+      ),
+
       h(LogTable,{
-        title:patientFilter?'Selected Patient Transaction History':'Complete Transaction History',
+        title:quickView==='Complete Transaction History'
+          ?'Complete Transaction History'
+          :quickView,
         heads:['Patient','Type','Category','Amount','Mode','Description','Date'],
-        rows:visibleRows.map(row=>[
+        rows:filteredRows.map(row=>[
           formalName(row.patients||{})||row.patients?.full_name||'—',
           row.transaction_type,
           row.category,
-          `₹${Number(row.amount||0).toLocaleString('en-IN')}`,
+          money(row.amount),
           row.payment_mode||'—',
           row.description||'—',
           fmt(row.transaction_date)
         ])
-      })
+      }),
+
+      toast&&h('div',{className:`samara-toast ${toast.type}`},
+        h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),
+        h('div',null,h('strong',null,toast.title),h('span',null,toast.text)),
+        h('button',{onClick:()=>setToast(null)},'×')
+      )
     );
   }
 

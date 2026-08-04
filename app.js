@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.6';
-  const APP_BUILD_DATE = '05-Aug-2026 00:55 IST';
+  const APP_VERSION = '2.1.7';
+  const APP_BUILD_DATE = '05-Aug-2026 01:10 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -2770,6 +2770,57 @@ Caring with Compassion. Living with Dignity.`;
       await load();
     }
 
+    async function confirmPatientDeparted(row){
+      if(!isNurse||busy)return;
+      const receiver=prompt(
+        'Enter the name of the person who received/accompanied the patient:',
+        row.relative_name||row.voluntary_requester_name||''
+      )||'';
+      if(!receiver.trim()){
+        notify('error','Final discharge not completed','Receiving person name is mandatory.');
+        return;
+      }
+      const remarks=prompt(
+        'Final departure remarks / actual departure details:',
+        'Patient left the facility after receiving medicines, documents and belongings.'
+      )||'';
+      if(!remarks.trim()){
+        notify('error','Final discharge not completed','Departure remarks are mandatory.');
+        return;
+      }
+
+      setBusy(true);
+      const {data,error}=await client.rpc('confirm_patient_departure_v2',{
+        p_discharge_id:row.id,
+        p_received_by_name:receiver.trim(),
+        p_departure_remarks:remarks.trim()
+      });
+      setBusy(false);
+
+      if(error){
+        notify('error','Final discharge not completed',error.message||'Unable to confirm patient departure.');
+        return;
+      }
+
+      notify(
+        'success',
+        'Patient discharged successfully',
+        `Final departure confirmed. Room ${data?.room_no||'—'}-${data?.bed_no||'—'} is now available.`
+      );
+      await load();
+      writeAuditEvent(
+        'Patient Final Departure Confirmed',
+        'Discharge',
+        row.id,
+        {
+          patient_id:row.patient_id,
+          received_by_name:receiver.trim(),
+          room_released:true
+        },
+        'Success'
+      );
+    }
+
     const tableRows=rows.map(row=>[
       patientLabel(row.patient_id),
       row.initiation_basis||'—',
@@ -2790,7 +2841,18 @@ Caring with Compassion. Living with Dignity.`;
         canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-danger',onClick:()=>approve(row,'Rejected')},'Reject'),
         canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&h('button',{className:'btn btn-secondary',onClick:()=>openPayments(row)},'View Payments'),
         canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&row.accounts_status==='Ready to Close'&&h('button',{className:'btn btn-primary',onClick:()=>closeAccounts(row)},'Enter Closure Remarks & Close'),
-        isNurse&&h('span',{className:'small-note'},row.status==='Completed'?'Completed':row.management_status==='Rejected'?'Returned by Manager':row.management_status==='Approved'?'With Accounts':'Awaiting Management')
+        isNurse&&row.accounts_status==='Cleared'&&row.status!=='Completed'&&h('button',{className:'btn btn-primary',onClick:()=>confirmPatientDeparted(row)},'Confirm Patient Left'),
+        isNurse&&h('span',{className:'small-note'},
+          row.status==='Completed'
+            ?'Discharge completed'
+            :row.accounts_status==='Cleared'
+              ?'Accounts cleared — confirm departure'
+              :row.management_status==='Rejected'
+                ?'Returned by Manager'
+                :row.management_status==='Approved'
+                  ?'With Accounts'
+                  :'Awaiting Management'
+        )
       )
     ]);
 
@@ -3844,7 +3906,7 @@ function RoomsBeds({profile}){
         setMessage(error.message||'Unable to mark discharge ready for closure.');
         return;
       }
-      setMessage('Payment completed successfully. Return to Discharge Clearance to enter closure remarks and close the discharge.');
+      setMessage('Payment completed successfully. Accounts clearance is complete and the case has returned to Nursing for final physical discharge confirmation.');
       try{sessionStorage.removeItem('samara_discharge_payment_target')}catch(_error){}
       setTimeout(()=>window.dispatchEvent(new CustomEvent('samara-return-discharge-clearance')),800);
     }
@@ -5285,8 +5347,8 @@ function ShiftHandover({profile,onNavigate}){
 
         notify(
           'success',
-          'Payment received and discharge closed successfully',
-          'The account is cleared, the patient status has been updated, the room is released and the completed discharge has been forwarded automatically to Nursing.'
+          'Payment received and accounts cleared successfully',
+          'The account is financially cleared and the case has been forwarded automatically to Nursing for final physical discharge confirmation. The room and bed remain occupied until the Nurse confirms that the patient has left.'
         );
 
         await load();

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.1';
-  const APP_BUILD_DATE = '05-Aug-2026 00:44 IST';
+  const APP_VERSION = '2.2.2';
+  const APP_BUILD_DATE = '05-Aug-2026 00:50 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -702,6 +702,93 @@ Caring with Compassion. Living with Dignity.`;
     );
   }
 
+  const ensureSmoothRefreshStyle = () => {
+    if(document.getElementById('samara-smooth-refresh-style'))return;
+    const style=document.createElement('style');
+    style.id='samara-smooth-refresh-style';
+    style.textContent=`
+      html,body,#root{min-height:100%;background:#edf5f2}
+      #app-splash{
+        opacity:1;
+        visibility:visible;
+        transition:opacity .55s ease,visibility .55s ease;
+        will-change:opacity;
+      }
+      #app-splash.splash-ready{
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
+      }
+      #app-splash .splash-card{
+        transform:translateY(0) scale(1);
+        transition:transform .55s cubic-bezier(.22,.61,.36,1),opacity .4s ease;
+      }
+      #app-splash.splash-ready .splash-card{
+        transform:translateY(-8px) scale(.985);
+        opacity:.96;
+      }
+      #app-splash .splash-progress,
+      #app-splash [class*="progress"]{
+        overflow:hidden;
+      }
+      #app-splash .splash-progress::after,
+      #app-splash [class*="progress"]::after{
+        content:'';
+        display:block;
+        height:100%;
+        width:34%;
+        border-radius:inherit;
+        background:linear-gradient(90deg,transparent,rgba(18,139,105,.9),transparent);
+        animation:samaraSplashMove 1.15s ease-in-out infinite;
+      }
+      @keyframes samaraSplashMove{
+        0%{transform:translateX(-115%)}
+        100%{transform:translateX(320%)}
+      }
+      #root.samara-app-enter{
+        animation:samaraAppEnter .42s ease both;
+      }
+      @keyframes samaraAppEnter{
+        from{opacity:0;transform:translateY(5px)}
+        to{opacity:1;transform:none}
+      }
+      @media(prefers-reduced-motion:reduce){
+        #app-splash,#app-splash .splash-card,#root.samara-app-enter{
+          transition:none!important;
+          animation:none!important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
+  const updateSplashStatus = text => {
+    const splash=document.getElementById('app-splash');
+    if(!splash)return;
+    const candidates=[
+      splash.querySelector('[data-splash-status]'),
+      ...[...splash.querySelectorAll('p,small,span,div')].filter(node=>
+        /preparing|workspace|loading|secure/i.test(String(node.textContent||''))
+      )
+    ].filter(Boolean);
+    const node=candidates[0];
+    if(node)node.textContent=text;
+  };
+
+  const finishSmoothRefresh = () => {
+    const splash=document.getElementById('app-splash');
+    const root=document.getElementById('root');
+    if(root)root.classList.add('samara-app-enter');
+    if(!splash)return;
+    updateSplashStatus('Workspace ready');
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        splash.classList.add('splash-ready');
+        setTimeout(()=>splash.remove(),620);
+      });
+    });
+  };
+
   function App(){
     const [session,setSession]=React.useState(null);
     const [profile,setProfile]=React.useState(null);
@@ -775,16 +862,34 @@ Caring with Compassion. Living with Dignity.`;
 
 
     React.useEffect(()=>{
-      const splash=document.getElementById('app-splash');
-      const removeSplash=()=>{ if(splash){ splash.classList.add('splash-hide'); setTimeout(()=>splash.remove(),320); } };
-      const splashTimer=setTimeout(removeSplash,1450);
-      client.auth.getSession().then(({data})=>setSession(data.session||null)).finally(()=>setLoading(false));
+      ensureSmoothRefreshStyle();
+      updateSplashStatus('Checking secure session…');
+      let active=true;
+      const minimumVisible=new Promise(resolve=>setTimeout(resolve,700));
+      const sessionReady=client.auth.getSession().then(({data})=>{
+        if(!active)return;
+        updateSplashStatus(data.session?'Loading your workspace…':'Preparing sign-in…');
+        setSession(data.session||null);
+      }).catch(error=>{
+        console.error('Session refresh failed:',error);
+      }).finally(()=>{
+        if(active)setLoading(false);
+      });
+
+      Promise.allSettled([minimumVisible,sessionReady]).then(()=>{
+        if(!active)return;
+        setTimeout(finishSmoothRefresh,120);
+      });
+
       const {data:{subscription}}=client.auth.onAuthStateChange((event,next)=>{
         if(event==='PASSWORD_RECOVERY') setRecoveryMode(true);
         setSession(next);
       });
       if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-      return()=>{clearTimeout(splashTimer);subscription.unsubscribe();};
+      return()=>{
+        active=false;
+        subscription.unsubscribe();
+      };
     },[]);
 
     React.useEffect(()=>{

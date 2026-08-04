@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.0.3';
-  const APP_BUILD_DATE = '04-Aug-2026 20:05 IST';
+  const APP_VERSION = '2.0.4';
+  const APP_BUILD_DATE = '04-Aug-2026 22:57 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -214,6 +214,61 @@
     if(!(node instanceof Element))return false;
     if(node.matches('.samara-toast.success,.message.success,.toast.success,[data-toast-type="success"]'))return true;
     return Boolean(node.querySelector('.samara-toast.success,.message.success,.toast.success,[data-toast-type="success"]'));
+  };
+
+
+  const ensureGlobalActionSuccessStyle = () => {
+    if(document.getElementById('samara-global-action-success-style'))return;
+    const style=document.createElement('style');
+    style.id='samara-global-action-success-style';
+    style.textContent=`
+      .samara-toast.success,
+      .toast.success,
+      [data-toast-type="success"] {
+        position: fixed !important;
+        top: 28px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 30000 !important;
+        min-width: min(520px, calc(100vw - 32px)) !important;
+        max-width: 720px !important;
+        padding: 15px 18px !important;
+        border: 1px solid #087443 !important;
+        border-radius: 13px !important;
+        background: #11884f !important;
+        color: #ffffff !important;
+        box-shadow: 0 14px 34px rgba(4, 78, 46, .28) !important;
+        font-weight: 700 !important;
+      }
+
+      .samara-toast.success strong,
+      .samara-toast.success span,
+      .samara-toast.success button,
+      .toast.success strong,
+      .toast.success span,
+      .toast.success button,
+      [data-toast-type="success"] strong,
+      [data-toast-type="success"] span,
+      [data-toast-type="success"] button {
+        color: #ffffff !important;
+      }
+
+      .samara-toast.success button,
+      .toast.success button,
+      [data-toast-type="success"] button {
+        background: transparent !important;
+        border: 0 !important;
+        font-size: 20px !important;
+      }
+
+      .message.success {
+        border: 1px solid #087443 !important;
+        background: #e7f8ee !important;
+        color: #075c36 !important;
+        font-weight: 700 !important;
+      }
+    `;
+    document.head.appendChild(style);
   };
 
 
@@ -531,6 +586,7 @@ Caring with Compassion. Living with Dignity.`;
       }
     },[page]);
     React.useEffect(()=>{
+      ensureGlobalActionSuccessStyle();
       const root=document.getElementById('root');
       if(!root)return;
 
@@ -546,10 +602,13 @@ Caring with Compassion. Living with Dignity.`;
         if(!hasPopup)return;
 
         closing=true;
+
+        // Keep the action-specific green success message visible first.
+        // Close the entry popup only after the confirmation has been readable.
         setTimeout(()=>{
           closeTopActionPopup();
           closing=false;
-        },650);
+        },3600);
       });
 
       observer.observe(root,{childList:true,subtree:true});
@@ -1218,7 +1277,7 @@ Caring with Compassion. Living with Dignity.`;
         const link=whatsappWelcomeUrl(createdRow,employeeForm.password);setWelcomeLink(link);
         if(preopened&&link){preopened.location.href=link}else if(preopened){preopened.close()}
         await load();
-        const successText=result.repaired?'Employee account repaired and personnel details saved successfully.':'Employee created successfully with personnel details. The employee can sign in immediately.';
+        const successText=result.repaired?'Employee account repaired successfully.':'New employee added successfully.';
         setMsg(successText);showEmployeeToast('success',successText);
         setForm(empty);setIdFiles([]);setQualificationFiles([]);setExperienceFiles([]);setOtherFiles([]);setCameraFiles([]);setPhotoFiles([]);setPhotoPreview('');
       }catch(error){
@@ -1289,7 +1348,7 @@ Caring with Compassion. Living with Dignity.`;
         if(roleResult.role!==requestedRole)throw new Error(`Selected role ${requestedRole} was not saved correctly.`);
         await uploadEmployeePhoto(detailsTarget.id,photoFiles);
         await uploadEmployeeFiles(detailsTarget.id,[{type:'ID Card',files:idFiles},{type:'Qualification Certificate',files:qualificationFiles},{type:'Experience Certificate',files:experienceFiles},{type:'Other Certificate',files:otherFiles},{type:'Camera Capture',files:cameraFiles}]);
-        const successText='Employee information and documents updated successfully.';
+        const successText='Employee updated successfully.';
         setDetailsMsg(successText);showEmployeeToast('success',successText);setIdFiles([]);setQualificationFiles([]);setExperienceFiles([]);setOtherFiles([]);setCameraFiles([]);setPhotoFiles([]);await load();
         const {data}=await client.from('employee_documents').select('*').eq('employee_id',detailsTarget.id).order('created_at',{ascending:false});setDetailsDocs(data||[]);
         const resolved=await resolveEmployeePhoto(detailsTarget,900);
@@ -2219,7 +2278,7 @@ Caring with Compassion. Living with Dignity.`;
           if(pe)throw pe;
         }
       }catch(orderError){const text=`Patient details saved, but medicines or care plan could not be updated: ${orderError.message}`;setEditMsg(text);showPatientToast('error',text);setEditBusy(false);return}
-      const successText='Patient information, medicines, care plan and documents updated successfully.';
+      const successText='Patient information updated successfully.';
       setEditMsg(successText);showPatientToast('success',successText);await load();await loadEditMedia({...data,id:editTarget.id});
       if(selected?.id===editTarget.id){setSelected(data);setTimeout(()=>openPatient(data),0)}
       setEditUploads({photo:[],identity:[],prescription:[],discharge:[],reports:[],other:[]});setEditBusy(false);

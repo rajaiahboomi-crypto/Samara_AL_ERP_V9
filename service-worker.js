@@ -1,8 +1,8 @@
-const CACHE = 'samara-erp-1.3.51-accounts-reports';
+const CACHE = 'samara-erp-2.0.0-clinical-charges';
 const SHELL = [
-  './', './index.html', './styles.css?v=1.3.51', './styles-1.3.51-accounts-reports.css?v=1.3.51', './app.js?v=1.3.51',
-  './bootstrap-error.js?v=1.3.51', './health-check.js?v=1.3.51',
-  './config.js?v=1.3.51', './manifest.webmanifest',
+  './', './index.html', './styles.css?v=2.0.0', './app.js?v=2.0.0',
+  './bootstrap-error.js?v=2.0.0', './health-check.js?v=2.0.0',
+  './config.js?v=2.0.0', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
 ];
 self.addEventListener('install', event => {
@@ -15,7 +15,7 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-  const isCritical = /\/(index\.html|app\.js|styles(?:-[^/]+)?\.css|config\.js|bootstrap-error\.js|health-check\.js)(\?|$)/.test(url.pathname + url.search);
+  const isCritical = /\/(index\.html|app\.js|styles\.css|config\.js|bootstrap-error\.js|health-check\.js)(\?|$)/.test(url.pathname + url.search);
   if (isCritical) {
     event.respondWith(fetch(event.request, {cache:'no-store'}).then(response => {
       const copy = response.clone();

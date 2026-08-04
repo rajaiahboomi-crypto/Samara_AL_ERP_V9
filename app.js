@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.8';
-  const APP_BUILD_DATE = '05-Aug-2026 01:25 IST';
+  const APP_VERSION = '2.1.9';
+  const APP_BUILD_DATE = '05-Aug-2026 01:45 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -634,6 +634,60 @@ Caring with Compassion. Living with Dignity.`;
           h('button',{className:'btn btn-primary'},'Save Settings')
         )
       ),
+      showFinalDischarge&&finalDischargeRow&&h('div',{className:'modal-backdrop'},
+        h('form',{className:'card modal final-discharge-modal',onSubmit:completeFinalDischarge},
+          h('div',{className:'panel-head'},
+            h('div',null,
+              h('h3',null,'Final Nursing Discharge Clearance'),
+              h('small',null,patientLabel(finalDischargeRow.patient_id))
+            ),
+            h('button',{type:'button',className:'close',onClick:()=>setShowFinalDischarge(false)},'×')
+          ),
+          h('div',{className:'message success'},
+            'Accounts clearance completed. Confirm all clinical handover items and the patient’s actual departure before releasing the room and bed.'
+          ),
+          h('div',{className:'final-discharge-checklist'},
+            [
+              ['discharge_summary_handed_over','Discharge summary handed over'],
+              ['medicines_handed_over','Medicines handed over'],
+              ['reports_handed_over','Reports and investigation documents handed over'],
+              ['belongings_handed_over','Personal belongings handed over'],
+              ['valuables_handed_over','Valuables handed over / confirmed none'],
+              ['final_instructions_explained','Medication, diet and follow-up instructions explained'],
+              ['patient_condition_confirmed','Patient condition checked and fit for departure / transfer']
+            ].map(([key,label])=>h('label',{className:'check-card',key},
+              h('input',{
+                type:'checkbox',
+                checked:!!finalForm[key],
+                onChange:e=>setFinalForm({...finalForm,[key]:e.target.checked})
+              }),
+              h('span',null,label)
+            ))
+          ),
+          h('div',{className:'modal-grid'},
+            miniInput('Received / Accompanied By',finalForm.receiving_person_name,v=>setFinalForm({...finalForm,receiving_person_name:v}),true),
+            miniInput('Contact Number',finalForm.receiving_person_contact,v=>setFinalForm({...finalForm,receiving_person_contact:v})),
+            miniInput('Relationship',finalForm.relationship,v=>setFinalForm({...finalForm,relationship:v})),
+            miniInput('Actual Departure Date & Time',finalForm.actual_departure_time,v=>setFinalForm({...finalForm,actual_departure_time:v}),true,'datetime-local'),
+            miniInput('Transport / Ambulance Details',finalForm.transport_details,v=>setFinalForm({...finalForm,transport_details:v})),
+            h('div',{className:'field span-2'},
+              h('label',null,'Final Nursing Remarks'),
+              h('textarea',{
+                rows:4,
+                required:true,
+                value:finalForm.final_remarks,
+                onChange:e=>setFinalForm({...finalForm,final_remarks:e.target.value}),
+                placeholder:'Patient condition, documents handed over, medicines, belongings, receiving person and departure details.'
+              })
+            )
+          ),
+          h('div',{className:'actions'},
+            h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShowFinalDischarge(false)},'Cancel'),
+            h('button',{className:'btn btn-primary',disabled:busy},busy?'Completing…':'Complete Final Discharge & Release Room')
+          )
+        )
+      ),
+
       toast&&h('div',{className:`samara-toast ${toast.type}`},h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),h('div',null,h('strong',null,toast.type==='success'?'Saved':'Failed'),h('span',null,toast.text)),h('button',{onClick:()=>setToast(null)},'×'))
     );
   }
@@ -2579,7 +2633,34 @@ Caring with Compassion. Living with Dignity.`;
   function Section({title,subtitle,actions,children}){return h('div',{className:'card panel'},h('div',{className:'panel-head'},h('div',null,h('h3',null,title),subtitle&&h('small',null,subtitle)),actions),children)}
 
   
+  const ensureFinalDischargeStyle = () => {
+    if(document.getElementById('samara-final-discharge-style'))return;
+    const style=document.createElement('style');
+    style.id='samara-final-discharge-style';
+    style.textContent=`
+      .final-discharge-modal{
+        width:min(1000px,96vw)!important;
+        max-height:92vh!important;
+        overflow:auto!important;
+      }
+      .final-discharge-checklist{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:10px;
+        margin:14px 0;
+      }
+      .final-discharge-checklist .check-card{
+        min-height:52px;
+      }
+      @media(max-width:700px){
+        .final-discharge-checklist{grid-template-columns:1fr}
+      }
+    `;
+    document.head.appendChild(style);
+  };
+
   function DischargeManagement({profile,mode='workflow',onNavigate}){
+    React.useEffect(()=>{ensureFinalDischargeStyle()},[]);
     const isNurse=profile?.role==='Nurse';
     const isAccountsClearance=mode==='accounts';
     const canInitiate=!isAccountsClearance&&['Admin','Manager','Nurse'].includes(profile?.role);
@@ -2593,6 +2674,23 @@ Caring with Compassion. Living with Dignity.`;
     const [toast,setToast]=React.useState(null);
     const [message,setMessage]=React.useState('');
     const [paymentTarget,setPaymentTarget]=React.useState(null);
+    const [showFinalDischarge,setShowFinalDischarge]=React.useState(false);
+    const [finalDischargeRow,setFinalDischargeRow]=React.useState(null);
+    const [finalForm,setFinalForm]=React.useState({
+      discharge_summary_handed_over:false,
+      medicines_handed_over:false,
+      reports_handed_over:false,
+      belongings_handed_over:false,
+      valuables_handed_over:false,
+      final_instructions_explained:false,
+      patient_condition_confirmed:false,
+      receiving_person_name:'',
+      receiving_person_contact:'',
+      relationship:'',
+      actual_departure_time:localDateTimeValue(),
+      transport_details:'',
+      final_remarks:'Patient left the facility after receiving discharge documents, medicines and belongings.'
+    });
     const initial={
       patient_id:'',initiation_basis:'Consultant / Doctor Instruction',
       instructed_by_name:'',instructed_by_contact:'',
@@ -2770,51 +2868,96 @@ Caring with Compassion. Living with Dignity.`;
       await load();
     }
 
-    async function confirmPatientDeparted(row){
-      if(!isNurse||busy)return;
-      const receiver=prompt(
-        'Enter the name of the person who received/accompanied the patient:',
-        row.relative_name||row.voluntary_requester_name||''
-      )||'';
-      if(!receiver.trim()){
+    function openFinalDischarge(row){
+      setFinalDischargeRow(row);
+      setFinalForm({
+        discharge_summary_handed_over:!!row.discharge_summary_handed_over,
+        medicines_handed_over:!!row.medicines_handed_over,
+        reports_handed_over:!!row.reports_handed_over,
+        belongings_handed_over:!!row.valuables_handed_over,
+        valuables_handed_over:!!row.valuables_handed_over,
+        final_instructions_explained:false,
+        patient_condition_confirmed:false,
+        receiving_person_name:row.relative_name||row.voluntary_requester_name||'',
+        receiving_person_contact:row.relative_contact||row.voluntary_requester_contact||'',
+        relationship:row.voluntary_requested_by||'Relative / Attendant',
+        actual_departure_time:localDateTimeValue(),
+        transport_details:row.transport_arrangement||'',
+        final_remarks:'Patient left the facility after receiving discharge documents, medicines and belongings.'
+      });
+      setShowFinalDischarge(true);
+    }
+
+    async function completeFinalDischarge(e){
+      e.preventDefault();
+      if(!isNurse||busy||!finalDischargeRow)return;
+
+      const requiredChecks=[
+        ['discharge_summary_handed_over','Discharge summary handed over'],
+        ['medicines_handed_over','Medicines handed over'],
+        ['reports_handed_over','Reports/documents handed over'],
+        ['belongings_handed_over','Personal belongings handed over'],
+        ['valuables_handed_over','Valuables handed over / confirmed none'],
+        ['final_instructions_explained','Final instructions explained'],
+        ['patient_condition_confirmed','Patient condition confirmed before departure']
+      ];
+      const missing=requiredChecks.filter(([key])=>!finalForm[key]).map(([,label])=>label);
+      if(missing.length){
+        notify('error','Final discharge not completed',`Complete all checklist items: ${missing.join(', ')}.`);
+        return;
+      }
+      if(!finalForm.receiving_person_name.trim()){
         notify('error','Final discharge not completed','Receiving person name is mandatory.');
         return;
       }
-      const remarks=prompt(
-        'Final departure remarks / actual departure details:',
-        'Patient left the facility after receiving medicines, documents and belongings.'
-      )||'';
-      if(!remarks.trim()){
-        notify('error','Final discharge not completed','Departure remarks are mandatory.');
+      if(!finalForm.actual_departure_time){
+        notify('error','Final discharge not completed','Actual departure date and time are mandatory.');
+        return;
+      }
+      if(!finalForm.final_remarks.trim()){
+        notify('error','Final discharge not completed','Final discharge remarks are mandatory.');
         return;
       }
 
       setBusy(true);
-      const {data,error}=await client.rpc('confirm_patient_departure_v2',{
-        p_discharge_id:row.id,
-        p_received_by_name:receiver.trim(),
-        p_departure_remarks:remarks.trim()
+      const {data,error}=await client.rpc('confirm_patient_departure_v3',{
+        p_discharge_id:finalDischargeRow.id,
+        p_received_by_name:finalForm.receiving_person_name.trim(),
+        p_received_by_contact:finalForm.receiving_person_contact.trim()||null,
+        p_relationship:finalForm.relationship.trim()||null,
+        p_actual_departure_at:new Date(finalForm.actual_departure_time).toISOString(),
+        p_transport_details:finalForm.transport_details.trim()||null,
+        p_departure_remarks:finalForm.final_remarks.trim(),
+        p_discharge_summary_handed_over:finalForm.discharge_summary_handed_over,
+        p_medicines_handed_over:finalForm.medicines_handed_over,
+        p_reports_handed_over:finalForm.reports_handed_over,
+        p_belongings_handed_over:finalForm.belongings_handed_over,
+        p_valuables_handed_over:finalForm.valuables_handed_over,
+        p_final_instructions_explained:finalForm.final_instructions_explained,
+        p_patient_condition_confirmed:finalForm.patient_condition_confirmed
       });
       setBusy(false);
 
       if(error){
-        notify('error','Final discharge not completed',error.message||'Unable to confirm patient departure.');
+        notify('error','Final discharge not completed',error.message||'Unable to complete final discharge.');
         return;
       }
 
       notify(
         'success',
         'Patient discharged successfully',
-        `Final departure confirmed. Room ${data?.room_no||'—'}-${data?.bed_no||'—'} is now available.`
+        `Final nursing clearance completed. Room ${data?.room_no||'—'}-${data?.bed_no||'—'} is now available.`
       );
+      setTimeout(()=>setShowFinalDischarge(false),3600);
       await load();
       writeAuditEvent(
-        'Patient Final Departure Confirmed',
+        'Patient Final Discharge Completed',
         'Discharge',
-        row.id,
+        finalDischargeRow.id,
         {
-          patient_id:row.patient_id,
-          received_by_name:receiver.trim(),
+          patient_id:finalDischargeRow.patient_id,
+          received_by_name:finalForm.receiving_person_name.trim(),
+          actual_departure_at:finalForm.actual_departure_time,
           room_released:true
         },
         'Success'
@@ -2841,7 +2984,7 @@ Caring with Compassion. Living with Dignity.`;
         canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-danger',onClick:()=>approve(row,'Rejected')},'Reject'),
         canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&h('button',{className:'btn btn-secondary',onClick:()=>openPayments(row)},'View Payments'),
         canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&row.accounts_status==='Ready to Close'&&h('button',{className:'btn btn-primary',onClick:()=>closeAccounts(row)},'Enter Closure Remarks & Close'),
-        isNurse&&row.accounts_status==='Cleared'&&row.status!=='Completed'&&h('button',{className:'btn btn-primary',onClick:()=>confirmPatientDeparted(row)},'Confirm Patient Left'),
+        isNurse&&row.accounts_status==='Cleared'&&row.status!=='Completed'&&h('button',{className:'btn btn-primary',onClick:()=>openFinalDischarge(row)},'Final Discharge Clearance'),
         isNurse&&h('span',{className:'small-note'},
           row.status==='Completed'
             ?'Discharge completed'

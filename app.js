@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.4';
-  const APP_BUILD_DATE = '05-Aug-2026 01:08 IST';
+  const APP_VERSION = '2.2.5';
+  const APP_BUILD_DATE = '05-Aug-2026 01:20 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -2823,7 +2823,16 @@ Caring with Compassion. Living with Dignity.`;
       receiving_person_contact:'',
       relationship:'',
       actual_departure_time:localDateTimeValue(),
+      transport_mode:'Own / Family Transport',
       transport_details:'',
+      accompanied_by_name:'',
+      accompanied_by_relationship:'',
+      accompanied_by_contact:'',
+      review_appointment_date:'',
+      review_appointment_time:'',
+      review_doctor_name:'',
+      review_hospital_clinic:'',
+      review_instructions:'',
       final_remarks:'Patient left the facility after receiving discharge documents, medicines and belongings.'
     });
     const initial={
@@ -3018,7 +3027,16 @@ Caring with Compassion. Living with Dignity.`;
         receiving_person_contact:row.relative_contact||row.voluntary_requester_contact||'',
         relationship:row.voluntary_requested_by||'Relative / Attendant',
         actual_departure_time:localDateTimeValue(),
-        transport_details:row.transport_arrangement||'',
+        transport_mode:row.transport_arrangement||'Own / Family Transport',
+        transport_details:'',
+        accompanied_by_name:row.relative_name||row.voluntary_requester_name||'',
+        accompanied_by_relationship:row.voluntary_requested_by||'Relative / Attendant',
+        accompanied_by_contact:row.relative_contact||row.voluntary_requester_contact||'',
+        review_appointment_date:row.review_appointment_date||'',
+        review_appointment_time:row.review_appointment_time||'',
+        review_doctor_name:row.review_doctor_name||row.instructed_by_name||'',
+        review_hospital_clinic:row.review_hospital_clinic||'',
+        review_instructions:row.review_instructions||'',
         final_remarks:'Patient left the facility after receiving discharge documents, medicines and belongings.'
       });
       setShowFinalDischarge(true);
@@ -3050,6 +3068,22 @@ Caring with Compassion. Living with Dignity.`;
         notify('error','Final discharge not completed','Actual departure date and time are mandatory.');
         return;
       }
+      if(!finalForm.transport_mode){
+        notify('error','Final discharge not completed','Select the transport mode.');
+        return;
+      }
+      if(!finalForm.accompanied_by_name.trim()){
+        notify('error','Final discharge not completed','Accompanying person name is mandatory.');
+        return;
+      }
+      if(!finalForm.accompanied_by_relationship.trim()){
+        notify('error','Final discharge not completed','Relationship of the accompanying person is mandatory.');
+        return;
+      }
+      if(!finalForm.accompanied_by_contact.trim()){
+        notify('error','Final discharge not completed','Accompanying person contact number is mandatory.');
+        return;
+      }
       if(!finalForm.final_remarks.trim()){
         notify('error','Final discharge not completed','Final discharge remarks are mandatory.');
         return;
@@ -3062,7 +3096,16 @@ Caring with Compassion. Living with Dignity.`;
         p_received_by_contact:finalForm.receiving_person_contact.trim()||null,
         p_relationship:finalForm.relationship.trim()||null,
         p_actual_departure_at:new Date(finalForm.actual_departure_time).toISOString(),
+        p_transport_mode:finalForm.transport_mode,
         p_transport_details:finalForm.transport_details.trim()||null,
+        p_accompanied_by_name:finalForm.accompanied_by_name.trim(),
+        p_accompanied_by_relationship:finalForm.accompanied_by_relationship.trim(),
+        p_accompanied_by_contact:finalForm.accompanied_by_contact.trim(),
+        p_review_appointment_date:finalForm.review_appointment_date||null,
+        p_review_appointment_time:finalForm.review_appointment_time||null,
+        p_review_doctor_name:finalForm.review_doctor_name.trim()||null,
+        p_review_hospital_clinic:finalForm.review_hospital_clinic.trim()||null,
+        p_review_instructions:finalForm.review_instructions.trim()||null,
         p_departure_remarks:finalForm.final_remarks.trim(),
         p_discharge_summary_handed_over:finalForm.discharge_summary_handed_over,
         p_medicines_handed_over:finalForm.medicines_handed_over,
@@ -3259,7 +3302,37 @@ Caring with Compassion. Living with Dignity.`;
             miniInput('Contact Number',finalForm.receiving_person_contact,v=>setFinalForm({...finalForm,receiving_person_contact:v})),
             miniInput('Relationship',finalForm.relationship,v=>setFinalForm({...finalForm,relationship:v})),
             miniInput('Actual Departure Date & Time',finalForm.actual_departure_time,v=>setFinalForm({...finalForm,actual_departure_time:v}),true,'datetime-local'),
-            miniInput('Transport / Ambulance Details',finalForm.transport_details,v=>setFinalForm({...finalForm,transport_details:v})),
+            miniSelect(
+              'Transport Mode',
+              finalForm.transport_mode,
+              [
+                'Own / Family Transport',
+                'Ambulance',
+                'Samara Vehicle',
+                'Taxi / Cab',
+                'Auto-rickshaw',
+                'Hospital Ambulance',
+                'Other'
+              ],
+              v=>setFinalForm({...finalForm,transport_mode:v})
+            ),
+            miniInput('Transport / Vehicle Details',finalForm.transport_details,v=>setFinalForm({...finalForm,transport_details:v})),
+            miniInput('Accompanied By',finalForm.accompanied_by_name,v=>setFinalForm({...finalForm,accompanied_by_name:v}),true),
+            miniInput('Relationship',finalForm.accompanied_by_relationship,v=>setFinalForm({...finalForm,accompanied_by_relationship:v}),true),
+            miniInput('Accompanying Person Contact',finalForm.accompanied_by_contact,v=>setFinalForm({...finalForm,accompanied_by_contact:v}),true),
+            miniInput('Review Appointment Date',finalForm.review_appointment_date,v=>setFinalForm({...finalForm,review_appointment_date:v}),false,'date'),
+            miniInput('Review Appointment Time',finalForm.review_appointment_time,v=>setFinalForm({...finalForm,review_appointment_time:v}),false,'time'),
+            miniInput('Review Doctor / Consultant',finalForm.review_doctor_name,v=>setFinalForm({...finalForm,review_doctor_name:v})),
+            miniInput('Hospital / Clinic',finalForm.review_hospital_clinic,v=>setFinalForm({...finalForm,review_hospital_clinic:v})),
+            h('div',{className:'field span-2'},
+              h('label',null,'Review Appointment Instructions'),
+              h('textarea',{
+                rows:3,
+                value:finalForm.review_instructions,
+                onChange:e=>setFinalForm({...finalForm,review_instructions:e.target.value}),
+                placeholder:'Follow-up instructions, reports to carry, fasting requirement, tests or appointment notes.'
+              })
+            ),
             h('div',{className:'field span-2'},
               h('label',null,'Final Nursing Remarks'),
               h('textarea',{

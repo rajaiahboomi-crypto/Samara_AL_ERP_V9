@@ -325,3 +325,81 @@
 }
 
 .clinical-charges-hero{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:22px;margin-bottom:16px;border-radius:18px;background:linear-gradient(135deg,#eaf7f2,#f8fcfa);border:1px solid #cfe4dc}.clinical-charges-hero h3{margin:3px 0 6px;font-size:25px}.clinical-charges-hero p{margin:0;color:#52645e}.clinical-charges-hero small{font-weight:800;color:#0b6b57;letter-spacing:.08em}.clinical-charge-filters{display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:12px;align-items:end}.clinical-charge-modal{width:min(1100px,96vw);max-height:92vh;overflow:auto}.clinical-charge-modal .modal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:900px){.clinical-charges-hero{align-items:flex-start;flex-direction:column}.clinical-charge-filters,.clinical-charge-modal .modal-grid{grid-template-columns:1fr}}
+
+
+/* Samara Care ERP 2.0.1 — Sidebar submenu spacing and bullet enhancement */
+
+.nav-section {
+  margin-bottom: 10px;
+}
+
+.nav-submenu {
+  display: grid;
+  gap: 5px;
+  padding: 8px 0 5px 8px;
+}
+
+.nav-submenu button {
+  position: relative;
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px 10px 45px;
+  border-radius: 11px;
+  font-size: 16px;
+  line-height: 1.3;
+  text-align: left;
+  white-space: normal;
+}
+
+.nav-submenu button::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #7fb8aa;
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 2px rgba(127, 184, 170, 0.12);
+}
+
+.nav-submenu button:hover {
+  background: rgba(255,255,255,0.08);
+  color: #ffffff;
+}
+
+.nav-submenu button:hover::before {
+  background: #b9ded4;
+  box-shadow: 0 0 0 3px rgba(185, 222, 212, 0.16);
+}
+
+.nav-submenu button.active {
+  background: #0d6756;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.nav-submenu button.active::before {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.18);
+}
+
+.nav-heading-button {
+  min-height: 44px;
+  font-size: 16px;
+  padding: 11px 12px;
+}
+
+@media (max-width: 950px) {
+  .nav-submenu button {
+    min-height: 44px;
+    padding-left: 46px;
+  }
+
+  .nav-submenu button::before {
+    left: 20px;
+  }
+}

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.1';
-  const APP_BUILD_DATE = '04-Aug-2026 23:32 IST';
+  const APP_VERSION = '2.1.2';
+  const APP_BUILD_DATE = '04-Aug-2026 23:48 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -68,14 +68,13 @@
     'Medicines':'Medication Administration',
     'Clinical Charges':'Clinical Charges',
     'Billing & Payments':'Bills & Charges',
-    'Discharge':'Discharge',
     'Notifications':'Alerts'
   };
   const displayNavLabel=(item,role)=>CLINICAL_ROLES.includes(role)?(ROLE_LABELS[item]||item):item;
   const sectionsFor = (allowed,role) => {
     if(CLINICAL_ROLES.includes(role)){
       return [
-        {title:'NURSING WORKSPACE',items:['Clinical Dashboard','Clinical Alerts','Patients','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Discharge','Billing & Payments','Notifications'].filter(item=>allowed.includes(item))}
+        {title:'NURSING WORKSPACE',items:['Clinical Dashboard','Clinical Alerts','Patients','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Billing & Payments','Discharge','Notifications'].filter(item=>allowed.includes(item))}
       ];
     }
     return NAV_SECTIONS.map(section=>({...section,items:section.items.filter(item=>allowed.includes(item))})).filter(section=>section.items.length);
@@ -2600,7 +2599,7 @@ Caring with Compassion. Living with Dignity.`;
     async function load(){
       const [d,p]=await Promise.all([
         client.from('patient_discharges').select('*').order('created_at',{ascending:false}),
-        client.from('patients').select('id,title,full_name,patient_id,room_no,bed_no,is_active,attendant_name,attendant_phone,treating_doctor,doctor_phone').order('full_name')
+        client.from('patients').select('id,title,full_name,patient_id,mobile,room_no,bed_no,is_active,attendant_name,attendant_phone,treating_doctor,doctor_phone').order('full_name')
       ]);
       if(d.error){setMessage(d.error.message);setRows([])}else{setMessage('');setRows(d.data||[])};
       if(!p.error)setPatients(p.data||[]);
@@ -2615,10 +2614,64 @@ Caring with Compassion. Living with Dignity.`;
     },[profile?.id]);
 
     function openNew(){setEditing(null);setForm({...initial,proposed_discharge_date:todayISOIndia()});setShow(true)}
-    function openEdit(row){setEditing(row);setForm({...initial,...row,proposed_discharge_time:String(row.proposed_discharge_time||'10:00').slice(0,5)});setShow(true)}
+    function openEdit(row){
+      const patient=patientFor(row.patient_id);
+      const voluntary=row.initiation_basis==='Voluntary Discharge'
+        ?voluntaryDetails(patient,row.voluntary_requested_by||'Patient')
+        :{};
+      setEditing(row);
+      setForm({
+        ...initial,
+        ...row,
+        ...(!row.voluntary_requester_name?voluntary:{}),
+        proposed_discharge_time:String(row.proposed_discharge_time||'10:00').slice(0,5)
+      });
+      setShow(true);
+    }
+    function voluntaryDetails(patient,requesterType){
+      if(requesterType==='Patient'){
+        return {
+          voluntary_requester_name:formalName(patient)||patient.full_name||'',
+          voluntary_requester_contact:patient.mobile||''
+        };
+      }
+      return {
+        voluntary_requester_name:patient.attendant_name||'',
+        voluntary_requester_contact:patient.attendant_phone||''
+      };
+    }
+
     function selectPatient(id){
       const p=patientFor(id);
-      setForm(current=>({...current,patient_id:id,relative_name:p.attendant_name||'',relative_contact:p.attendant_phone||'',instructed_by_name:p.treating_doctor||'',instructed_by_contact:p.doctor_phone||''}));
+      const voluntary=voluntaryDetails(p,form.voluntary_requested_by||'Patient');
+      setForm(current=>({
+        ...current,
+        patient_id:id,
+        relative_name:p.attendant_name||'',
+        relative_contact:p.attendant_phone||'',
+        instructed_by_name:p.treating_doctor||'',
+        instructed_by_contact:p.doctor_phone||'',
+        ...voluntary
+      }));
+    }
+
+    function changeInitiationBasis(value){
+      const p=patientFor(form.patient_id);
+      const voluntary=voluntaryDetails(p,form.voluntary_requested_by||'Patient');
+      setForm(current=>({
+        ...current,
+        initiation_basis:value,
+        ...(value==='Voluntary Discharge'?voluntary:{})
+      }));
+    }
+
+    function changeVoluntaryRequester(value){
+      const p=patientFor(form.patient_id);
+      setForm(current=>({
+        ...current,
+        voluntary_requested_by:value,
+        ...voluntaryDetails(p,value)
+      }));
     }
 
     async function save(e){
@@ -2712,14 +2765,15 @@ Caring with Compassion. Living with Dignity.`;
           h('div',{className:'panel-head'},h('div',null,h('h3',null,editing?'Update Discharge Request':'Initiate Patient Discharge'),h('small',null,'Record the exact clinical instruction or voluntary request.')),h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')),
           h('div',{className:'modal-grid'},
             h('div',{className:'field'},h('label',null,'Patient'),h('select',{required:true,value:form.patient_id,disabled:!!editing,onChange:e=>selectPatient(e.target.value)},h('option',{value:''},'Select active patient'),patients.filter(p=>p.is_active!==false).map(p=>h('option',{key:p.id,value:p.id},patientLabel(p.id))))),
-            miniSelect('Initiation Basis',form.initiation_basis,['Consultant / Doctor Instruction','Voluntary Discharge'],v=>setForm({...form,initiation_basis:v})),
+            miniSelect('Initiation Basis',form.initiation_basis,['Consultant / Doctor Instruction','Voluntary Discharge'],changeInitiationBasis),
             form.initiation_basis==='Consultant / Doctor Instruction'&&h(React.Fragment,null,
               miniInput('Consultant / Doctor Name',form.instructed_by_name,v=>setForm({...form,instructed_by_name:v}),true),
               miniInput('Consultant / Doctor Contact',form.instructed_by_contact,v=>setForm({...form,instructed_by_contact:v})),
               h('div',{className:'field span-2'},h('label',null,'Doctor Discharge Advice'),h('textarea',{required:true,rows:3,value:form.doctor_discharge_advice,onChange:e=>setForm({...form,doctor_discharge_advice:e.target.value})}))
             ),
             form.initiation_basis==='Voluntary Discharge'&&h(React.Fragment,null,
-              miniSelect('Voluntary Request From',form.voluntary_requested_by,['Patient','Relative / Attendant','Guardian / Authorised Person'],v=>setForm({...form,voluntary_requested_by:v})),
+              miniSelect('Voluntary Request From',form.voluntary_requested_by,['Patient','Relative / Attendant','Guardian / Authorised Person'],changeVoluntaryRequester),
+              h('div',{className:'field span-2'},h('div',{className:'message info'},'Requester name and contact are filled automatically from the patient record. The Nurse may correct them only when the stored details have changed.')),
               miniInput('Requester Name',form.voluntary_requester_name,v=>setForm({...form,voluntary_requester_name:v}),true),
               miniInput('Requester Contact',form.voluntary_requester_contact,v=>setForm({...form,voluntary_requester_contact:v}),true),
               h('div',{className:'field span-2'},h('label',null,'Voluntary Declaration / Reason'),h('textarea',{required:true,rows:3,value:form.doctor_discharge_advice,onChange:e=>setForm({...form,doctor_discharge_advice:e.target.value})}))

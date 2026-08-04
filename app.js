@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.4';
-  const APP_BUILD_DATE = '05-Aug-2026 00:18 IST';
+  const APP_VERSION = '2.1.5';
+  const APP_BUILD_DATE = '05-Aug-2026 00:31 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -687,6 +687,12 @@ Caring with Compassion. Living with Dignity.`;
     },[]);
 
     React.useEffect(()=>{
+      const handler=()=>setPage('Discharge Clearance');
+      window.addEventListener('samara-return-discharge-clearance',handler);
+      return()=>window.removeEventListener('samara-return-discharge-clearance',handler);
+    },[]);
+
+    React.useEffect(()=>{
       const root=document.getElementById('root');
       if(!root)return;
       normaliseVisibleIndianDates(root);
@@ -815,7 +821,7 @@ Caring with Compassion. Living with Dignity.`;
           page==='Charge Approvals'&&h(ClinicalCharges,{profile}),
           page==='Payments'&&h(BillingPayments,{profile}),
           page==='Final Billing'&&h(FinalBillingView,{profile,onNavigate:setPage}),
-          page==='Discharge Clearance'&&h(DischargeManagement,{profile,mode:'accounts'}),
+          page==='Discharge Clearance'&&h(DischargeManagement,{profile,mode:'accounts',onNavigate:setPage}),
           page==='Refunds'&&h(RefundsView,{profile,onNavigate:setPage}),
           page==='Accounts Reports'&&h(Reports),
           page==='Recovery Timeline'&&h(RecoveryTimeline,{profile}),
@@ -2573,7 +2579,7 @@ Caring with Compassion. Living with Dignity.`;
   function Section({title,subtitle,actions,children}){return h('div',{className:'card panel'},h('div',{className:'panel-head'},h('div',null,h('h3',null,title),subtitle&&h('small',null,subtitle)),actions),children)}
 
   
-  function DischargeManagement({profile,mode='workflow'}){
+  function DischargeManagement({profile,mode='workflow',onNavigate}){
     const isNurse=profile?.role==='Nurse';
     const isAccountsClearance=mode==='accounts';
     const canInitiate=!isAccountsClearance&&['Admin','Manager','Nurse'].includes(profile?.role);
@@ -2586,6 +2592,7 @@ Caring with Compassion. Living with Dignity.`;
     const [busy,setBusy]=React.useState(false);
     const [toast,setToast]=React.useState(null);
     const [message,setMessage]=React.useState('');
+    const [paymentTarget,setPaymentTarget]=React.useState(null);
     const initial={
       patient_id:'',initiation_basis:'Consultant / Doctor Instruction',
       instructed_by_name:'',instructed_by_contact:'',
@@ -2734,6 +2741,23 @@ Caring with Compassion. Living with Dignity.`;
       await load();
     }
 
+    function openPayments(row){
+      const patient=patientFor(row.patient_id);
+      const target={
+        discharge_id:row.id,
+        patient_id:row.patient_id,
+        patient_name:formalName(patient)||patient.full_name||'Patient',
+        patient_code:patient.patient_id||'',
+        room_no:patient.room_no||'',
+        bed_no:patient.bed_no||''
+      };
+      setPaymentTarget(target);
+      try{
+        sessionStorage.setItem('samara_discharge_payment_target',JSON.stringify(target));
+      }catch(_error){}
+      onNavigate?.('Payments');
+    }
+
     async function closeAccounts(row){
       if(!canCloseAccounts||busy)return;
       const remarks=prompt('Payment reference / Accounts closure remarks:','All payments received')||'';
@@ -2764,7 +2788,8 @@ Caring with Compassion. Living with Dignity.`;
         canInitiate&&row.status==='Initiated'&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Update'),
         canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-primary',onClick:()=>approve(row,'Approved')},'Approve'),
         canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-danger',onClick:()=>approve(row,'Rejected')},'Reject'),
-        canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&h('button',{className:'btn btn-primary',onClick:()=>closeAccounts(row)},'Verify Payment & Close'),
+        canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&h('button',{className:'btn btn-secondary',onClick:()=>openPayments(row)},'View Payments'),
+        canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&row.accounts_status==='Ready to Close'&&h('button',{className:'btn btn-primary',onClick:()=>closeAccounts(row)},'Enter Closure Remarks & Close'),
         isNurse&&h('span',{className:'small-note'},row.status==='Completed'?'Completed':row.management_status==='Rejected'?'Returned by Manager':row.management_status==='Approved'?'With Accounts':'Awaiting Management')
       )
     ]);
@@ -2780,7 +2805,7 @@ Caring with Compassion. Living with Dignity.`;
         h('div',{className:'panel-head'},
           h('p',{className:'small-note'},
             isAccountsClearance
-              ?'Accounts does not initiate or clinically approve discharge. Complete only Management-approved cases after the final outstanding balance becomes zero.'
+              ?'Accounts does not initiate or clinically approve discharge. Open Payments first, complete the financial settlement, then return here to enter closure remarks and close the discharge.'
               :isNurse
                 ?'Initiate only under Consultant/Doctor instruction or a clearly recorded voluntary request.'
                 :canApprove
@@ -3796,7 +3821,50 @@ function RoomsBeds({profile}){
       )
     ));
 
+    async function markDischargeReady(){
+      if(!dischargeTarget?.discharge_id)return;
+      const visible=rows.filter(row=>row.patient_id===dischargeTarget.patient_id);
+      const totals=visible.reduce((sum,row)=>{
+        const type=row.transaction_type||'Charge';
+        sum[type]=(sum[type]||0)+Number(row.amount||0);
+        return sum;
+      },{Charge:0,Payment:0,Advance:0,Discount:0,Refund:0});
+      const due=totals.Charge-(totals.Payment+totals.Advance)-totals.Discount+totals.Refund;
+      if(due>0.009){
+        setMessage(`Pending balance is ₹${due.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}. Complete payment before returning to Discharge Clearance.`);
+        return;
+      }
+      const {error}=await client.from('patient_discharges')
+        .update({
+          accounts_status:'Ready to Close',
+          updated_at:new Date().toISOString()
+        })
+        .eq('id',dischargeTarget.discharge_id);
+      if(error){
+        setMessage(error.message||'Unable to mark discharge ready for closure.');
+        return;
+      }
+      setMessage('Payment completed successfully. Return to Discharge Clearance to enter closure remarks and close the discharge.');
+      try{sessionStorage.removeItem('samara_discharge_payment_target')}catch(_error){}
+      setTimeout(()=>window.dispatchEvent(new CustomEvent('samara-return-discharge-clearance')),800);
+    }
+
     return h(React.Fragment,null,
+      dischargeTarget&&h(Section,{
+        title:'Discharge Payment Clearance',
+        subtitle:`${dischargeTarget.patient_name} · ${dischargeTarget.patient_code||'No ID'} · Room ${dischargeTarget.room_no||'—'}${dischargeTarget.bed_no?`-${dischargeTarget.bed_no}`:''}`
+      },
+        h('div',{className:'message info'},
+          'Complete all payment entries for this patient. When the outstanding balance becomes zero, click Confirm Payment Completed.'
+        ),
+        h('div',{className:'actions'},
+          h('button',{type:'button',className:'btn btn-primary',onClick:markDischargeReady},'Confirm Payment Completed'),
+          h('button',{type:'button',className:'btn btn-secondary',onClick:()=>{
+            try{sessionStorage.removeItem('samara_discharge_payment_target')}catch(_error){}
+            setDischargeTarget(null);
+          }},'Cancel Discharge Payment Link')
+        )
+      ),
       h('div',{className:'grid stats'},
         [['Safety Score',`${safetyScore}%`],['Total Events',total],['Open Review',openCount],['Major / Critical',high],['Residents Affected',affectedPatients]].map(([label,value])=>h('div',{className:'card stat',key:label},h('span',null,label),h('strong',null,value)))
       ),
@@ -4933,10 +5001,23 @@ function ShiftHandover({profile,onNavigate}){
     const [message,setMessage]=React.useState('');
     const canEnter=['Admin','Manager','Accounts'].includes(profile?.role);
     const canDiscount=profile?.role==='Admin';
-    const [patientFilter,setPatientFilter]=React.useState('');
+    const [patientFilter,setPatientFilter]=React.useState(()=>{
+      try{
+        const target=JSON.parse(sessionStorage.getItem('samara_discharge_payment_target')||'null');
+        return target?.patient_id||'';
+      }catch(_error){return ''}
+    });
+    const [dischargeTarget,setDischargeTarget]=React.useState(()=>{
+      try{return JSON.parse(sessionStorage.getItem('samara_discharge_payment_target')||'null')}catch(_error){return null}
+    });
     const [form,setForm]=React.useState({
-      patient_id:'',
-      transaction_type:'Charge',
+      patient_id:(()=>{
+        try{
+          const target=JSON.parse(sessionStorage.getItem('samara_discharge_payment_target')||'null');
+          return target?.patient_id||'';
+        }catch(_error){return ''}
+      })(),
+      transaction_type:'Payment',
       category:'Room Charges',
       amount:'',
       description:'',

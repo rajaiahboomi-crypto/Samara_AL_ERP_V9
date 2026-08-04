@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.0';
-  const APP_BUILD_DATE = '05-Aug-2026 02:45 IST';
+  const APP_VERSION = '2.3.1';
+  const APP_BUILD_DATE = '05-Aug-2026 02:58 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -5483,20 +5483,121 @@ function ShiftHandover({profile,onNavigate}){
       .accounts-bar-track{height:13px;border-radius:20px;background:#edf3f1;overflow:hidden}
       .accounts-bar-fill{height:100%;min-width:3px;border-radius:inherit;background:linear-gradient(90deg,#0b6d59,#20a786)}
       .accounts-bar-row strong{text-align:right;font-size:13px}
-      .accounts-workflow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+      .accounts-workflow-grid{
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:14px;
+      }
       .accounts-workflow-card{
-        display:grid;grid-template-columns:38px 1fr auto;gap:11px;align-items:center;
-        min-height:76px;padding:13px;border:1px solid #dce8e4;border-radius:14px;
-        background:#fff;text-align:left;font:inherit;cursor:pointer
+        position:relative;
+        overflow:hidden;
+        display:flex;
+        flex-direction:column;
+        align-items:flex-start;
+        justify-content:space-between;
+        min-height:178px;
+        padding:18px;
+        border:1px solid #dce8e4;
+        border-top:4px solid var(--workflow-accent,#0f8b73);
+        border-radius:18px;
+        background:linear-gradient(155deg,#ffffff 0%,var(--workflow-soft,#f2faf7) 100%);
+        text-align:left;
+        font:inherit;
+        cursor:pointer;
+        box-shadow:0 8px 20px rgba(12,75,62,.08);
+        transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
       }
-      .accounts-workflow-card:hover{background:#f2faf7;border-color:#8fc8b8}
+      .accounts-workflow-card::after{
+        content:'';
+        position:absolute;
+        width:120px;
+        height:120px;
+        right:-42px;
+        top:-46px;
+        border-radius:50%;
+        background:var(--workflow-orb,rgba(15,139,115,.10));
+      }
+      .accounts-workflow-card:hover{
+        transform:translateY(-3px);
+        border-color:var(--workflow-accent,#0f8b73);
+        box-shadow:0 15px 30px rgba(12,75,62,.14);
+      }
+      .accounts-workflow-card.approvals{--workflow-accent:#8756cf;--workflow-soft:#f7f2ff;--workflow-orb:rgba(135,86,207,.12)}
+      .accounts-workflow-card.payments{--workflow-accent:#2c7ed3;--workflow-soft:#f1f7ff;--workflow-orb:rgba(44,126,211,.12)}
+      .accounts-workflow-card.final-billing{--workflow-accent:#d94c72;--workflow-soft:#fff3f6;--workflow-orb:rgba(217,76,114,.12)}
+      .accounts-workflow-card.clearance{--workflow-accent:#e39216;--workflow-soft:#fff8ec;--workflow-orb:rgba(227,146,22,.14)}
+      .accounts-workflow-card.refunds{--workflow-accent:#15996a;--workflow-soft:#f0fbf6;--workflow-orb:rgba(21,153,106,.12)}
+      .accounts-workflow-card.reports{--workflow-accent:#138d87;--workflow-soft:#eefaf9;--workflow-orb:rgba(19,141,135,.12)}
+      .accounts-workflow-top{
+        position:relative;
+        z-index:1;
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:12px;
+        width:100%;
+      }
       .accounts-workflow-icon{
-        display:grid;place-items:center;width:38px;height:38px;border-radius:11px;
-        background:#e7f4ef;font-size:19px
+        display:grid;
+        place-items:center;
+        width:48px;
+        height:48px;
+        flex:0 0 48px;
+        border-radius:14px;
+        background:rgba(255,255,255,.78);
+        border:1px solid rgba(16,78,65,.08);
+        box-shadow:0 7px 16px rgba(9,74,60,.09);
+        font-size:23px;
       }
-      .accounts-workflow-card strong{display:block;color:#0b5d4b}
-      .accounts-workflow-card small{display:block;margin-top:3px;color:#697873;line-height:1.35}
-      .accounts-workflow-card b{font-size:20px;color:#173d34}
+      .accounts-workflow-value{
+        position:relative;
+        z-index:1;
+        display:grid;
+        place-items:center;
+        min-width:44px;
+        min-height:36px;
+        padding:5px 10px;
+        border-radius:12px;
+        background:rgba(255,255,255,.82);
+        color:#173d34;
+        font-size:19px;
+        font-weight:900;
+        box-shadow:0 5px 12px rgba(9,74,60,.07);
+      }
+      .accounts-workflow-body{
+        position:relative;
+        z-index:1;
+        margin-top:18px;
+      }
+      .accounts-workflow-card strong{
+        display:block;
+        color:#123d34;
+        font-size:18px;
+        line-height:1.2;
+      }
+      .accounts-workflow-card small{
+        display:block;
+        margin-top:7px;
+        color:#64746f;
+        line-height:1.45;
+        font-size:13px;
+      }
+      .accounts-workflow-open{
+        position:relative;
+        z-index:1;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        width:100%;
+        margin-top:18px;
+        padding-top:12px;
+        border-top:1px solid rgba(16,78,65,.10);
+        color:var(--workflow-accent,#0f8b73);
+        font-size:12px;
+        font-weight:900;
+        letter-spacing:.03em;
+        text-transform:uppercase;
+      }
       .accounts-status-list{display:grid;gap:9px}
       .accounts-status-item{
         display:flex;justify-content:space-between;gap:12px;padding:11px 12px;
@@ -5519,6 +5620,7 @@ function ShiftHandover({profile,onNavigate}){
       @media(max-width:1150px){
         .accounts-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
         .accounts-dashboard-grid{grid-template-columns:1fr}
+        .accounts-workflow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
         .accounts-report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
         .accounts-mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
       }
@@ -5688,18 +5790,27 @@ function ShiftHandover({profile,onNavigate}){
       h(Section,{title:'Accounts Workflow',subtitle:'Open the required financial stage directly'},
         h('div',{className:'accounts-workflow-grid'},
           [
-            ['🧾','Charge Approvals','Approve, partially approve or reject Nurse-raised charges.',pendingApprovals],
-            ['💳','Payments','Receive Cash, UPI, Card, Bank Transfer or Cheque payments.',todayCollections?money(todayCollections):'Open'],
-            ['📑','Final Billing','Patient-wise ledger, discounts and net payable.',finalBills],
-            ['🚪','Discharge Clearance','Financially clear Management-approved discharges.',dischargeClearance],
-            ['↩','Refunds','View and record payment or advance refunds.',money(refundValue)],
-            ['📊','Accounts Reports','Revenue, collection, ageing and patient-ledger reports.','Open']
-          ].map(([icon,title,text,value])=>h('button',{
-            type:'button',className:'accounts-workflow-card',key:title,onClick:()=>onNavigate?.(title)
+            ['🧾','Charge Approvals','Approve, partially approve or reject Nurse-raised charges.',pendingApprovals,'approvals'],
+            ['💳','Payments','Receive Cash, UPI, Card, Bank Transfer or Cheque payments.',todayCollections?money(todayCollections):'Open','payments'],
+            ['📑','Final Billing','Patient-wise ledger, discounts and net payable.',finalBills,'final-billing'],
+            ['🚪','Discharge Clearance','Financially clear Management-approved discharges.',dischargeClearance,'clearance'],
+            ['↩','Refunds','View and record payment or advance refunds.',money(refundValue),'refunds'],
+            ['📊','Accounts Reports','Revenue, collection, ageing and patient-ledger reports.','Open','reports']
+          ].map(([icon,title,text,value,tone])=>h('button',{
+            type:'button',
+            className:`accounts-workflow-card ${tone}`,
+            key:title,
+            onClick:()=>onNavigate?.(title)
           },
-            h('span',{className:'accounts-workflow-icon'},icon),
-            h('span',null,h('strong',null,title),h('small',null,text)),
-            h('b',null,value)
+            h('div',{className:'accounts-workflow-top'},
+              h('span',{className:'accounts-workflow-icon'},icon),
+              h('span',{className:'accounts-workflow-value'},value)
+            ),
+            h('div',{className:'accounts-workflow-body'},
+              h('strong',null,title),
+              h('small',null,text)
+            ),
+            h('span',{className:'accounts-workflow-open'},h('span',null,'Open Module'),h('span',null,'→'))
           ))
         )
       )

@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.7';
-  const APP_BUILD_DATE = '05-Aug-2026 01:25 IST';
+  const APP_VERSION = '2.2.8';
+  const APP_BUILD_DATE = '05-Aug-2026 01:36 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -803,131 +803,74 @@ Caring with Compassion. Living with Dignity.`;
     });
   };
 
-  const ensureAttractiveMobileNavStyle = () => {
-    if(document.getElementById('samara-attractive-mobile-nav-style'))return;
+  const ensureCleanWorkspaceLayout = () => {
+    if(document.getElementById('samara-clean-workspace-layout'))return;
     const style=document.createElement('style');
-    style.id='samara-attractive-mobile-nav-style';
+    style.id='samara-clean-workspace-layout';
     style.textContent=`
-      .mobile-bottom-nav{
-        position:sticky;
-        bottom:12px;
-        z-index:60;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap:8px;
-        width:max-content;
-        max-width:calc(100% - 28px);
-        margin:20px auto 14px;
-        padding:8px;
-        border:1px solid rgba(13,105,85,.14);
-        border-radius:18px;
-        background:rgba(255,255,255,.95);
-        box-shadow:0 14px 34px rgba(13,69,57,.17);
-        backdrop-filter:blur(14px);
-        -webkit-backdrop-filter:blur(14px);
+      /* Remove redundant bottom navigation and old fallback navigation rows. */
+      .mobile-bottom-nav,
+      .mobile-nav,
+      .samara-bottom-actions,
+      .legacy-nav,
+      .legacy-navigation,
+      .fallback-nav,
+      .quick-nav,
+      .bottom-nav,
+      .bottom-navigation,
+      .workspace-tabs,
+      .role-tabs,
+      .module-tabs,
+      .old-menu,
+      .prototype-nav{
+        display:none!important;
       }
 
-      .mobile-bottom-nav button{
-        appearance:none;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap:7px;
-        min-width:102px;
-        min-height:44px;
-        padding:10px 14px;
-        border:1px solid transparent;
-        border-radius:12px;
-        background:transparent;
-        color:#184f43;
-        font:inherit;
-        font-size:14px;
-        font-weight:750;
-        cursor:pointer;
-        transition:
-          transform .18s ease,
-          background .18s ease,
-          color .18s ease,
-          box-shadow .18s ease,
-          border-color .18s ease;
+      /* Hide plain browser-style button clusters left by the old prototype. */
+      .app-shell > main > div:last-child > button,
+      .app-main > div:last-child > button,
+      .content-area > div:last-child > button{
+        display:none!important;
       }
 
-      .mobile-bottom-nav button:hover{
-        transform:translateY(-2px);
-        background:#edf8f4;
-        border-color:#c8e7dd;
-        color:#076a56;
-        box-shadow:0 7px 16px rgba(7,106,86,.12);
+      /* Remove the duplicate compact role/menu panel that appears beneath page content. */
+      .app-shell main .legacy-role-panel,
+      .app-shell main .legacy-workspace-panel,
+      .app-shell main .legacy-user-panel{
+        display:none!important;
       }
 
-      .mobile-bottom-nav button.active{
-        background:linear-gradient(135deg,#0b6d59,#118b72);
-        border-color:#0b6d59;
-        color:#fff;
-        box-shadow:0 8px 20px rgba(11,109,89,.27);
+      /* Keep only the proper application header, sidebar and workspace. */
+      .app-main,
+      main,
+      .content-area{
+        padding-bottom:24px!important;
       }
 
-      .mobile-bottom-nav .mobile-nav-icon{
-        display:inline-grid;
-        place-items:center;
-        width:25px;
-        height:25px;
-        flex:0 0 25px;
-        border-radius:8px;
-        background:rgba(15,111,93,.09);
-        font-size:15px;
-        line-height:1;
+      /* Refine the page header while preserving the existing current-page title. */
+      .topbar,
+      .app-header,
+      .page-header{
+        min-height:70px;
       }
 
-      .mobile-bottom-nav button.active .mobile-nav-icon{
-        background:rgba(255,255,255,.18);
+      .topbar .brand-mini,
+      .app-header .brand-mini{
+        display:none!important;
       }
 
-      @media(min-width:900px){
-        .mobile-bottom-nav{
-          margin-left:auto;
-          margin-right:auto;
-        }
+      /* The alert sound remains the only floating action. */
+      .alert-sound-button,
+      .enable-alert-sound,
+      [data-alert-sound]{
+        z-index:90!important;
       }
 
       @media(max-width:720px){
-        .mobile-bottom-nav{
-          position:fixed;
-          left:50%;
-          bottom:10px;
-          transform:translateX(-50%);
-          width:calc(100% - 18px);
-          max-width:560px;
-          justify-content:space-between;
-          gap:4px;
-          margin:0;
-          padding:7px;
-          border-radius:17px;
-        }
-
-        .mobile-bottom-nav button{
-          min-width:0;
-          flex:1 1 0;
-          min-height:48px;
-          padding:8px 5px;
-          gap:4px;
-          flex-direction:column;
-          font-size:11px;
-          border-radius:11px;
-        }
-
-        .mobile-bottom-nav .mobile-nav-icon{
-          width:22px;
-          height:22px;
-          flex-basis:22px;
-          font-size:14px;
-        }
-
-        main,
         .app-main,
+        main,
         .content-area{
-          padding-bottom:84px!important;
+          padding-bottom:76px!important;
         }
       }
     `;
@@ -935,7 +878,7 @@ Caring with Compassion. Living with Dignity.`;
   };
 
   function App(){
-    React.useEffect(()=>{ensureAttractiveMobileNavStyle()},[]);
+    React.useEffect(()=>{ensureCleanWorkspaceLayout()},[]);
     const [session,setSession]=React.useState(null);
     const [profile,setProfile]=React.useState(null);
     const [loading,setLoading]=React.useState(true);

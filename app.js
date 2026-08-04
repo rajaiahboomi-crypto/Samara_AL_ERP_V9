@@ -1,7 +1,77 @@
+
+(() => {
+  try {
+    const doc = document;
+    const root = doc.documentElement;
+
+    root.classList.add('samara-preboot');
+
+    if (!doc.getElementById('samara-preboot-style')) {
+      const style = doc.createElement('style');
+      style.id = 'samara-preboot-style';
+      style.textContent = `
+        html, body {
+          margin: 0;
+          min-height: 100%;
+          background: #0f6f5d !important;
+        }
+
+        html.samara-preboot body {
+          overflow: hidden;
+        }
+
+        html.samara-preboot #root {
+          opacity: 0 !important;
+          visibility: hidden !important;
+        }
+
+        #app-splash {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 2147483000 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background:
+            radial-gradient(circle at 100% 0%, rgba(255,255,255,.10) 0 130px, transparent 132px),
+            radial-gradient(circle at 0% 100%, rgba(255,255,255,.10) 0 105px, transparent 107px),
+            linear-gradient(135deg, #075b4d 0%, #168873 100%) !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+          transition: opacity .38s ease, visibility .38s ease !important;
+        }
+
+        #app-splash.splash-ready {
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+
+        body.samara-app-ready #root {
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+
+        #root {
+          min-height: 100vh;
+          background: #edf5f2;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          #app-splash {
+            transition: none !important;
+          }
+        }
+      `;
+      (doc.head || doc.documentElement).appendChild(style);
+    }
+  } catch (_error) {}
+})();
+
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.2';
-  const APP_BUILD_DATE = '05-Aug-2026 00:50 IST';
+  const APP_VERSION = '2.2.3';
+  const APP_BUILD_DATE = '05-Aug-2026 01:02 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -745,13 +815,6 @@ Caring with Compassion. Living with Dignity.`;
         0%{transform:translateX(-115%)}
         100%{transform:translateX(320%)}
       }
-      #root.samara-app-enter{
-        animation:samaraAppEnter .42s ease both;
-      }
-      @keyframes samaraAppEnter{
-        from{opacity:0;transform:translateY(5px)}
-        to{opacity:1;transform:none}
-      }
       @media(prefers-reduced-motion:reduce){
         #app-splash,#app-splash .splash-card,#root.samara-app-enter{
           transition:none!important;
@@ -778,13 +841,24 @@ Caring with Compassion. Living with Dignity.`;
   const finishSmoothRefresh = () => {
     const splash=document.getElementById('app-splash');
     const root=document.getElementById('root');
-    if(root)root.classList.add('samara-app-enter');
-    if(!splash)return;
+
     updateSplashStatus('Workspace ready');
+
+    // Reveal the fully-rendered ERP underneath the still-visible splash.
+    document.documentElement.classList.remove('samara-preboot');
+    document.body.classList.add('samara-app-ready');
+    if(root){
+      root.classList.remove('samara-app-enter');
+      root.style.opacity='1';
+      root.style.visibility='visible';
+    }
+
     requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{
-        splash.classList.add('splash-ready');
-        setTimeout(()=>splash.remove(),620);
+        if(splash){
+          splash.classList.add('splash-ready');
+          setTimeout(()=>splash.remove(),420);
+        }
       });
     });
   };
@@ -865,7 +939,7 @@ Caring with Compassion. Living with Dignity.`;
       ensureSmoothRefreshStyle();
       updateSplashStatus('Checking secure session…');
       let active=true;
-      const minimumVisible=new Promise(resolve=>setTimeout(resolve,700));
+      const minimumVisible=new Promise(resolve=>setTimeout(resolve,420));
       const sessionReady=client.auth.getSession().then(({data})=>{
         if(!active)return;
         updateSplashStatus(data.session?'Loading your workspace…':'Preparing sign-in…');
@@ -876,9 +950,14 @@ Caring with Compassion. Living with Dignity.`;
         if(active)setLoading(false);
       });
 
+      const revealFailsafe=setTimeout(()=>{
+        if(active)finishSmoothRefresh();
+      },5000);
+
       Promise.allSettled([minimumVisible,sessionReady]).then(()=>{
         if(!active)return;
-        setTimeout(finishSmoothRefresh,120);
+        clearTimeout(revealFailsafe);
+        requestAnimationFrame(()=>requestAnimationFrame(finishSmoothRefresh));
       });
 
       const {data:{subscription}}=client.auth.onAuthStateChange((event,next)=>{
@@ -888,6 +967,7 @@ Caring with Compassion. Living with Dignity.`;
       if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
       return()=>{
         active=false;
+        clearTimeout(revealFailsafe);
         subscription.unsubscribe();
       };
     },[]);

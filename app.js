@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.0';
-  const APP_BUILD_DATE = '05-Aug-2026 02:05 IST';
+  const APP_VERSION = '2.2.1';
+  const APP_BUILD_DATE = '05-Aug-2026 00:44 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -189,7 +189,9 @@
     const popups=[...document.querySelectorAll('.modal-backdrop')]
       .filter(node=>{
         const style=window.getComputedStyle(node);
-        return style.display!=='none'&&style.visibility!=='hidden';
+        return style.display!=='none'&&
+          style.visibility!=='hidden'&&
+          node.getAttribute('data-manual-close')!=='true';
       });
     const popup=popups.at(-1);
     if(!popup)return false;
@@ -634,8 +636,16 @@ Caring with Compassion. Living with Dignity.`;
           h('button',{className:'btn btn-primary'},'Save Settings')
         )
       ),
-      showFinalDischarge&&finalDischargeRow&&h('div',{className:'modal-backdrop'},
-        h('form',{className:'card modal final-discharge-modal',onSubmit:completeFinalDischarge},
+      showFinalDischarge&&finalDischargeRow&&h('div',{
+        className:'modal-backdrop',
+        'data-manual-close':'true',
+        onMouseDown:event=>event.stopPropagation()
+      },
+        h('form',{
+          className:'card modal final-discharge-modal',
+          onSubmit:completeFinalDischarge,
+          onClick:event=>event.stopPropagation()
+        },
           h('div',{className:'panel-head'},
             h('div',null,
               h('h3',null,'Final Nursing Discharge Clearance'),
@@ -2869,6 +2879,7 @@ Caring with Compassion. Living with Dignity.`;
     }
 
     function openFinalDischarge(row){
+      ensureFinalDischargeStyle();
       setFinalDischargeRow(row);
       setFinalForm({
         discharge_summary_handed_over:!!row.discharge_summary_handed_over,
@@ -2984,11 +2995,19 @@ Caring with Compassion. Living with Dignity.`;
         canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-danger',onClick:()=>approve(row,'Rejected')},'Reject'),
         canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&h('button',{className:'btn btn-secondary',onClick:()=>openPayments(row)},'View Payments'),
         canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&row.accounts_status==='Ready to Close'&&h('button',{className:'btn btn-primary',onClick:()=>closeAccounts(row)},'Enter Closure Remarks & Close'),
-        isNurse&&row.accounts_status==='Cleared'&&row.status!=='Completed'&&h('button',{className:'btn btn-primary',onClick:()=>openFinalDischarge(row)},'Final Discharge Clearance'),
+        isNurse&&String(row.accounts_status||'').trim().toLowerCase()==='cleared'&&String(row.status||'').trim().toLowerCase()!=='completed'&&h('button',{
+          type:'button',
+          className:'btn btn-primary',
+          onClick:event=>{
+            event.preventDefault();
+            event.stopPropagation();
+            openFinalDischarge(row);
+          }
+        },'Final Discharge Clearance'),
         isNurse&&h('span',{className:'small-note'},
-          row.status==='Completed'
+          String(row.status||'').trim().toLowerCase()==='completed'
             ?'Discharge completed'
-            :row.accounts_status==='Cleared'
+            :String(row.accounts_status||'').trim().toLowerCase()==='cleared'
               ?'Accounts cleared — confirm departure'
               :row.management_status==='Rejected'
                 ?'Returned by Manager'
@@ -3406,7 +3425,6 @@ function RoomsBeds({profile}){
         client.from('shift_handovers').select('*,profiles!shift_handovers_submitted_by_fkey(full_name,title)').order('created_at',{ascending:false}).limit(5),
         client.from('patient_discharges')
           .select('id,patient_id,status,management_status,accounts_status,proposed_discharge_date,patients(full_name,title,patient_id,room_no,bed_no)')
-          .neq('status','Completed')
           .order('created_at',{ascending:false})
       ]);
       const data=results.map(r=>r.data||[]);
@@ -3430,10 +3448,23 @@ function RoomsBeds({profile}){
     const patientName=row=>formalName(row?.patients||row)||row?.patients?.full_name||row?.full_name||'Patient';
     const currentShiftCarePending=carePending.filter(x=>!x.isUpcoming);
     const upcomingShiftCarePending=carePending.filter(x=>x.isUpcoming);
-    const dischargeReady=state.discharges.filter(row=>row.accounts_status==='Cleared');
-    const dischargeWithAccounts=state.discharges.filter(row=>row.management_status==='Approved'&&row.accounts_status!=='Cleared');
-    const dischargeAwaitingManagement=state.discharges.filter(row=>(row.management_status||'Pending')==='Pending');
-    const dischargeReturned=state.discharges.filter(row=>row.management_status==='Rejected'||row.status==='Returned to Nursing');
+    const activeDischarges=state.discharges.filter(row=>
+      String(row.status||'').trim().toLowerCase()!=='completed'
+    );
+    const dischargeReady=activeDischarges.filter(row=>
+      String(row.accounts_status||'').trim().toLowerCase()==='cleared'
+    );
+    const dischargeWithAccounts=activeDischarges.filter(row=>
+      String(row.management_status||'').trim().toLowerCase()==='approved'&&
+      String(row.accounts_status||'').trim().toLowerCase()!=='cleared'
+    );
+    const dischargeAwaitingManagement=activeDischarges.filter(row=>
+      ['','pending'].includes(String(row.management_status||'').trim().toLowerCase())
+    );
+    const dischargeReturned=activeDischarges.filter(row=>
+      String(row.management_status||'').trim().toLowerCase()==='rejected'||
+      String(row.status||'').trim().toLowerCase()==='returned to nursing'
+    );
     const dischargeStatusText=
       dischargeReady.length
         ?`${dischargeReady.length} ready for final departure`
@@ -3458,7 +3489,7 @@ function RoomsBeds({profile}){
       ['Next-shift care scheduled',upcomingShiftCarePending.length,'Shift Tasks','🕒','clinical-blue'],
       ['Physiotherapy pending',physioPending.length,'Physiotherapy','🏃','clinical-purple'],
       ['Open incidents',state.incidents.length,'Incidents','⚠️',state.incidents.length?'clinical-red':'clinical-green'],
-      ['Discharge',state.discharges.length,'Discharge','🚪',dischargeTone,dischargeStatusText]
+      ['Discharge',activeDischarges.length,'Discharge','🚪',dischargeTone,dischargeStatusText]
     ];
     return h(React.Fragment,null,
       h('div',{className:'clinical-welcome'},h('div',null,h('small',null,currentShift().toUpperCase()),h('h2',null,`Good ${new Date().getHours()<12?'Morning':new Date().getHours()<17?'Afternoon':'Evening'}, ${formalName(profile)}`),h('p',null,'Your clinical worklist for today — complete urgent and overdue items first.')),h('div',{className:'clinical-date'},`${new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',weekday:'long'}).format(new Date())}, ${formatDateIN(new Date())}`)),

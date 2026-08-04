@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.9';
-  const APP_BUILD_DATE = '05-Aug-2026 01:42 IST';
+  const APP_VERSION = '2.3.0';
+  const APP_BUILD_DATE = '05-Aug-2026 02:45 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -1087,9 +1087,9 @@ Caring with Compassion. Living with Dignity.`;
           page==='Final Billing'&&h(FinalBillingView,{profile,onNavigate:setPage}),
           page==='Discharge Clearance'&&h(DischargeManagement,{profile,mode:'accounts',onNavigate:setPage}),
           page==='Refunds'&&h(RefundsView,{profile,onNavigate:setPage}),
-          page==='Accounts Reports'&&h(Reports),
+          page==='Accounts Reports'&&h(Reports,{profile,onNavigate:setPage}),
           page==='Recovery Timeline'&&h(RecoveryTimeline,{profile}),
-          page==='Reports'&&h(Reports),
+          page==='Reports'&&h(Reports,{profile,onNavigate:setPage}),
           page==='Intelligent Reports'&&h(IntelligentReports,{profile}),
           page==='Medication Errors'&&h(MedicationErrors,{profile,onNavigate:setPage}),
           page==='Notifications'&&h(Notifications,{profile}),
@@ -5426,44 +5426,112 @@ function ShiftHandover({profile,onNavigate}){
   
 
 
+
   const ensureAccountsWorkspaceStyle = () => {
     if(document.getElementById('samara-accounts-workspace-style'))return;
     const style=document.createElement('style');
     style.id='samara-accounts-workspace-style';
     style.textContent=`
-      .accounts-dashboard-card{
-        border:0;
-        text-align:left;
-        cursor:pointer;
-        font:inherit;
+      .accounts-hero{
+        display:flex;align-items:center;justify-content:space-between;gap:18px;
+        padding:22px;border-radius:20px;
+        background:linear-gradient(135deg,#075c4d,#148973);
+        color:#fff;box-shadow:0 14px 32px rgba(7,92,77,.18);
       }
-      .accounts-dashboard-card:hover{
-        transform:translateY(-2px);
-        box-shadow:0 10px 24px rgba(7,75,60,.12);
+      .accounts-hero small{font-weight:800;letter-spacing:.12em;opacity:.78}
+      .accounts-hero h3{margin:5px 0 4px;font-size:28px}
+      .accounts-hero p{margin:0;opacity:.9}
+      .accounts-actions{display:flex;gap:9px;flex-wrap:wrap}
+      .accounts-actions .btn{min-height:42px}
+      .accounts-kpi-grid{
+        display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+        gap:13px;margin:16px 0;
       }
-      .management-cards{
-        display:grid;
-        grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
-        gap:12px;
+      .accounts-kpi{
+        position:relative;overflow:hidden;display:grid;gap:8px;min-height:112px;
+        padding:17px;border:1px solid #dce8e4;border-radius:17px;background:#fff;
+        text-align:left;font:inherit;cursor:pointer;
+        transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
       }
-      .management-card{
-        display:grid;
-        gap:7px;
-        min-height:115px;
-        padding:16px;
-        border:1px solid #dce8e4;
-        border-radius:13px;
-        background:#fff;
-        text-align:left;
-        cursor:pointer;
-        font:inherit;
+      .accounts-kpi:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(7,75,60,.12);border-color:#94cbbb}
+      .accounts-kpi span{font-size:13px;color:#68758a}
+      .accounts-kpi strong{font-size:27px;line-height:1;color:#102f29}
+      .accounts-kpi small{font-size:12px;color:#62736e}
+      .accounts-kpi::after{
+        content:'';position:absolute;right:-22px;top:-26px;width:92px;height:92px;
+        border-radius:50%;background:var(--soft,#edf7f4)
       }
-      .management-card:hover{
-        border-color:#75b5a4;
-        background:#f3faf7;
+      .accounts-kpi.green{--soft:#e8f8ef;border-top:4px solid #12a05c}
+      .accounts-kpi.blue{--soft:#eaf3ff;border-top:4px solid #2d7dd2}
+      .accounts-kpi.orange{--soft:#fff4df;border-top:4px solid #e99a16}
+      .accounts-kpi.red{--soft:#ffeded;border-top:4px solid #df493f}
+      .accounts-kpi.purple{--soft:#f3ecff;border-top:4px solid #8655cf}
+      .accounts-kpi.teal{--soft:#e6f7f5;border-top:4px solid #168f83}
+      .accounts-dashboard-grid{
+        display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);
+        gap:14px;margin-top:14px
       }
-      .management-card strong{font-size:16px;color:#0b5d4b}
-      .management-card span{font-size:13px;line-height:1.45;color:#667085}
+      .accounts-panel{
+        padding:18px;border:1px solid #dce8e4;border-radius:18px;background:#fff
+      }
+      .accounts-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+      .accounts-panel-head h3{margin:0;font-size:20px}
+      .accounts-panel-head small{color:#68758a}
+      .accounts-bars{display:grid;gap:12px}
+      .accounts-bar-row{display:grid;grid-template-columns:125px 1fr 110px;gap:10px;align-items:center}
+      .accounts-bar-row span{font-size:13px;color:#53645f}
+      .accounts-bar-track{height:13px;border-radius:20px;background:#edf3f1;overflow:hidden}
+      .accounts-bar-fill{height:100%;min-width:3px;border-radius:inherit;background:linear-gradient(90deg,#0b6d59,#20a786)}
+      .accounts-bar-row strong{text-align:right;font-size:13px}
+      .accounts-workflow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+      .accounts-workflow-card{
+        display:grid;grid-template-columns:38px 1fr auto;gap:11px;align-items:center;
+        min-height:76px;padding:13px;border:1px solid #dce8e4;border-radius:14px;
+        background:#fff;text-align:left;font:inherit;cursor:pointer
+      }
+      .accounts-workflow-card:hover{background:#f2faf7;border-color:#8fc8b8}
+      .accounts-workflow-icon{
+        display:grid;place-items:center;width:38px;height:38px;border-radius:11px;
+        background:#e7f4ef;font-size:19px
+      }
+      .accounts-workflow-card strong{display:block;color:#0b5d4b}
+      .accounts-workflow-card small{display:block;margin-top:3px;color:#697873;line-height:1.35}
+      .accounts-workflow-card b{font-size:20px;color:#173d34}
+      .accounts-status-list{display:grid;gap:9px}
+      .accounts-status-item{
+        display:flex;justify-content:space-between;gap:12px;padding:11px 12px;
+        border-radius:12px;background:#f5f8f7
+      }
+      .accounts-status-item span{color:#64736f;font-size:13px}
+      .accounts-status-item strong{color:#183c34}
+      .accounts-report-filters{
+        display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px
+      }
+      .accounts-report-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+      .accounts-report-table{overflow:auto}
+      .accounts-report-table table{min-width:920px}
+      .accounts-mode-grid{
+        display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px
+      }
+      .accounts-mode-card{padding:13px;border-radius:14px;border:1px solid #dce8e4;background:#fff}
+      .accounts-mode-card span{display:block;color:#697873;font-size:12px}
+      .accounts-mode-card strong{display:block;margin-top:7px;font-size:20px}
+      @media(max-width:1150px){
+        .accounts-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+        .accounts-dashboard-grid{grid-template-columns:1fr}
+        .accounts-report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+        .accounts-mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+      }
+      @media(max-width:700px){
+        .accounts-hero{align-items:flex-start;flex-direction:column}
+        .accounts-kpi-grid,.accounts-workflow-grid,.accounts-report-filters,.accounts-mode-grid{grid-template-columns:1fr}
+        .accounts-bar-row{grid-template-columns:95px 1fr 84px}
+      }
+      @media print{
+        .sidebar,.topbar,.mobile-menu,.sound-unlock-button,.accounts-report-actions,.btn{display:none!important}
+        .main,.content{margin:0!important;padding:0!important}
+        .accounts-panel,.card{box-shadow:none!important;break-inside:avoid}
+      }
     `;
     document.head.appendChild(style);
   };
@@ -5471,116 +5539,168 @@ function ShiftHandover({profile,onNavigate}){
   function AccountsDashboard({profile,onNavigate}){
     React.useEffect(()=>{ensureAccountsWorkspaceStyle()},[]);
     const [state,setState]=React.useState({
-      loading:true,
-      pendingCharges:0,
-      approvedCharges:0,
-      pendingDischarges:0,
-      todayCollections:0,
-      pendingBalance:0,
-      refunds:0
+      loading:true,transactions:[],requests:[],discharges:[],patients:[]
     });
 
+    const money=value=>`₹${Number(value||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+    const dateKey=value=>String(value||'').slice(0,10);
+    const monthKey=value=>dateKey(value).slice(0,7);
+
     async function load(){
-      const today=todayISOIndia();
-      const [charges,discharges,transactions]=await Promise.all([
-        client.from('bill_charge_requests').select('approval_status,approved_amount,final_amount,requested_amount'),
-        client.from('patient_discharges').select('management_status,accounts_status,status'),
-        client.from('billing_transactions').select('transaction_type,amount,transaction_date')
+      const [transactions,requests,discharges,patients]=await Promise.all([
+        client.from('billing_transactions')
+          .select('id,patient_id,transaction_type,category,amount,payment_mode,transaction_date,description')
+          .order('transaction_date',{ascending:false}).limit(3000),
+        client.from('bill_charge_requests')
+          .select('id,approval_status,requested_amount,approved_amount,final_amount,created_at'),
+        client.from('patient_discharges')
+          .select('id,status,management_status,accounts_status,created_at'),
+        client.from('patients')
+          .select('id,is_active,admission_date,room_no,bed_no')
       ]);
-
-      const chargeRows=charges.data||[];
-      const dischargeRows=discharges.data||[];
-      const transactionRows=transactions.data||[];
-
-      const totalCharges=transactionRows
-        .filter(row=>row.transaction_type==='Charge')
-        .reduce((sum,row)=>sum+Number(row.amount||0),0);
-      const payments=transactionRows
-        .filter(row=>['Payment','Advance'].includes(row.transaction_type))
-        .reduce((sum,row)=>sum+Number(row.amount||0),0);
-      const discounts=transactionRows
-        .filter(row=>row.transaction_type==='Discount')
-        .reduce((sum,row)=>sum+Number(row.amount||0),0);
-      const refunds=transactionRows
-        .filter(row=>row.transaction_type==='Refund')
-        .reduce((sum,row)=>sum+Number(row.amount||0),0);
-
       setState({
         loading:false,
-        pendingCharges:chargeRows.filter(row=>(row.approval_status||'Pending')==='Pending').length,
-        approvedCharges:chargeRows
-          .filter(row=>['Approved','Partially Approved'].includes(row.approval_status))
-          .reduce((sum,row)=>sum+Number(row.approved_amount||row.final_amount||row.requested_amount||0),0),
-        pendingDischarges:dischargeRows.filter(row=>
-          row.management_status==='Approved'&&
-          row.accounts_status!=='Cleared'&&
-          row.status!=='Completed'
-        ).length,
-        todayCollections:transactionRows
-          .filter(row=>
-            ['Payment','Advance'].includes(row.transaction_type)&&
-            String(row.transaction_date||'').slice(0,10)===today
-          )
-          .reduce((sum,row)=>sum+Number(row.amount||0),0),
-        pendingBalance:Math.max(0,totalCharges-payments-discounts+refunds),
-        refunds
+        transactions:transactions.data||[],
+        requests:requests.data||[],
+        discharges:discharges.data||[],
+        patients:patients.data||[]
       });
     }
 
     React.useEffect(()=>{
       load();
-      const channel=client.channel('accounts-dashboard-live')
-        .on('postgres_changes',{event:'*',schema:'public',table:'bill_charge_requests'},load)
+      const channel=client.channel('accounts-dashboard-live-v230')
         .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
+        .on('postgres_changes',{event:'*',schema:'public',table:'bill_charge_requests'},load)
         .on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load)
         .subscribe();
       return()=>client.removeChannel(channel);
     },[]);
 
-    const cards=[
-      ['Pending Charge Approvals',state.pendingCharges,'Charge Approvals'],
-      ['Approved Charge Value',`₹${Number(state.approvedCharges||0).toLocaleString('en-IN')}`,'Charge Approvals'],
-      ['Pending Discharge Clearance',state.pendingDischarges,'Discharge Clearance'],
-      ["Today's Collections",`₹${Number(state.todayCollections||0).toLocaleString('en-IN')}`,'Payments'],
-      ['Overall Pending Balance',`₹${Number(state.pendingBalance||0).toLocaleString('en-IN')}`,'Final Billing'],
-      ['Refunds Recorded',`₹${Number(state.refunds||0).toLocaleString('en-IN')}`,'Refunds']
+    const today=todayISOIndia();
+    const month=today.slice(0,7);
+    const rows=state.transactions;
+    const sum=(list,types)=>list
+      .filter(row=>types.includes(row.transaction_type))
+      .reduce((total,row)=>total+Number(row.amount||0),0);
+
+    const charges=sum(rows,['Charge']);
+    const collections=sum(rows,['Payment','Advance']);
+    const discounts=sum(rows,['Discount']);
+    const refunds=sum(rows,['Refund']);
+    const outstanding=Math.max(0,charges-collections-discounts+refunds);
+    const todayCollections=sum(rows.filter(row=>dateKey(row.transaction_date)===today),['Payment','Advance']);
+    const monthCollections=sum(rows.filter(row=>monthKey(row.transaction_date)===month),['Payment','Advance']);
+    const monthRevenue=sum(rows.filter(row=>monthKey(row.transaction_date)===month),['Charge']);
+    const pendingApprovals=state.requests.filter(row=>(row.approval_status||'Pending')==='Pending').length;
+    const finalBills=state.patients.filter(row=>row.is_active!==false).filter(patient=>{
+      const patientRows=rows.filter(row=>row.patient_id===patient.id);
+      return sum(patientRows,['Charge'])-sum(patientRows,['Payment','Advance','Discount'])+sum(patientRows,['Refund'])>0.009;
+    }).length;
+    const dischargeClearance=state.discharges.filter(row=>
+      String(row.management_status||'').toLowerCase()==='approved' &&
+      String(row.accounts_status||'').toLowerCase()!=='cleared' &&
+      String(row.status||'').toLowerCase()!=='completed'
+    ).length;
+    const refundValue=refunds;
+    const averageDailyRevenue=(()=>{
+      const chargeDates=[...new Set(rows.filter(row=>row.transaction_type==='Charge').map(row=>dateKey(row.transaction_date)).filter(Boolean))];
+      return chargeDates.length?charges/chargeDates.length:0;
+    })();
+
+    const modeTotals=['Cash','UPI','Card','Bank Transfer','Cheque'].map(mode=>[
+      mode,
+      sum(rows.filter(row=>String(row.payment_mode||'').toLowerCase()===mode.toLowerCase()),['Payment','Advance'])
+    ]);
+    const maxMode=Math.max(1,...modeTotals.map(([,value])=>value));
+
+    const kpis=[
+      ['Collections Today',todayCollections,'Payments','green','Received today'],
+      ['Collections This Month',monthCollections,'Payments','blue','Payment and advance receipts'],
+      ['Revenue This Month',monthRevenue,'Accounts Reports','teal','Charges raised during the month'],
+      ['Outstanding Receivables',outstanding,'Final Billing','red','Net pending across patients'],
+      ['Pending Approvals',pendingApprovals,'Charge Approvals','orange','Clinical charges awaiting decision',true],
+      ['Pending Final Bills',finalBills,'Final Billing','purple','Active patients with balance',true],
+      ['Discharge Clearance',dischargeClearance,'Discharge Clearance','orange','Management-approved cases',true],
+      ['Average Daily Revenue',averageDailyRevenue,'Accounts Reports','blue','Based on charge-posting days']
     ];
 
     return h(React.Fragment,null,
-      h('div',{className:'clinical-charges-hero'},
+      h('div',{className:'accounts-hero'},
         h('div',null,
-          h('small',null,'ACCOUNTS WORKSPACE'),
-          h('h3',null,'Accounts Dashboard'),
+          h('small',null,'FINANCE · BILLING · COLLECTIONS'),
+          h('h3',null,'Accounts Command Centre'),
           h('p',null,profile?.role==='Admin'
-            ?'Admin has complete Accounts access and may perform the Accountant role for the facility.'
-            :'Billing, collections, final settlement and discharge clearance.'
+            ?'Administrator and Accounts operations in one live financial workspace.'
+            :'Live billing, collection, settlement and discharge-clearance workspace.'
           )
         ),
-        h('button',{className:'btn btn-secondary',onClick:load},state.loading?'Loading…':'Refresh')
+        h('div',{className:'accounts-actions'},
+          h('button',{className:'btn btn-secondary',onClick:()=>onNavigate?.('Payments')},'＋ New Payment'),
+          h('button',{className:'btn btn-secondary',onClick:()=>onNavigate?.('Accounts Reports')},'▥ Reports'),
+          h('button',{className:'btn btn-secondary',onClick:load},state.loading?'Loading…':'↻ Refresh')
+        )
       ),
-      h('div',{className:'grid stats'},
-        cards.map(([label,value,page])=>h('button',{
-          type:'button',
-          className:'card stat accounts-dashboard-card',
-          key:label,
-          onClick:()=>onNavigate?.(page)
-        },h('span',null,label),h('strong',null,value)))
+
+      h('div',{className:'accounts-kpi-grid'},
+        kpis.map(([label,value,page,tone,note,isCount])=>h('button',{
+          type:'button',className:`accounts-kpi ${tone}`,key:label,onClick:()=>onNavigate?.(page)
+        },
+          h('span',null,label),
+          h('strong',null,isCount?Number(value||0):money(value)),
+          h('small',null,note)
+        ))
       ),
-      h(Section,{title:'Accounts Workflow',subtitle:'Use the cards below to complete each financial stage'},
-        h('div',{className:'management-cards'},
+
+      h('div',{className:'accounts-dashboard-grid'},
+        h('div',{className:'accounts-panel'},
+          h('div',{className:'accounts-panel-head'},
+            h('div',null,h('h3',null,'Collection by Payment Mode'),h('small',null,'All recorded payments and advances')),
+            h('strong',null,money(collections))
+          ),
+          h('div',{className:'accounts-bars'},
+            modeTotals.map(([mode,value])=>h('div',{className:'accounts-bar-row',key:mode},
+              h('span',null,mode),
+              h('div',{className:'accounts-bar-track'},
+                h('div',{className:'accounts-bar-fill',style:{width:`${Math.max(0,value/maxMode*100)}%`}})
+              ),
+              h('strong',null,money(value))
+            ))
+          )
+        ),
+
+        h('div',{className:'accounts-panel'},
+          h('div',{className:'accounts-panel-head'},
+            h('div',null,h('h3',null,'Financial Position'),h('small',null,'Live consolidated totals'))
+          ),
+          h('div',{className:'accounts-status-list'},
+            [
+              ['Total Charges',money(charges)],
+              ['Collections',money(collections)],
+              ['Discounts',money(discounts)],
+              ['Refunds',money(refundValue)],
+              ['Net Outstanding',money(outstanding)]
+            ].map(([label,value])=>h('div',{className:'accounts-status-item',key:label},h('span',null,label),h('strong',null,value)))
+          )
+        )
+      ),
+
+      h(Section,{title:'Accounts Workflow',subtitle:'Open the required financial stage directly'},
+        h('div',{className:'accounts-workflow-grid'},
           [
-            ['Charge Approvals','Review Nurse-raised additional services and approve, partially approve or reject.'],
-            ['Payments','Record advances, payments and other financial transactions.'],
-            ['Final Billing','Review patient-wise charges, payments, discounts and outstanding balance.'],
-            ['Discharge Clearance','Close only Management-approved discharges after the balance becomes zero.'],
-            ['Refunds','Review advance refunds and refund history.'],
-            ['Accounts Reports','Open financial and management reports.']
-          ].map(([title,text])=>h('button',{
-            type:'button',
-            className:'management-card',
-            key:title,
-            onClick:()=>onNavigate?.(title)
-          },h('strong',null,title),h('span',null,text)))
+            ['🧾','Charge Approvals','Approve, partially approve or reject Nurse-raised charges.',pendingApprovals],
+            ['💳','Payments','Receive Cash, UPI, Card, Bank Transfer or Cheque payments.',todayCollections?money(todayCollections):'Open'],
+            ['📑','Final Billing','Patient-wise ledger, discounts and net payable.',finalBills],
+            ['🚪','Discharge Clearance','Financially clear Management-approved discharges.',dischargeClearance],
+            ['↩','Refunds','View and record payment or advance refunds.',money(refundValue)],
+            ['📊','Accounts Reports','Revenue, collection, ageing and patient-ledger reports.','Open']
+          ].map(([icon,title,text,value])=>h('button',{
+            type:'button',className:'accounts-workflow-card',key:title,onClick:()=>onNavigate?.(title)
+          },
+            h('span',{className:'accounts-workflow-icon'},icon),
+            h('span',null,h('strong',null,title),h('small',null,text)),
+            h('b',null,value)
+          ))
         )
       )
     );
@@ -6948,90 +7068,201 @@ function ShiftHandover({profile,onNavigate}){
       )
     );
   }
-function Reports(){const [data,setData]=React.useState({patients:[],billing:[],incidents:[]});React.useEffect(()=>{Promise.all([client.from('patients').select('*'),client.from('billing_transactions').select('*'),client.from('incidents').select('*')]).then(([a,b,c])=>setData({patients:a.data||[],billing:b.data||[],incidents:c.data||[]}))},[]);const active=data.patients.filter(x=>x.is_active).length,high=data.patients.filter(p=>p.fall_risk||p.pressure_sore_risk||p.aspiration_risk||p.oxygen_required).length,charges=data.billing.filter(x=>x.transaction_type==='Charge').reduce((a,x)=>a+Number(x.amount||0),0),payments=data.billing.filter(x=>x.transaction_type==='Payment').reduce((a,x)=>a+Number(x.amount||0),0);return h(React.Fragment,null,h('div',{className:'grid stats'},[['Active patients',active],['High-risk patients',high],['Open incidents',data.incidents.filter(x=>x.status==='Open').length],['Total billing',`₹${charges.toLocaleString('en-IN')}`],['Collections',`₹${payments.toLocaleString('en-IN')}`],['Outstanding',`₹${(charges-payments).toLocaleString('en-IN')}`]].map(([a,b])=>h('div',{className:'card stat',key:a},h('span',null,a),h('strong',null,b)))),h(Section,{title:'Management Reports',subtitle:'Live summary from the unified production database'},h('p',null,'Use browser Print to save this report as PDF. Detailed Excel/PDF exports can be added in the next release.')))}
 
-  function Notifications({profile}){const [rows,setRows]=React.useState([]),[title,setTitle]=React.useState(''),[message,setMessage]=React.useState('');async function load(){const {data}=await client.from('notifications').select('*').order('created_at',{ascending:false}).limit(100);setRows(data||[])}React.useEffect(()=>{load()},[]);async function save(e){e.preventDefault();const {error}=await client.from('notifications').insert({title,message,priority:'Normal',created_by:profile.id});if(error)return alert(error.message);setTitle('');setMessage('');load()}return h(React.Fragment,null,['Admin','Manager'].includes(profile.role)&&h(Section,{title:'Create Notification'},h('form',{className:'modal-grid',onSubmit:save},miniInput('Title',title,setTitle,true),miniInput('Message',message,setMessage,true),h('button',{className:'btn btn-primary'},'Publish'))),h(LogTable,{title:'Notifications',heads:['Title','Message','Priority','Date'],rows:rows.map(r=>[r.title,r.message,r.priority,fmt(r.created_at)])}))}
+function Reports(){
+  React.useEffect(()=>{ensureAccountsWorkspaceStyle()},[]);
+  const [state,setState]=React.useState({loading:true,patients:[],billing:[],incidents:[],discharges:[]});
+  const [filters,setFilters]=React.useState({
+    from:(()=>{const d=new Date();d.setDate(1);return d.toISOString().slice(0,10)})(),
+    to:todayISOIndia(),
+    patient_id:'',
+    payment_mode:'All'
+  });
 
-  
-  function SystemMaintenance({profile}){
-    const isAdmin=profile?.role==='Admin';
-    const [runs,setRuns]=React.useState([]);
-    const [busy,setBusy]=React.useState(false);
-    const [message,setMessage]=React.useState('');
-    const [toast,setToast]=React.useState(null);
-    const toastTimer=React.useRef(null);
+  const money=value=>`₹${Number(value||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+  const dateOnly=value=>String(value||'').slice(0,10);
 
-    function showToast(type,text){
-      clearTimeout(toastTimer.current);
-      setToast({type,text});
-      toastTimer.current=setTimeout(()=>setToast(null),5000);
-    }
-    React.useEffect(()=>()=>clearTimeout(toastTimer.current),[]);
-
-    async function load(){
-      const {data,error}=await client.from('daily_billing_runs')
-        .select('*')
-        .order('started_at',{ascending:false})
-        .limit(100);
-      if(error){setMessage(error.message||'Unable to load billing maintenance history.');setRuns([])}
-      else {setMessage('');setRuns(data||[])}
-    }
-    React.useEffect(()=>{if(isAdmin)load()},[]);
-
-    async function runAgain(){
-      if(!isAdmin||busy)return;
-      if(!confirm(`Run the daily billing verification again for ${formatDateIN(todayISOIndia())}? Duplicate room and nursing charges will be skipped automatically.`))return;
-      setBusy(true);
-      const {data,error}=await client.rpc('run_daily_billing_automation',{p_charge_date:todayISOIndia(),p_force:true});
-      setBusy(false);
-      if(error){showToast('error',error.message||'Billing maintenance run failed.');return}
-      const created=Number(data?.room_charges_created||0)+Number(data?.nursing_charges_created||0);
-      showToast('success',`Billing verification completed. ${created} missing charge(s) were created; existing charges were skipped.`);
-      await load();
-      writeAuditEvent('Daily Billing Generator Rerun','System Maintenance',todayISOIndia(),data||{},'Success');
-    }
-
-    if(!isAdmin)return h(Section,{title:'System Maintenance'},h('div',{className:'message error'},'Administrator access is required.'));
-
-    const latest=runs[0]||null;
-    return h(React.Fragment,null,
-      h(Section,{
-        title:'System Maintenance',
-        subtitle:'Administrator-only controls for automatic recurring billing',
-        actions:h('button',{type:'button',className:'btn btn-primary',disabled:busy,onClick:runAgain},busy?'Running Billing Verification…':'Run Billing Generator Again')
-      },
-        message&&h('div',{className:'message error'},message),
-        h('div',{className:'grid stats'},
-          h('div',{className:'card stat'},h('span',null,'Last Automatic Run'),h('strong',null,latest?fmt(latest.started_at):'No run recorded')),
-          h('div',{className:'card stat'},h('span',null,'Room Charges Created'),h('strong',null,latest?.room_charges_created??0)),
-          h('div',{className:'card stat'},h('span',null,'Nursing Charges Created'),h('strong',null,latest?.nursing_charges_created??0)),
-          h('div',{className:'card stat'},h('span',null,'Already Existing / Skipped'),h('strong',null,latest?.skipped_count??0)),
-          h('div',{className:'card stat'},h('span',null,'Errors'),h('strong',null,latest?.error_count??0))
-        ),
-        h('p',{className:'small-note'},'The ERP automatically verifies daily room rent and nursing charges when the first authenticated user opens the application. Duplicate protection ensures only one Room Charge and one Nursing Charge per patient per date.')
-      ),
-      h(LogTable,{
-        title:'Daily Billing Generator History',
-        subtitle:'Automatic and administrator-initiated verification runs',
-        heads:['Charge Date','Started','Run Type','Room Created','Nursing Created','Skipped','Errors','Status'],
-        rows:runs.map(row=>[
-          formatDateIN(row.charge_date),
-          fmt(row.started_at),
-          row.run_type||'Automatic',
-          row.room_charges_created??0,
-          row.nursing_charges_created??0,
-          row.skipped_count??0,
-          row.error_count??0,
-          h('span',{className:`badge ${row.status==='Completed'?'':'off'}`},row.status||'Completed')
-        ])
-      }),
-      toast&&h('div',{className:`samara-toast ${toast.type}`,role:'status','aria-live':'polite'},
-        h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),
-        h('div',null,h('strong',null,toast.type==='success'?'Maintenance completed':'Maintenance failed'),h('span',null,toast.text)),
-        h('button',{type:'button',onClick:()=>setToast(null)},'×')
-      )
-    );
+  async function load(){
+    setState(current=>({...current,loading:true}));
+    const [patients,billing,incidents,discharges]=await Promise.all([
+      client.from('patients').select('id,title,full_name,patient_id,room_no,bed_no,is_active,admission_date'),
+      client.from('billing_transactions')
+        .select('id,patient_id,transaction_type,category,amount,payment_mode,description,transaction_date,patients(title,full_name,patient_id,room_no,bed_no)')
+        .order('transaction_date',{ascending:false}).limit(5000),
+      client.from('incidents').select('id,status'),
+      client.from('patient_discharges').select('id,status,management_status,accounts_status,created_at')
+    ]);
+    setState({
+      loading:false,
+      patients:patients.data||[],
+      billing:billing.data||[],
+      incidents:incidents.data||[],
+      discharges:discharges.data||[]
+    });
   }
+  React.useEffect(()=>{load()},[]);
+
+  const filtered=state.billing.filter(row=>{
+    const date=dateOnly(row.transaction_date);
+    if(filters.from&&date<filters.from)return false;
+    if(filters.to&&date>filters.to)return false;
+    if(filters.patient_id&&row.patient_id!==filters.patient_id)return false;
+    if(filters.payment_mode!=='All'&&String(row.payment_mode||'')!==filters.payment_mode)return false;
+    return true;
+  });
+
+  const sum=types=>filtered.filter(row=>types.includes(row.transaction_type))
+    .reduce((total,row)=>total+Number(row.amount||0),0);
+  const charges=sum(['Charge']);
+  const collections=sum(['Payment','Advance']);
+  const discounts=sum(['Discount']);
+  const refunds=sum(['Refund']);
+  const outstanding=Math.max(0,charges-collections-discounts+refunds);
+
+  const patientLedger=state.patients.map(patient=>{
+    const rows=filtered.filter(row=>row.patient_id===patient.id);
+    const byType=type=>rows.filter(row=>row.transaction_type===type).reduce((a,row)=>a+Number(row.amount||0),0);
+    const patientCharges=byType('Charge');
+    const paid=byType('Payment')+byType('Advance');
+    const discount=byType('Discount');
+    const refund=byType('Refund');
+    const balance=patientCharges-paid-discount+refund;
+    return {patient,charges:patientCharges,paid,discount,refund,balance};
+  }).filter(row=>row.charges||row.paid||row.discount||row.refund);
+
+  const ageing={current:0,d8_15:0,d16_30:0,over30:0};
+  const now=new Date();
+  filtered.filter(row=>row.transaction_type==='Charge').forEach(row=>{
+    const age=Math.max(0,Math.floor((now-new Date(row.transaction_date))/(86400000)));
+    const value=Number(row.amount||0);
+    if(age<=7)ageing.current+=value;
+    else if(age<=15)ageing.d8_15+=value;
+    else if(age<=30)ageing.d16_30+=value;
+    else ageing.over30+=value;
+  });
+
+  const modeTotals=['Cash','UPI','Card','Bank Transfer','Cheque'].map(mode=>[
+    mode,
+    filtered.filter(row=>['Payment','Advance'].includes(row.transaction_type)&&String(row.payment_mode||'')===mode)
+      .reduce((sum,row)=>sum+Number(row.amount||0),0)
+  ]);
+
+  function exportCSV(){
+    const header=['Date','Patient','Patient ID','Type','Category','Payment Mode','Amount','Description'];
+    const lines=filtered.map(row=>[
+      formatDateIN(row.transaction_date),
+      formalName(row.patients||{})||row.patients?.full_name||'',
+      row.patients?.patient_id||'',
+      row.transaction_type||'',
+      row.category||'',
+      row.payment_mode||'',
+      Number(row.amount||0),
+      String(row.description||'').replace(/\r?\n/g,' ')
+    ]);
+    const csv=[header,...lines].map(cols=>cols.map(value=>`"${String(value??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const blob=new Blob([`\uFEFF${csv}`],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;
+    link.download=`Samara_Accounts_Report_${filters.from}_to_${filters.to}.csv`;
+    document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
+  }
+
+  return h(React.Fragment,null,
+    h('div',{className:'accounts-hero'},
+      h('div',null,
+        h('small',null,'MANAGEMENT INFORMATION SYSTEM'),
+        h('h3',null,'Accounts Reports & Analytics'),
+        h('p',null,'Live revenue, collections, outstanding, payment modes and patient-wise ledgers.')
+      ),
+      h('div',{className:'accounts-report-actions'},
+        h('button',{className:'btn btn-secondary',onClick:load},state.loading?'Loading…':'↻ Refresh'),
+        h('button',{className:'btn btn-secondary',onClick:()=>window.print()},'🖨 Print / PDF'),
+        h('button',{className:'btn btn-secondary',onClick:exportCSV},'⇩ Export CSV')
+      )
+    ),
+
+    h(Section,{title:'Report Filters',subtitle:'Choose period, patient and payment mode'},
+      h('div',{className:'accounts-report-filters'},
+        miniInput('From Date',filters.from,v=>setFilters({...filters,from:v}),false,'date'),
+        miniInput('To Date',filters.to,v=>setFilters({...filters,to:v}),false,'date'),
+        h('div',{className:'field'},h('label',null,'Patient'),h('select',{
+          value:filters.patient_id,onChange:e=>setFilters({...filters,patient_id:e.target.value})
+        },h('option',{value:''},'All patients'),state.patients.map(patient=>h('option',{key:patient.id,value:patient.id},
+          `${formalName(patient)||patient.full_name} · ${patient.patient_id||'No ID'}`
+        )))),
+        miniSelect('Payment Mode',filters.payment_mode,['All','Cash','UPI','Card','Bank Transfer','Cheque'],v=>setFilters({...filters,payment_mode:v}))
+      )
+    ),
+
+    h('div',{className:'accounts-kpi-grid'},
+      [
+        ['Gross Billing',charges,'teal'],
+        ['Collections',collections,'green'],
+        ['Discounts',discounts,'orange'],
+        ['Refunds',refunds,'purple'],
+        ['Net Outstanding',outstanding,'red'],
+        ['Active Patients',state.patients.filter(row=>row.is_active!==false).length,'blue',true],
+        ['Open Incidents',state.incidents.filter(row=>String(row.status||'Open').toLowerCase()!=='closed').length,'red',true],
+        ['Discharges in Process',state.discharges.filter(row=>String(row.status||'').toLowerCase()!=='completed').length,'orange',true]
+      ].map(([label,value,tone,count])=>h('div',{className:`accounts-kpi ${tone}`,key:label},
+        h('span',null,label),h('strong',null,count?value:money(value)),h('small',null,`${formatDateIN(filters.from)} to ${formatDateIN(filters.to)}`)
+      ))
+    ),
+
+    h('div',{className:'accounts-dashboard-grid'},
+      h('div',{className:'accounts-panel'},
+        h('div',{className:'accounts-panel-head'},h('div',null,h('h3',null,'Outstanding Ageing Analysis'),h('small',null,'Gross charge ageing for the selected period'))),
+        h('div',{className:'accounts-mode-grid'},
+          [
+            ['0–7 Days',ageing.current],
+            ['8–15 Days',ageing.d8_15],
+            ['16–30 Days',ageing.d16_30],
+            ['Above 30 Days',ageing.over30]
+          ].map(([label,value])=>h('div',{className:'accounts-mode-card',key:label},h('span',null,label),h('strong',null,money(value))))
+        )
+      ),
+      h('div',{className:'accounts-panel'},
+        h('div',{className:'accounts-panel-head'},h('div',null,h('h3',null,'Collections by Mode'),h('small',null,'Payments and advances'))),
+        h('div',{className:'accounts-status-list'},
+          modeTotals.map(([label,value])=>h('div',{className:'accounts-status-item',key:label},h('span',null,label),h('strong',null,money(value))))
+        )
+      )
+    ),
+
+    h(LogTable,{
+      title:`Patient-wise Financial Ledger (${patientLedger.length})`,
+      subtitle:'Charges, receipts, concessions, refunds and balance',
+      heads:['Patient','Patient ID','Room / Bed','Charges','Paid / Advance','Discount','Refund','Balance','Status'],
+      rows:patientLedger.map(row=>[
+        formalName(row.patient)||row.patient.full_name,
+        row.patient.patient_id||'—',
+        row.patient.room_no?`${row.patient.room_no}${row.patient.bed_no?`-${row.patient.bed_no}`:''}`:'—',
+        money(row.charges),money(row.paid),money(row.discount),money(row.refund),
+        money(Math.max(0,row.balance)),
+        h('span',{className:'badge',style:row.balance<=0.009?{background:'#e8f7ed',color:'#067333'}:row.paid>0?{background:'#fff4df',color:'#9a6700'}:{background:'#ffeded',color:'#b42318'}},
+          row.balance<=0.009?'Paid':row.paid>0?'Partially Paid':'Outstanding'
+        )
+      ])
+    }),
+
+    h(LogTable,{
+      title:`Detailed Transaction Register (${filtered.length})`,
+      subtitle:'Filtered billing, payment, discount and refund history',
+      heads:['Date','Patient','Patient ID','Type','Category','Mode','Amount','Description'],
+      rows:filtered.map(row=>[
+        formatDateTimeIN(row.transaction_date),
+        formalName(row.patients||{})||row.patients?.full_name||'—',
+        row.patients?.patient_id||'—',
+        row.transaction_type||'—',
+        row.category||'—',
+        row.payment_mode||'—',
+        money(row.amount),
+        row.description||'—'
+      ])
+    })
+  );
+}
 
 function AuditTrail(){
     const [rows,setRows]=React.useState([]);

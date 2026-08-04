@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.8';
-  const APP_BUILD_DATE = '05-Aug-2026 01:36 IST';
+  const APP_VERSION = '2.2.9';
+  const APP_BUILD_DATE = '05-Aug-2026 01:42 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -1367,21 +1367,57 @@ Caring with Compassion. Living with Dignity.`;
   }
 
   function Dashboard({profile,onNavigate}){
-    const [stats,setStats]=React.useState({employees:0,patients:0,beds:25,meds:0,care:0,outstanding:0,risks:0,incidents:0});
+    const [stats,setStats]=React.useState({employees:0,patients:0,beds:25,meds:0,care:0,outstanding:0,risks:0,incidents:0,discharges:0,dischargeStatus:'No active discharge'});
     React.useEffect(()=>{(async()=>{
       const today=new Date().toISOString().slice(0,10);
-      const [emp,pat,med,care,bill,inc]=await Promise.all([
+      const [emp,pat,med,care,bill,inc,dis]=await Promise.all([
         client.from('profiles').select('*',{count:'exact',head:true}).eq('is_active',true),
         client.from('patients').select('*').eq('is_active',true),
         client.from('medication_administrations').select('*',{count:'exact',head:true}).eq('scheduled_date',today),
         client.from('care_logs').select('*',{count:'exact',head:true}).eq('care_date',today),
         client.from('billing_transactions').select('amount,transaction_type'),
-        client.from('incidents').select('*',{count:'exact',head:true}).eq('status','Open')
+        client.from('incidents').select('*',{count:'exact',head:true}).eq('status','Open'),
+        client.from('patient_discharges').select('id,status,management_status,accounts_status')
       ]);
       const patients=pat.data||[];
       const risks=patients.filter(p=>p.fall_risk||p.pressure_sore_risk||p.aspiration_risk||p.wandering_risk||p.infection_risk||p.oxygen_required).length;
       const outstanding=(bill.data||[]).reduce((a,x)=>a+(x.transaction_type==='Charge'?Number(x.amount||0):-Number(x.amount||0)),0);
-      setStats({employees:emp.count||0,patients:patients.length,beds:25,meds:med.count||0,care:care.count||0,outstanding,risks,incidents:inc.count||0});
+      const activeDischarges=(dis.data||[]).filter(row=>
+        String(row.status||'').trim().toLowerCase()!=='completed'
+      );
+      const awaitingManagement=activeDischarges.filter(row=>
+        ['','pending'].includes(String(row.management_status||'').trim().toLowerCase())
+      ).length;
+      const withAccounts=activeDischarges.filter(row=>
+        String(row.management_status||'').trim().toLowerCase()==='approved'&&
+        String(row.accounts_status||'').trim().toLowerCase()!=='cleared'
+      ).length;
+      const awaitingNurse=activeDischarges.filter(row=>
+        String(row.accounts_status||'').trim().toLowerCase()==='cleared'
+      ).length;
+      const returned=activeDischarges.filter(row=>
+        String(row.management_status||'').trim().toLowerCase()==='rejected'||
+        String(row.status||'').trim().toLowerCase()==='returned to nursing'
+      ).length;
+      const dischargeStatus=
+        awaitingManagement?`${awaitingManagement} awaiting Management approval`:
+        withAccounts?`${withAccounts} awaiting Accounts clearance`:
+        awaitingNurse?`${awaitingNurse} awaiting final Nursing discharge`:
+        returned?`${returned} returned to Nursing`:
+        'No active discharge';
+
+      setStats({
+        employees:emp.count||0,
+        patients:patients.length,
+        beds:25,
+        meds:med.count||0,
+        care:care.count||0,
+        outstanding,
+        risks,
+        incidents:inc.count||0,
+        discharges:activeDischarges.length,
+        dischargeStatus
+      });
     })()},[]);
     const cards=[
       {label:'Current patients',value:stats.patients,page:'Patients',icon:'👥'},
@@ -1391,11 +1427,12 @@ Caring with Compassion. Living with Dignity.`;
       {label:'Medicine actions today',value:stats.meds,page:'Shift Tasks',icon:'💊'},
       {label:'Care actions today',value:stats.care,page:'Daily Care',icon:'✅'},
       {label:'Open incidents',value:stats.incidents,page:'Incidents',icon:'🚨'},
-      {label:'Outstanding amount',value:`₹${stats.outstanding.toLocaleString('en-IN')}`,page:'Billing & Payments',icon:'₹'}
+      {label:'Outstanding amount',value:`₹${stats.outstanding.toLocaleString('en-IN')}`,page:'Payments',icon:'₹'},
+      {label:'Discharge',value:stats.discharges,page:'Discharge',icon:'🚪',status:stats.dischargeStatus}
     ];
     return h(React.Fragment,null,
       h('div',{className:'shift-summary'},h('div',null,h('strong',null,currentShift()),h('span',null,'Admin and Manager control dashboard')),h('span',{className:'badge'},formalName(profile))),
-      h('div',{className:'grid stats dashboard-links'},cards.map(card=>h('button',{type:'button',className:'card stat dashboard-card',key:card.label,onClick:()=>onNavigate(card.page),title:`Open ${card.page}`},h('span',{className:'dashboard-icon','aria-hidden':'true'},card.icon),h('span',null,card.label),h('strong',null,card.value),h('small',null,`Open ${card.page} →`)))),
+      h('div',{className:'grid stats dashboard-links'},cards.map(card=>h('button',{type:'button',className:'card stat dashboard-card',key:card.label,onClick:()=>onNavigate(card.page),title:`Open ${card.page}`},h('span',{className:'dashboard-icon','aria-hidden':'true'},card.icon),h('span',null,card.label),h('strong',null,card.value),h('small',null,card.status||`Open ${card.page} →`)))),
       h('div',{className:'grid two',style:{marginTop:'18px'}},
         h('button',{type:'button',className:'card panel dashboard-panel-link',onClick:()=>onNavigate('Shift Tasks')},h('div',{className:'panel-head'},h('h3',null,'Today’s operational focus')),h('p',null,'Open medicines, bathing, restroom assistance, feeding, mobility, physiotherapy and special-nurse tasks.'),h('span',{className:'badge'},'Open Shift Tasks →')),
         h('button',{type:'button',className:'card panel dashboard-panel-link',onClick:()=>onNavigate('Reports')},h('div',{className:'panel-head'},h('h3',null,'Management reports')),h('p',null,'Open occupancy, clinical risks, incidents, billing, collections and outstanding details.'),h('span',{className:'badge'},'Open Reports →'))

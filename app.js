@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.7';
-  const APP_BUILD_DATE = '05-Aug-2026 01:10 IST';
+  const APP_VERSION = '2.1.8';
+  const APP_BUILD_DATE = '05-Aug-2026 01:25 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3236,7 +3236,7 @@ function RoomsBeds({profile}){
     );
   }
   function ClinicalDashboard({profile,onNavigate}){
-    const [state,setState]=React.useState({loading:true,patients:[],medOrders:[],medLogs:[],careOrders:[],careLogs:[],vitals:[],physioOrders:[],physioSessions:[],incidents:[],handovers:[]});
+    const [state,setState]=React.useState({loading:true,patients:[],medOrders:[],medLogs:[],careOrders:[],careLogs:[],vitals:[],physioOrders:[],physioSessions:[],incidents:[],handovers:[],discharges:[]});
     const today=new Date().toISOString().slice(0,10);
     const timeToMinutes=value=>{const text=String(value||'').trim();const m=text.match(/^(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):9999};
     const nowMinutes=new Date().getHours()*60+new Date().getMinutes();
@@ -3251,12 +3251,16 @@ function RoomsBeds({profile}){
         client.from('physiotherapy_plans').select('*,patients(full_name,title,patient_id,room_no,bed_no)').eq('is_active',true),
         client.from('physiotherapy_sessions').select('*').eq('session_date',today),
         client.from('incidents').select('*,patients(full_name,title,patient_id,room_no,bed_no)').eq('status','Open').order('incident_at',{ascending:false}),
-        client.from('shift_handovers').select('*,profiles!shift_handovers_submitted_by_fkey(full_name,title)').order('created_at',{ascending:false}).limit(5)
+        client.from('shift_handovers').select('*,profiles!shift_handovers_submitted_by_fkey(full_name,title)').order('created_at',{ascending:false}).limit(5),
+        client.from('patient_discharges')
+          .select('id,patient_id,status,management_status,accounts_status,proposed_discharge_date,patients(full_name,title,patient_id,room_no,bed_no)')
+          .neq('status','Completed')
+          .order('created_at',{ascending:false})
       ]);
       const data=results.map(r=>r.data||[]);
-      setState({loading:false,patients:data[0],medOrders:data[1],medLogs:data[2],careOrders:data[3],careLogs:data[4],vitals:data[5],physioOrders:data[6],physioSessions:data[7],incidents:data[8],handovers:data[9]});
+      setState({loading:false,patients:data[0],medOrders:data[1],medLogs:data[2],careOrders:data[3],careLogs:data[4],vitals:data[5],physioOrders:data[6],physioSessions:data[7],incidents:data[8],handovers:data[9],discharges:data[10]});
     }
-    React.useEffect(()=>{load();const ch=client.channel('clinical-dashboard-live').on('postgres_changes',{event:'*',schema:'public',table:'vital_signs'},load).on('postgres_changes',{event:'*',schema:'public',table:'medication_administrations'},load).on('postgres_changes',{event:'*',schema:'public',table:'care_logs'},load).on('postgres_changes',{event:'*',schema:'public',table:'incidents'},load).subscribe();return()=>client.removeChannel(ch)},[]);
+    React.useEffect(()=>{load();const ch=client.channel('clinical-dashboard-live').on('postgres_changes',{event:'*',schema:'public',table:'vital_signs'},load).on('postgres_changes',{event:'*',schema:'public',table:'medication_administrations'},load).on('postgres_changes',{event:'*',schema:'public',table:'care_logs'},load).on('postgres_changes',{event:'*',schema:'public',table:'incidents'},load).on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load).subscribe();return()=>client.removeChannel(ch)},[]);
     const medTasks=[];
     state.medOrders.forEach(order=>(order.scheduled_times||[]).forEach(time=>{const done=state.medLogs.some(log=>log.order_id===order.id&&String(log.scheduled_time||'').slice(0,5)===String(time).slice(0,5));if(!done)medTasks.push({order,time,overdue:timeToMinutes(time)<nowMinutes})}));
     const carePending=state.careOrders.flatMap(order=>{
@@ -3274,6 +3278,26 @@ function RoomsBeds({profile}){
     const patientName=row=>formalName(row?.patients||row)||row?.patients?.full_name||row?.full_name||'Patient';
     const currentShiftCarePending=carePending.filter(x=>!x.isUpcoming);
     const upcomingShiftCarePending=carePending.filter(x=>x.isUpcoming);
+    const dischargeReady=state.discharges.filter(row=>row.accounts_status==='Cleared');
+    const dischargeWithAccounts=state.discharges.filter(row=>row.management_status==='Approved'&&row.accounts_status!=='Cleared');
+    const dischargeAwaitingManagement=state.discharges.filter(row=>(row.management_status||'Pending')==='Pending');
+    const dischargeReturned=state.discharges.filter(row=>row.management_status==='Rejected'||row.status==='Returned to Nursing');
+    const dischargeStatusText=
+      dischargeReady.length
+        ?`${dischargeReady.length} ready for final departure`
+        :dischargeReturned.length
+          ?`${dischargeReturned.length} returned for action`
+          :dischargeWithAccounts.length
+            ?`${dischargeWithAccounts.length} with Accounts`
+            :dischargeAwaitingManagement.length
+              ?`${dischargeAwaitingManagement.length} awaiting Management`
+              :'No active discharge';
+    const dischargeTone=
+      dischargeReady.length||dischargeReturned.length
+        ?'clinical-red'
+        :state.discharges.length
+          ?'clinical-amber'
+          :'clinical-green';
     const cards=[
       ['Patients under care',state.patients.length,'Patients','👥','clinical-green'],
       ['Medicines due',medTasks.length,'Shift Tasks','💊',medTasks.some(x=>x.overdue)?'clinical-red':'clinical-blue'],
@@ -3281,18 +3305,27 @@ function RoomsBeds({profile}){
       ['Current-shift care pending',currentShiftCarePending.length,'Shift Tasks','✅',currentShiftCarePending.length?'clinical-amber':'clinical-green'],
       ['Next-shift care scheduled',upcomingShiftCarePending.length,'Shift Tasks','🕒','clinical-blue'],
       ['Physiotherapy pending',physioPending.length,'Physiotherapy','🏃','clinical-purple'],
-      ['Open incidents',state.incidents.length,'Incidents','⚠️',state.incidents.length?'clinical-red':'clinical-green']
+      ['Open incidents',state.incidents.length,'Incidents','⚠️',state.incidents.length?'clinical-red':'clinical-green'],
+      ['Discharge',state.discharges.length,'Discharge','🚪',dischargeTone,dischargeStatusText]
     ];
     return h(React.Fragment,null,
       h('div',{className:'clinical-welcome'},h('div',null,h('small',null,currentShift().toUpperCase()),h('h2',null,`Good ${new Date().getHours()<12?'Morning':new Date().getHours()<17?'Afternoon':'Evening'}, ${formalName(profile)}`),h('p',null,'Your clinical worklist for today — complete urgent and overdue items first.')),h('div',{className:'clinical-date'},`${new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',weekday:'long'}).format(new Date())}, ${formatDateIN(new Date())}`)),
-      h('div',{className:'clinical-card-grid'},cards.map(([label,value,page,icon,tone])=>h('button',{type:'button',className:`clinical-metric ${tone}`,key:label,onClick:()=>onNavigate(page)},h('span',{className:'clinical-metric-icon'},icon),h('strong',null,value),h('span',null,label),h('small',null,`Open ${page} →`)))),
+      h('div',{className:'clinical-card-grid'},cards.map(([label,value,page,icon,tone,statusText])=>h('button',{type:'button',className:`clinical-metric ${tone}`,key:label,onClick:()=>onNavigate(page)},h('span',{className:'clinical-metric-icon'},icon),h('strong',null,value),h('span',null,label),h('small',null,statusText||`Open ${page} →`)))),
       h('div',{className:'clinical-columns'},
         h('section',{className:'card clinical-panel'},h('div',{className:'clinical-panel-head'},h('div',null,h('h3',null,'Priority Worklist'),h('small',null,'Overdue and pending tasks requiring attention')),h('button',{className:'btn btn-secondary',onClick:load},'Refresh')),
           medTasks.filter(x=>x.overdue).slice(0,5).map((x,i)=>h('div',{className:'clinical-work-row urgent',key:'m'+i},h('span',null,'💊'),h('div',null,h('strong',null,patientName(x.order)),h('small',null,`${x.order.medicine_name} ${x.order.dose||''} · Due ${x.time}`)),h('b',null,'OVERDUE'))),
           vitalsPending.slice(0,4).map(p=>h('div',{className:'clinical-work-row',key:p.id},h('span',null,'🩺'),h('div',null,h('strong',null,formalName(p)),h('small',null,`${p.patient_id||''} · Room ${p.room_no||'—'}-${p.bed_no||'—'} · Vitals not entered today`)),h('button',{className:'mini-link',onClick:()=>onNavigate('Vital Signs')},'Enter'))),
           currentShiftCarePending.slice(0,5).map((x,i)=>h('div',{className:'clinical-work-row',key:`care-${x.id}-${x.taskShift}-${i}`},h('span',null,'✅'),h('div',null,h('strong',null,patientName(x)),h('small',null,`${x.care_type||x.activity||'Care task'} · ${x.taskShift}`)),h('button',{className:'mini-link',onClick:()=>onNavigate('Shift Tasks')},'View'))),
           upcomingShiftCarePending.length>0&&h('div',{className:'clinical-work-row upcoming-summary'},h('span',null,'🕒'),h('div',null,h('strong',null,`${upcomingShiftCarePending.length} care task(s) scheduled for next shift`),h('small',null,'Shown as a compact summary; they become actionable when the next shift starts.')),h('button',{className:'mini-link',onClick:()=>onNavigate('Shift Tasks')},'Review')),
-          !medTasks.some(x=>x.overdue)&&!vitalsPending.length&&!currentShiftCarePending.length&&h('div',{className:'clinical-empty'},'No urgent clinical tasks are pending in the current shift.')),
+          dischargeReady.slice(0,3).map(row=>h('div',{className:'clinical-work-row urgent',key:`discharge-${row.id}`},
+            h('span',null,'🚪'),
+            h('div',null,
+              h('strong',null,formalName(row.patients||{})||row.patients?.full_name||'Patient'),
+              h('small',null,`${row.patients?.patient_id||'—'} · Room ${row.patients?.room_no||'—'}-${row.patients?.bed_no||'—'} · Accounts cleared — confirm patient departure`)
+            ),
+            h('button',{className:'mini-link',onClick:()=>onNavigate('Discharge')},'Open')
+          )),
+          !medTasks.some(x=>x.overdue)&&!vitalsPending.length&&!currentShiftCarePending.length&&!dischargeReady.length&&h('div',{className:'clinical-empty'},'No urgent clinical tasks are pending in the current shift.')),
         h('section',{className:'card clinical-panel'},h('div',{className:'clinical-panel-head'},h('div',null,h('h3',null,'Latest Shift Handover'),h('small',null,'Important information from the previous shift'))),
           state.handovers.length?state.handovers.slice(0,3).map(x=>h('div',{className:`handover-card ${String(x.priority||'').toLowerCase()}`,key:x.id},h('div',null,h('strong',null,`${x.shift} · ${x.priority}`),h('small',null,fmt(x.created_at))),h('p',null,x.patient_summary||'No patient summary.'),x.pending_tasks&&h('p',null,h('b',null,'Pending: '),x.pending_tasks),h('small',null,`Submitted by ${formalName(x.profiles||{})||x.profiles?.full_name||'Staff'}`))):h('div',{className:'clinical-empty'},'No shift handover has been submitted yet.'))
       )

@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.1';
-  const APP_BUILD_DATE = '05-Aug-2026 02:58 IST';
+  const APP_VERSION = '2.3.3';
+  const APP_BUILD_DATE = '05-Aug-2026 03:18 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -1755,7 +1755,177 @@ Caring with Compassion. Living with Dignity.`;
       const win=window.open('','_blank','width=760,height=700');
       if(!win){alert('Please allow pop-ups to print the ID card.');return}
       const validUntil=currentRow.date_of_joining?formatDateIN(new Date(new Date(currentRow.date_of_joining).setFullYear(new Date(currentRow.date_of_joining).getFullYear()+3))):'As per employment';
-      win.document.write(`<!doctype html><html><head><title>Employee ID Card</title><style>body{font-family:Arial;margin:0;padding:30px;background:#eef6f4}.card{width:360px;height:570px;margin:auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 35px #0002;border:2px solid #086b58}.head{background:#086b58;color:white;text-align:center;padding:22px}.head h1{margin:0;font-size:25px}.head p{margin:6px 0 0}.photo{width:130px;height:150px;border:4px solid white;border-radius:16px;object-fit:cover;background:#ddd;margin:-4px auto 16px;display:block;box-shadow:0 4px 15px #0003}.body{padding:16px 28px;text-align:center}.name{font-size:25px;font-weight:bold;color:#063f36}.role{font-size:18px;color:#086b58;margin:5px}.grid{text-align:left;margin-top:18px;line-height:1.75}.label{font-weight:bold;color:#555}.foot{position:absolute}.barcode{margin-top:15px;padding:10px;border-top:1px dashed #aaa;font-family:monospace}.print{display:block;margin:20px auto;padding:12px 24px}@media print{.print{display:none}body{background:white;padding:0}}</style></head><body><div class="card"><div class="head"><h1>SAMARA HEALTH CARE LLP</h1><p>Assisted Living Management System</p></div><div class="body">${photoUrl?`<img class="photo" src="${photoUrl}">`:`<div class="photo" style="display:flex;align-items:center;justify-content:center;font-size:48px">SC</div>`}<div class="name">${escapeHtml(formalName(currentRow))}</div><div class="role">${escapeHtml(currentRow.designation||currentRow.role)}</div><div class="grid"><div><span class="label">Employee ID:</span> ${escapeHtml(currentRow.employee_id||'—')}</div><div><span class="label">Role:</span> ${escapeHtml(currentRow.role||'—')}</div><div><span class="label">Mobile:</span> ${escapeHtml(currentRow.mobile||'—')}</div><div><span class="label">Blood Group:</span> ${escapeHtml(currentRow.blood_group||'—')}</div><div><span class="label">Date of Joining:</span> ${escapeHtml(currentRow.date_of_joining||'—')}</div><div><span class="label">Valid:</span> ${escapeHtml(validUntil)}</div></div><div class="barcode">${escapeHtml(currentRow.login_id||currentRow.id)}</div></div></div><button class="print" onclick="window.print()">Print ID Card</button></body></html>`);
+      const paymentModes=[...new Set(rows
+        .filter(row=>['Payment','Advance'].includes(row.transaction_type)&&row.payment_mode)
+        .map(row=>row.payment_mode)
+      )].join(', ')||'—';
+
+      const receiptNumbers=rows
+        .filter(row=>['Payment','Advance'].includes(row.transaction_type))
+        .map(row=>row.reference_no||row.receipt_no||row.description||'')
+        .filter(Boolean)
+        .join(' | ')||'—';
+
+      const patientAge=patient.age||patient.patient_age||'—';
+      const patientGender=patient.gender||patient.sex||'—';
+      const dischargeDate=patient.discharge_date||'—';
+
+      win.document.write(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Final Bill - ${escapeHtml(formalName(patient)||patient.full_name||'Patient')}</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef4f2;font-family:Arial,Helvetica,sans-serif;color:#16352e}
+  .sheet{width:210mm;min-height:297mm;margin:12px auto;background:#fff;padding:11mm 12mm;box-shadow:0 10px 32px #0002}
+  .head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;padding-bottom:12px;border-bottom:3px solid #0b6d59}
+  .brand-wrap{display:flex;gap:12px;align-items:flex-start}
+  .logo{display:grid;place-items:center;width:54px;height:54px;border-radius:15px;background:#0b6d59;color:#fff;font-weight:900;font-size:22px}
+  .brand h1{margin:0;color:#075c4d;font-size:24px}
+  .brand p{margin:3px 0;color:#596b66;font-size:11px}
+  .invoice{text-align:right}
+  .invoice strong{display:block;font-size:17px;color:#0b6d59}
+  .invoice span{display:block;margin-top:4px;font-size:11px}
+  .title{text-align:center;margin:14px 0 10px}
+  .title h2{margin:0;font-size:21px;letter-spacing:.05em}
+  .title p{margin:4px 0;color:#667772;font-size:10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;padding:10px;border:1px solid #d7e4e0;border-radius:10px;background:#f7faf9}
+  .field{display:grid;grid-template-columns:122px 1fr;gap:8px;font-size:10.5px;padding:2px 0}
+  .field b{color:#455b55}
+  h3{margin:15px 0 7px;font-size:13px;color:#075c4d}
+  table{width:100%;border-collapse:collapse;font-size:9.7px}
+  th{background:#0b6d59;color:#fff;text-align:left;padding:7px;border:1px solid #0b6d59}
+  td{padding:7px;border:1px solid #dbe6e3;vertical-align:top}
+  .amount{text-align:right;white-space:nowrap;font-weight:bold}
+  .detail{margin-top:3px;color:#697873;font-size:9px;line-height:1.3}
+  .empty{text-align:center;color:#73817d;padding:15px}
+  .summary{width:48%;margin:14px 0 0 auto;border:1px solid #d7e4e0;border-radius:10px;overflow:hidden}
+  .summary-row{display:flex;justify-content:space-between;padding:7px 9px;border-bottom:1px solid #e3ebe8;font-size:10.5px}
+  .summary-row:last-child{border-bottom:0}
+  .summary-row.total{background:#075c4d;color:#fff;font-size:13px;font-weight:bold}
+  .status{margin-top:11px;padding:9px;text-align:center;border-radius:8px;font-weight:bold;background:${netPayable<=0.009?'#e8f7ed':receipts>0?'#fff4df':'#ffeded'};color:${netPayable<=0.009?'#067333':receipts>0?'#9a6700':'#b42318'}}
+  .payment-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin-top:12px;padding:9px;border:1px solid #dbe6e3;border-radius:9px;background:#fafcfc;font-size:10px}
+  .payment-summary div{display:grid;grid-template-columns:118px 1fr;gap:7px}
+  .notes{margin-top:13px;padding:9px;border:1px solid #dbe6e3;border-radius:9px;font-size:9.7px;color:#586963;line-height:1.4}
+  .signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:32px;text-align:center;font-size:10px}
+  .signatures div{padding-top:24px;border-top:1px solid #63736e}
+  .footer{margin-top:22px;padding-top:8px;border-top:1px solid #dbe6e3;text-align:center;font-size:9px;color:#6c7b77}
+  .print{display:block;margin:16px auto;padding:11px 22px;border:0;border-radius:8px;background:#0b6d59;color:#fff;font-weight:bold;cursor:pointer}
+  @media print{
+    body{background:#fff}
+    .sheet{width:auto;min-height:auto;margin:0;box-shadow:none;padding:7mm}
+    .print{display:none}
+    @page{size:A4;margin:7mm}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="head">
+    <div class="brand-wrap">
+      <div class="logo">SC</div>
+      <div class="brand">
+        <h1>SAMARA HEALTH CARE LLP</h1>
+        <p>Samara Care Assisted Living</p>
+        <p>Address: ________________________________________________</p>
+        <p>Phone: __________________ · Email: __________________ · GSTIN: __________________</p>
+      </div>
+    </div>
+    <div class="invoice">
+      <strong>INVOICE NO: ${escapeHtml(invoiceNo)}</strong>
+      <span>Bill Date: ${escapeHtml(formatDateIN(new Date()))}</span>
+      <span>Bill Time: ${escapeHtml(formatTimeIN(new Date()))}</span>
+      <span>Prepared By: ${escapeHtml(formalName(profile)||profile?.login_id||'Authorised User')}</span>
+    </div>
+  </div>
+
+  <div class="title">
+    <h2>FINAL / COMPLETE PATIENT BILL</h2>
+    <p>Detailed statement of charges, payments and final settlement</p>
+  </div>
+
+  <div class="grid">
+    <div class="field"><b>Patient Name</b><span>${escapeHtml(formalName(patient)||patient.full_name||'—')}</span></div>
+    <div class="field"><b>Patient ID</b><span>${escapeHtml(patient.patient_id||'—')}</span></div>
+    <div class="field"><b>Age / Gender</b><span>${escapeHtml(`${patientAge} / ${patientGender}`)}</span></div>
+    <div class="field"><b>Room / Bed</b><span>${escapeHtml(roomBed)}</span></div>
+    <div class="field"><b>Admission Date</b><span>${escapeHtml(formatDateIN(patient.admission_date))}</span></div>
+    <div class="field"><b>Discharge Date</b><span>${escapeHtml(dischargeDate==='—'?'—':formatDateIN(dischargeDate))}</span></div>
+    <div class="field"><b>Mobile</b><span>${escapeHtml(patient.mobile||patient.attendant_phone||'—')}</span></div>
+    <div class="field"><b>Diagnosis</b><span>${escapeHtml(patient.diagnosis||'—')}</span></div>
+    <div class="field"><b>Consultant Doctor</b><span>${escapeHtml(patient.treating_doctor||patient.referring_doctor||'—')}</span></div>
+    <div class="field"><b>Bill Status</b><span>${escapeHtml(billStatus)}</span></div>
+  </div>
+
+  <h3>1. Itemised Charges</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34px">Sl.</th>
+        <th>Particulars</th>
+        <th style="width:48px">Qty</th>
+        <th style="width:52px">Days</th>
+        <th style="width:82px;text-align:right">Rate</th>
+        <th style="width:100px;text-align:right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${chargeRows.length?chargeRows.map((group,index)=>{
+        const qty=group.items.length||1;
+        const days=group.items.reduce((total,item)=>total+Number(item.quantity_days||item.days||0),0)||'—';
+        const rate=qty?group.amount/qty:group.amount;
+        return `<tr>
+          <td>${index+1}</td>
+          <td><strong>${escapeHtml(group.category)}</strong><div class="detail">${escapeHtml(group.items.map(item=>item.description||'').filter(Boolean).join(' | ')||'—')}</div></td>
+          <td>${escapeHtml(String(qty))}</td>
+          <td>${escapeHtml(String(days))}</td>
+          <td class="amount">${escapeHtml(money(rate))}</td>
+          <td class="amount">${escapeHtml(money(group.amount))}</td>
+        </tr>`;
+      }).join(''):`<tr><td colspan="6" class="empty">No charges recorded.</td></tr>`}
+    </tbody>
+  </table>
+
+  <h3>2. Payments / Advances / Discounts / Refunds</h3>
+  <table>
+    <thead><tr><th style="width:34px">Sl.</th><th style="width:116px">Date</th><th style="width:74px">Type</th><th style="width:80px">Mode</th><th>Receipt / Reference / Description</th><th style="width:100px;text-align:right">Amount</th></tr></thead>
+    <tbody>${paymentHtml}</tbody>
+  </table>
+
+  <div class="summary">
+    <div class="summary-row"><span>Gross Total</span><strong>${escapeHtml(money(totals.Charge))}</strong></div>
+    <div class="summary-row"><span>Discount</span><strong>${escapeHtml(money(totals.Discount))}</strong></div>
+    <div class="summary-row"><span>Advance Received</span><strong>${escapeHtml(money(totals.Advance))}</strong></div>
+    <div class="summary-row"><span>Payments Received</span><strong>${escapeHtml(money(totals.Payment))}</strong></div>
+    <div class="summary-row"><span>Refunds</span><strong>${escapeHtml(money(totals.Refund))}</strong></div>
+    <div class="summary-row total"><span>NET AMOUNT PAYABLE</span><strong>${escapeHtml(money(netPayable))}</strong></div>
+    ${advanceBalance>0?`<div class="summary-row"><span>Advance Balance / Refundable</span><strong>${escapeHtml(money(advanceBalance))}</strong></div>`:''}
+  </div>
+
+  <div class="payment-summary">
+    <div><b>Payment Mode(s)</b><span>${escapeHtml(paymentModes)}</span></div>
+    <div><b>Receipt / Reference No.</b><span>${escapeHtml(receiptNumbers)}</span></div>
+  </div>
+
+  <div class="status">${escapeHtml(billStatus)}</div>
+
+  <div class="notes">
+    <strong>Declaration:</strong> This computer-generated bill reflects transactions recorded in Samara Care ERP as on ${escapeHtml(formatDateTimeIN(new Date()))}.
+    Recurring room rent, nursing charges and other services are included only where posted in the system. Any approved discount is shown separately.
+  </div>
+
+  <div class="signatures">
+    <div>Billing Officer</div>
+    <div>Accounts / Administrator</div>
+    <div>Patient / Attendant Signature</div>
+  </div>
+
+  <div class="footer">Samara Health Care LLP · Computer-generated bill · No manual alteration permitted</div>
+</div>
+<button class="print" onclick="window.print()">Print / Save as PDF</button>
+</body>
+</html>`);
       win.document.close();
     }
 
@@ -5629,6 +5799,19 @@ function ShiftHandover({profile,onNavigate}){
         .accounts-kpi-grid,.accounts-workflow-grid,.accounts-report-filters,.accounts-mode-grid{grid-template-columns:1fr}
         .accounts-bar-row{grid-template-columns:95px 1fr 84px}
       }
+      .complete-bill-toolbar{
+        display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+        padding:14px 16px;border:1px solid #dce8e4;border-radius:16px;background:#fff
+      }
+      .complete-bill-toolbar strong{font-size:18px;color:#0b5d4b}
+      .complete-bill-toolbar small{display:block;margin-top:4px;color:#6a7975}
+      .complete-bill-status{
+        display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;
+        border-radius:999px;font-size:12px;font-weight:900
+      }
+      .complete-bill-status.paid{background:#e8f7ed;color:#067333}
+      .complete-bill-status.partial{background:#fff4df;color:#9a6700}
+      .complete-bill-status.pending{background:#ffeded;color:#b42318}
       @media print{
         .sidebar,.topbar,.mobile-menu,.sound-unlock-button,.accounts-report-actions,.btn{display:none!important}
         .main,.content{margin:0!important;padding:0!important}
@@ -5817,18 +6000,322 @@ function ShiftHandover({profile,onNavigate}){
     );
   }
 
+
   function FinalBillingView({profile,onNavigate}){
+    React.useEffect(()=>{ensureAccountsWorkspaceStyle()},[]);
+    const [patients]=usePatients();
+    const [patientId,setPatientId]=React.useState('');
+    const [rows,setRows]=React.useState([]);
+    const [loading,setLoading]=React.useState(false);
+    const [message,setMessage]=React.useState('');
+
+    const patient=patients.find(row=>row.id===patientId)||null;
+    const money=value=>`₹${Number(value||0).toLocaleString('en-IN',{
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    })}`;
+
+    async function loadBill(nextPatientId=patientId){
+      if(!nextPatientId){
+        setRows([]);
+        return;
+      }
+      setLoading(true);
+      setMessage('');
+      const {data,error}=await client.from('billing_transactions')
+        .select('*')
+        .eq('patient_id',nextPatientId)
+        .order('transaction_date',{ascending:true});
+      if(error){
+        setRows([]);
+        setMessage(error.message||'Complete bill could not be loaded.');
+      }else{
+        setRows(data||[]);
+      }
+      setLoading(false);
+    }
+
+    React.useEffect(()=>{if(patientId)loadBill(patientId)},[patientId]);
+
+    const groupedCharges=rows.filter(row=>row.transaction_type==='Charge').reduce((groups,row)=>{
+      const key=row.category||'Other Charges';
+      if(!groups[key])groups[key]={category:key,amount:0,items:[]};
+      groups[key].amount+=Number(row.amount||0);
+      groups[key].items.push(row);
+      return groups;
+    },{});
+
+    const totals=rows.reduce((sum,row)=>{
+      const type=row.transaction_type||'Charge';
+      sum[type]=(sum[type]||0)+Number(row.amount||0);
+      return sum;
+    },{Charge:0,Payment:0,Advance:0,Discount:0,Refund:0});
+
+    const receipts=totals.Payment+totals.Advance;
+    const netPayable=Math.max(0,totals.Charge-receipts-totals.Discount+totals.Refund);
+    const advanceBalance=Math.max(0,receipts+totals.Discount-totals.Charge-totals.Refund);
+    const billStatus=netPayable<=0.009?'PAID / SETTLED':receipts>0?'PARTIALLY PAID':'PAYMENT PENDING';
+    const invoiceNo=patient
+      ?`SC-${patient.patient_id||String(patient.id).slice(0,8)}-${todayISOIndia().replaceAll('-','')}`
+      :'—';
+
+    function printCompleteBill(){
+      if(!patient){
+        setMessage('Select a patient before printing the complete bill.');
+        return;
+      }
+      const win=window.open('','_blank','width=1100,height=900');
+      if(!win){
+        setMessage('Pop-up was blocked. Please allow pop-ups and try again.');
+        return;
+      }
+
+      const chargeRows=Object.values(groupedCharges);
+      const transactionRows=rows.filter(row=>['Payment','Advance','Discount','Refund'].includes(row.transaction_type));
+
+      const itemHtml=chargeRows.length
+        ?chargeRows.map((group,index)=>`
+          <tr>
+            <td>${index+1}</td>
+            <td>
+              <strong>${escapeHtml(group.category)}</strong>
+              <div class="detail">${escapeHtml(group.items.map(item=>item.description||'').filter(Boolean).join(' | ')||'—')}</div>
+            </td>
+            <td>${escapeHtml(String(group.items.length))}</td>
+            <td class="amount">${escapeHtml(money(group.amount))}</td>
+          </tr>
+        `).join('')
+        :`<tr><td colspan="4" class="empty">No charges recorded.</td></tr>`;
+
+      const paymentHtml=transactionRows.length
+        ?transactionRows.map((row,index)=>`
+          <tr>
+            <td>${index+1}</td>
+            <td>${escapeHtml(formatDateTimeIN(row.transaction_date))}</td>
+            <td>${escapeHtml(row.transaction_type||'—')}</td>
+            <td>${escapeHtml(row.payment_mode||'—')}</td>
+            <td>${escapeHtml(row.description||'—')}</td>
+            <td class="amount">${escapeHtml(money(row.amount))}</td>
+          </tr>
+        `).join('')
+        :`<tr><td colspan="6" class="empty">No payments, advances, discounts or refunds recorded.</td></tr>`;
+
+      const roomBed=patient.room_no
+        ?`${patient.room_no}${patient.bed_no?` / Bed ${patient.bed_no}`:''}`
+        :'—';
+
+      win.document.write(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Complete Bill - ${escapeHtml(formalName(patient)||patient.full_name||'Patient')}</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef4f2;font-family:Arial,sans-serif;color:#16352e}
+  .sheet{width:210mm;min-height:297mm;margin:12px auto;background:#fff;padding:14mm;box-shadow:0 10px 32px #0002}
+  .head{display:flex;justify-content:space-between;gap:20px;padding-bottom:14px;border-bottom:3px solid #0b6d59}
+  .brand h1{margin:0;color:#075c4d;font-size:26px}
+  .brand p{margin:4px 0;color:#596b66}
+  .invoice{text-align:right}
+  .invoice strong{display:block;font-size:19px;color:#0b6d59}
+  .invoice span{display:block;margin-top:5px;font-size:12px}
+  .title{text-align:center;margin:18px 0 12px}
+  .title h2{margin:0;font-size:22px}
+  .title p{margin:5px 0;color:#667772;font-size:12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;padding:12px;border:1px solid #d7e4e0;border-radius:10px;background:#f7faf9}
+  .field{display:grid;grid-template-columns:130px 1fr;gap:8px;font-size:12px;padding:3px 0}
+  .field b{color:#455b55}
+  h3{margin:19px 0 8px;font-size:15px;color:#075c4d}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#0b6d59;color:#fff;text-align:left;padding:8px;border:1px solid #0b6d59}
+  td{padding:8px;border:1px solid #dbe6e3;vertical-align:top}
+  .amount{text-align:right;white-space:nowrap;font-weight:bold}
+  .detail{margin-top:4px;color:#697873;font-size:10px;line-height:1.35}
+  .empty{text-align:center;color:#73817d;padding:18px}
+  .summary{width:44%;margin:16px 0 0 auto;border:1px solid #d7e4e0;border-radius:10px;overflow:hidden}
+  .summary-row{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #e3ebe8;font-size:12px}
+  .summary-row:last-child{border-bottom:0}
+  .summary-row.total{background:#075c4d;color:#fff;font-size:15px;font-weight:bold}
+  .status{margin-top:14px;padding:10px;text-align:center;border-radius:9px;font-weight:bold;background:${netPayable<=0.009?'#e8f7ed':'#fff2e2'};color:${netPayable<=0.009?'#067333':'#a65300'}}
+  .notes{margin-top:18px;padding:10px;border:1px solid #dbe6e3;border-radius:9px;font-size:11px;color:#586963}
+  .signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:38px;text-align:center;font-size:11px}
+  .signatures div{padding-top:28px;border-top:1px solid #63736e}
+  .footer{margin-top:30px;padding-top:10px;border-top:1px solid #dbe6e3;text-align:center;font-size:10px;color:#6c7b77}
+  .print{display:block;margin:16px auto;padding:11px 22px;border:0;border-radius:8px;background:#0b6d59;color:#fff;font-weight:bold;cursor:pointer}
+  @media print{
+    body{background:#fff}
+    .sheet{width:auto;min-height:auto;margin:0;box-shadow:none;padding:8mm}
+    .print{display:none}
+    @page{size:A4;margin:8mm}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="head">
+    <div class="brand">
+      <h1>SAMARA HEALTH CARE LLP</h1>
+      <p>Samara Care Assisted Living</p>
+      <p>Complete Patient Bill & Account Statement</p>
+    </div>
+    <div class="invoice">
+      <strong>${escapeHtml(invoiceNo)}</strong>
+      <span>Bill Date: ${escapeHtml(formatDateIN(new Date()))}</span>
+      <span>Prepared By: ${escapeHtml(formalName(profile)||profile?.login_id||'Authorised User')}</span>
+    </div>
+  </div>
+
+  <div class="title">
+    <h2>FINAL / COMPLETE BILL</h2>
+    <p>System-generated patient financial statement</p>
+  </div>
+
+  <div class="grid">
+    <div class="field"><b>Patient Name</b><span>${escapeHtml(formalName(patient)||patient.full_name||'—')}</span></div>
+    <div class="field"><b>Patient ID</b><span>${escapeHtml(patient.patient_id||'—')}</span></div>
+    <div class="field"><b>Room / Bed</b><span>${escapeHtml(roomBed)}</span></div>
+    <div class="field"><b>Admission Date</b><span>${escapeHtml(formatDateIN(patient.admission_date))}</span></div>
+    <div class="field"><b>Mobile</b><span>${escapeHtml(patient.mobile||patient.attendant_phone||'—')}</span></div>
+    <div class="field"><b>Diagnosis</b><span>${escapeHtml(patient.diagnosis||'—')}</span></div>
+    <div class="field"><b>Referred / Treating Doctor</b><span>${escapeHtml(patient.treating_doctor||patient.referring_doctor||'—')}</span></div>
+    <div class="field"><b>Bill Status</b><span>${escapeHtml(billStatus)}</span></div>
+  </div>
+
+  <h3>1. Charges Summary</h3>
+  <table>
+    <thead><tr><th style="width:42px">Sl.</th><th>Charge Category / Particulars</th><th style="width:70px">Entries</th><th style="width:120px;text-align:right">Amount</th></tr></thead>
+    <tbody>${itemHtml}</tbody>
+  </table>
+
+  <h3>2. Payments, Advances, Discounts and Refunds</h3>
+  <table>
+    <thead><tr><th style="width:38px">Sl.</th><th style="width:125px">Date</th><th style="width:80px">Type</th><th style="width:90px">Mode</th><th>Reference / Description</th><th style="width:110px;text-align:right">Amount</th></tr></thead>
+    <tbody>${paymentHtml}</tbody>
+  </table>
+
+  <div class="summary">
+    <div class="summary-row"><span>Gross Charges</span><strong>${escapeHtml(money(totals.Charge))}</strong></div>
+    <div class="summary-row"><span>Payments Received</span><strong>${escapeHtml(money(totals.Payment))}</strong></div>
+    <div class="summary-row"><span>Advance Received</span><strong>${escapeHtml(money(totals.Advance))}</strong></div>
+    <div class="summary-row"><span>Admin-approved Discount</span><strong>${escapeHtml(money(totals.Discount))}</strong></div>
+    <div class="summary-row"><span>Refunds</span><strong>${escapeHtml(money(totals.Refund))}</strong></div>
+    <div class="summary-row total"><span>NET PAYABLE</span><strong>${escapeHtml(money(netPayable))}</strong></div>
+    ${advanceBalance>0?`<div class="summary-row"><span>Advance Balance / Refundable</span><strong>${escapeHtml(money(advanceBalance))}</strong></div>`:''}
+  </div>
+
+  <div class="status">${escapeHtml(billStatus)}</div>
+
+  <div class="notes">
+    <strong>Important:</strong> This statement reflects transactions recorded in Samara Care ERP as on ${escapeHtml(formatDateTimeIN(new Date()))}.
+    Room rent, nursing charges and other recurring charges are included only where posted in the system.
+  </div>
+
+  <div class="signatures">
+    <div>Prepared By</div>
+    <div>Accounts / Administrator</div>
+    <div>Patient / Attendant</div>
+  </div>
+
+  <div class="footer">Samara Health Care LLP · Computer-generated bill · No manual alteration permitted</div>
+</div>
+<button class="print" onclick="window.print()">Print / Save as PDF</button>
+</body>
+</html>`);
+      win.document.close();
+      setTimeout(()=>win.focus(),250);
+    }
+
+    const chargeGroups=Object.values(groupedCharges);
+
     return h(React.Fragment,null,
-      h(Section,{
-        title:'Final Billing',
-        subtitle:'Patient-wise final account review before discharge clearance'
-      },
-        h('div',{className:'message info'},
-          'Review the selected patient’s complete transaction history, approved charges, advance, payments, Admin-approved discounts and final outstanding balance.'
+      h('div',{className:'accounts-hero'},
+        h('div',null,
+          h('small',null,'PATIENT LEDGER · FINAL SETTLEMENT'),
+          h('h3',null,'Complete Patient Bill'),
+          h('p',null,'Generate an A4 printable statement with charges, payments, advances, discounts, refunds and net payable.')
         ),
-        h('button',{className:'btn btn-primary',onClick:()=>onNavigate?.('Payments')},'Open Patient Transactions')
+        h('div',{className:'accounts-actions'},
+          h('button',{className:'btn btn-secondary',disabled:!patient||loading,onClick:printCompleteBill},'🖨 Print Complete Bill'),
+          h('button',{className:'btn btn-secondary',onClick:()=>onNavigate?.('Payments')},'💳 Open Payments')
+        )
       ),
-      h(BillingPayments,{profile})
+
+      h(Section,{title:'Select Patient',subtitle:'Choose one patient to prepare the complete bill'},
+        h('div',{className:'payment-filter-grid'},
+          h('div',{className:'field'},
+            h('label',null,'Patient'),
+            h('select',{value:patientId,onChange:e=>setPatientId(e.target.value)},
+              h('option',{value:''},'Select patient'),
+              patients.map(row=>h('option',{key:row.id,value:row.id},
+                `${formalName(row)||row.full_name} · ${row.patient_id||'No ID'} · Room ${row.room_no||'—'}${row.bed_no?`-${row.bed_no}`:''}`
+              ))
+            )
+          ),
+          h('div',{className:'field'},
+            h('label',null,'Bill / Invoice Number'),
+            h('input',{value:invoiceNo,readOnly:true})
+          )
+        ),
+        message&&h('div',{className:'message error'},message)
+      ),
+
+      patient&&h(React.Fragment,null,
+        h('div',{className:'payment-summary-grid'},
+          [
+            ['Gross Charges',totals.Charge,'summary-red'],
+            ['Payments / Advance',receipts,'summary-green'],
+            ['Discounts',totals.Discount,'summary-orange'],
+            ['Refunds',totals.Refund,'summary-blue'],
+            ['Net Payable',netPayable,netPayable>0?'summary-red':'summary-green'],
+            ['Advance Balance',advanceBalance,'summary-blue']
+          ].map(([label,value,klass])=>h('div',{className:`payment-summary-card ${klass}`,key:label},
+            h('span',null,label),h('strong',null,money(value))
+          ))
+        ),
+
+        h(LogTable,{
+          title:loading?'Loading complete bill…':`Charge Summary (${chargeGroups.length})`,
+          subtitle:`${formalName(patient)||patient.full_name} · ${patient.patient_id||'No ID'}`,
+          heads:['Sl. No.','Category','Entries','Description','Amount'],
+          rows:chargeGroups.map((group,index)=>[
+            index+1,
+            group.category,
+            group.items.length,
+            group.items.map(item=>item.description).filter(Boolean).join(' | ')||'—',
+            money(group.amount)
+          ])
+        }),
+
+        h(LogTable,{
+          title:'Payment & Adjustment History',
+          subtitle:'Payments, advances, discounts and refunds',
+          heads:['Date','Type','Category','Mode','Reference / Description','Amount'],
+          rows:rows.filter(row=>['Payment','Advance','Discount','Refund'].includes(row.transaction_type)).map(row=>[
+            formatDateTimeIN(row.transaction_date),
+            row.transaction_type,
+            row.category||'—',
+            row.payment_mode||'—',
+            row.description||'—',
+            money(row.amount)
+          ])
+        }),
+
+        h(Section,{title:'Final Account Position',subtitle:'Printable settlement summary'},
+          h('div',{className:'accounts-status-list'},
+            [
+              ['Gross Charges',money(totals.Charge)],
+              ['Payments Received',money(totals.Payment)],
+              ['Advance Received',money(totals.Advance)],
+              ['Admin-approved Discount',money(totals.Discount)],
+              ['Refunds',money(totals.Refund)],
+              ['Net Payable',money(netPayable)],
+              ['Account Status',billStatus]
+            ].map(([label,value])=>h('div',{className:'accounts-status-item',key:label},
+              h('span',null,label),h('strong',null,value)
+            ))
+          )
+        )
+      )
     );
   }
 

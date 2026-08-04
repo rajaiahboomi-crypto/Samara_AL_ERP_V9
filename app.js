@@ -1,77 +1,7 @@
-
-(() => {
-  try {
-    const doc = document;
-    const root = doc.documentElement;
-
-    root.classList.add('samara-preboot');
-
-    if (!doc.getElementById('samara-preboot-style')) {
-      const style = doc.createElement('style');
-      style.id = 'samara-preboot-style';
-      style.textContent = `
-        html, body {
-          margin: 0;
-          min-height: 100%;
-          background: #0f6f5d !important;
-        }
-
-        html.samara-preboot body {
-          overflow: hidden;
-        }
-
-        html.samara-preboot #root {
-          opacity: 0 !important;
-          visibility: hidden !important;
-        }
-
-        #app-splash {
-          position: fixed !important;
-          inset: 0 !important;
-          z-index: 2147483000 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          background:
-            radial-gradient(circle at 100% 0%, rgba(255,255,255,.10) 0 130px, transparent 132px),
-            radial-gradient(circle at 0% 100%, rgba(255,255,255,.10) 0 105px, transparent 107px),
-            linear-gradient(135deg, #075b4d 0%, #168873 100%) !important;
-          opacity: 1 !important;
-          visibility: visible !important;
-          transition: opacity .38s ease, visibility .38s ease !important;
-        }
-
-        #app-splash.splash-ready {
-          opacity: 0 !important;
-          visibility: hidden !important;
-          pointer-events: none !important;
-        }
-
-        body.samara-app-ready #root {
-          opacity: 1 !important;
-          visibility: visible !important;
-        }
-
-        #root {
-          min-height: 100vh;
-          background: #edf5f2;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          #app-splash {
-            transition: none !important;
-          }
-        }
-      `;
-      (doc.head || doc.documentElement).appendChild(style);
-    }
-  } catch (_error) {}
-})();
-
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.9';
-  const APP_BUILD_DATE = '05-Aug-2026 01:42 IST';
+  const APP_VERSION = '1.3.51';
+  const APP_BUILD_DATE = '05-Aug-2026 02:10 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -117,39 +47,35 @@
     { title:'ADMIN', items:['Employees','Rooms','Audit Trail','Alert Settings','System Maintenance'] },
     { title:'ADMISSION', items:['Enquiries','Admissions','Patients','Discharge','Documents'] },
     { title:'MANAGER', items:['Reports','Intelligent Reports','Medication Errors','Recovery Timeline'] },
-    { title:'NURSING', items:['Clinical Dashboard','Clinical Alerts','Shift Tasks','Daily Care','Vital Signs','Medicines','Physiotherapy','Special Nurse','Shift Handover','Incidents'] },
+    { title:'NURSING', items:['Clinical Dashboard','Clinical Alerts','Shift Tasks','Daily Care','Vital Signs','Medicines','Physiotherapy','Special Nurse','Shift Handover'] },
+    { title:'OPERATIONS', items:['Incidents'] },
     { title:'FOOD & DIET', items:['Food & Diet'] },
-    { title:'ACCOUNTS / BILLING', items:['Accounts Dashboard','Charge Approvals','Payments','Final Billing','Discharge Clearance','Refunds','Accounts Reports'] }
+    { title:'ACCOUNTS / BILLING', items:['Bills & Charges','Billing & Payments','Accounts Reports'] }
   ];
   const ALL_NAV = NAV_SECTIONS.flatMap(section=>section.items);
   const ROLE_NAV={
     Admin:ALL_NAV,
-    Manager:ALL_NAV.filter(item=>!['System Maintenance','Alert Settings','Payments','Final Billing','Refunds'].includes(item)),
-    Nurse:['Clinical Dashboard','Clinical Alerts','Patients','Discharge','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Charge Approvals','Notifications'],
-    Caregiver:['Clinical Dashboard','Clinical Alerts','Patients','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Notifications'],
-    Accounts:['Accounts Dashboard','Charge Approvals','Payments','Final Billing','Discharge Clearance','Refunds','Accounts Reports','Patients','Notifications'],
+    Manager:ALL_NAV.filter(item=>!['System Maintenance','Alert Settings'].includes(item)),
+    Nurse:['Clinical Dashboard','Clinical Alerts','Patients','Discharge','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Bills & Charges','Billing & Payments','Notifications'],
+    Caregiver:['Clinical Dashboard','Clinical Alerts','Patients','Discharge','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Billing & Payments','Notifications'],
+    Accounts:['Notifications','Patients','Discharge','Physiotherapy','Special Nurse','Bills & Charges','Billing & Payments','Accounts Reports','Reports','Intelligent Reports'],
     Kitchen:['Notifications','Patients','Discharge','Physiotherapy','Special Nurse','Food & Diet']
   };
-  const ROLE_HOME={Admin:'Dashboard',Manager:'Dashboard',Nurse:'Clinical Dashboard',Caregiver:'Clinical Dashboard',Accounts:'Accounts Dashboard',Kitchen:'Food & Diet'};
+  const ROLE_HOME={Admin:'Dashboard',Manager:'Dashboard',Nurse:'Clinical Dashboard',Caregiver:'Clinical Dashboard',Accounts:'Billing & Payments',Kitchen:'Food & Diet'};
   const CLINICAL_ROLES=['Nurse','Caregiver'];
   const ROLE_LABELS={
     'Clinical Dashboard':'Nursing Dashboard',
     'Patients':'My Patients',
     'Medicines':'Medication Administration',
-    'Charge Approvals':'Bills & Charges',
-    'Accounts Dashboard':'Accounts Dashboard',
-    'Payments':'Payments',
-    'Final Billing':'Final Billing',
-    'Discharge Clearance':'Discharge Clearance',
-    'Refunds':'Refunds',
-    'Accounts Reports':'Accounts Reports',
+    'Bills & Charges':'Raise Bills & Charges',
+    'Billing & Payments':'View Patient Bills',
     'Notifications':'Alerts'
   };
   const displayNavLabel=(item,role)=>CLINICAL_ROLES.includes(role)?(ROLE_LABELS[item]||item):item;
   const sectionsFor = (allowed,role) => {
     if(CLINICAL_ROLES.includes(role)){
       return [
-        {title:'NURSING WORKSPACE',items:['Clinical Dashboard','Clinical Alerts','Patients','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Discharge','Charge Approvals','Notifications'].filter(item=>allowed.includes(item))}
+        {title:'NURSING WORKSPACE',items:['Clinical Dashboard','Clinical Alerts','Patients','Shift Tasks','Daily Care','Vital Signs','Medicines','Food & Diet','Physiotherapy','Special Nurse','Shift Handover','Incidents','Bills & Charges','Billing & Payments','Notifications'].filter(item=>allowed.includes(item))}
       ];
     }
     return NAV_SECTIONS.map(section=>({...section,items:section.items.filter(item=>allowed.includes(item))})).filter(section=>section.items.length);
@@ -254,182 +180,6 @@
   const returnAfterSuccessfulAction = (returnPage,onNavigate,delay=650) =>
     finishSuccessfulAction({returnPage,onNavigate,delay});
 
-
-  const closeTopActionPopup = () => {
-    const popups=[...document.querySelectorAll('.modal-backdrop')]
-      .filter(node=>{
-        const style=window.getComputedStyle(node);
-        return style.display!=='none'&&
-          style.visibility!=='hidden'&&
-          node.getAttribute('data-manual-close')!=='true';
-      });
-    const popup=popups.at(-1);
-    if(!popup)return false;
-
-    const closeButton=
-      popup.querySelector('button.close')||
-      [...popup.querySelectorAll('button')].find(button=>
-        ['close','cancel','done','back'].includes(
-          String(button.textContent||'').trim().toLowerCase()
-        )
-      );
-
-    if(closeButton){
-      closeButton.click();
-      return true;
-    }
-
-    popup.dispatchEvent(new KeyboardEvent('keydown',{
-      key:'Escape',
-      code:'Escape',
-      bubbles:true
-    }));
-    return true;
-  };
-
-  const isSuccessfulEntryElement = node => {
-    if(!(node instanceof Element))return false;
-    if(node.matches('.samara-toast.success,.message.success,.toast.success,[data-toast-type="success"]'))return true;
-    return Boolean(node.querySelector('.samara-toast.success,.message.success,.toast.success,[data-toast-type="success"]'));
-  };
-
-
-  const ensureGlobalActionSuccessStyle = () => {
-    if(document.getElementById('samara-global-action-success-style'))return;
-    const style=document.createElement('style');
-    style.id='samara-global-action-success-style';
-    style.textContent=`
-      .samara-toast.success,
-      .toast.success,
-      [data-toast-type="success"] {
-        position: fixed !important;
-        top: 46px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        z-index: 30000 !important;
-        display: grid !important;
-        grid-template-columns: 42px minmax(0,1fr) 28px !important;
-        align-items: center !important;
-        gap: 12px !important;
-        min-width: min(525px, calc(100vw - 28px)) !important;
-        max-width: 680px !important;
-        padding: 14px 16px !important;
-        border: 0 !important;
-        border-radius: 13px !important;
-        background: #11884f !important;
-        color: #ffffff !important;
-        box-shadow: 0 14px 34px rgba(4,78,46,.30) !important;
-        font-weight: 700 !important;
-      }
-
-      .samara-toast.success .samara-toast-icon,
-      .toast.success .samara-toast-icon,
-      [data-toast-type="success"] .samara-toast-icon {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 38px !important;
-        height: 38px !important;
-        border-radius: 50% !important;
-        background: rgba(255,255,255,.18) !important;
-        color: #ffffff !important;
-        font-size: 24px !important;
-        font-weight: 900 !important;
-      }
-
-      .samara-toast.success > div,
-      .toast.success > div,
-      [data-toast-type="success"] > div {
-        min-width: 0 !important;
-        display: grid !important;
-        gap: 3px !important;
-      }
-
-      .samara-toast.success strong,
-      .toast.success strong,
-      [data-toast-type="success"] strong {
-        color: #ffffff !important;
-        font-size: 16px !important;
-        line-height: 1.25 !important;
-        font-weight: 800 !important;
-      }
-
-      .samara-toast.success span,
-      .toast.success span,
-      [data-toast-type="success"] span {
-        color: #ffffff !important;
-      }
-
-      .samara-toast.success > div > span,
-      .toast.success > div > span,
-      [data-toast-type="success"] > div > span {
-        font-size: 13px !important;
-        line-height: 1.35 !important;
-        font-weight: 600 !important;
-        opacity: .96 !important;
-      }
-
-      .samara-toast.success button,
-      .toast.success button,
-      [data-toast-type="success"] button {
-        width: 28px !important;
-        height: 28px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0 !important;
-        border: 0 !important;
-        border-radius: 50% !important;
-        background: transparent !important;
-        color: #ffffff !important;
-        font-size: 21px !important;
-        font-weight: 800 !important;
-        cursor: pointer !important;
-      }
-
-      .samara-toast.success button:hover,
-      .toast.success button:hover,
-      [data-toast-type="success"] button:hover {
-        background: rgba(255,255,255,.13) !important;
-      }
-
-      .message.success {
-        border: 1px solid #8dd8b1 !important;
-        background: #eaf9f1 !important;
-        color: #075c36 !important;
-        font-weight: 700 !important;
-      }
-
-      @media (max-width: 650px) {
-        .samara-toast.success,
-        .toast.success,
-        [data-toast-type="success"] {
-          top: 18px !important;
-          grid-template-columns: 38px minmax(0,1fr) 26px !important;
-          min-width: calc(100vw - 22px) !important;
-          padding: 12px 13px !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  };
-
-
-  const localDateTimeValue = (date=new Date()) => {
-    const value=date instanceof Date?date:new Date(date);
-    const safe=Number.isNaN(value.getTime())?new Date():value;
-    const parts=new Intl.DateTimeFormat('en-CA',{
-      timeZone:'Asia/Kolkata',
-      year:'numeric',
-      month:'2-digit',
-      day:'2-digit',
-      hour:'2-digit',
-      minute:'2-digit',
-      hour12:false
-    }).formatToParts(safe);
-    const get=type=>parts.find(part=>part.type===type)?.value||'00';
-    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
-  };
 
   const todayISOIndia = () => {
     const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
@@ -706,179 +456,11 @@ Caring with Compassion. Living with Dignity.`;
           h('button',{className:'btn btn-primary'},'Save Settings')
         )
       ),
-
-
       toast&&h('div',{className:`samara-toast ${toast.type}`},h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),h('div',null,h('strong',null,toast.type==='success'?'Saved':'Failed'),h('span',null,toast.text)),h('button',{onClick:()=>setToast(null)},'×'))
     );
   }
 
-  const ensureSmoothRefreshStyle = () => {
-    if(document.getElementById('samara-smooth-refresh-style'))return;
-    const style=document.createElement('style');
-    style.id='samara-smooth-refresh-style';
-    style.textContent=`
-      html,body,#root{min-height:100%;background:#edf5f2}
-      #app-splash{
-        opacity:1;
-        visibility:visible;
-        transition:opacity .55s ease,visibility .55s ease;
-        will-change:opacity;
-      }
-      #app-splash.splash-ready{
-        opacity:0;
-        visibility:hidden;
-        pointer-events:none;
-      }
-      #app-splash .splash-card{
-        transform:translateY(0) scale(1);
-        transition:transform .55s cubic-bezier(.22,.61,.36,1),opacity .4s ease;
-      }
-      #app-splash.splash-ready .splash-card{
-        transform:translateY(-8px) scale(.985);
-        opacity:.96;
-      }
-      #app-splash .splash-progress,
-      #app-splash [class*="progress"]{
-        overflow:hidden;
-      }
-      #app-splash .splash-progress::after,
-      #app-splash [class*="progress"]::after{
-        content:'';
-        display:block;
-        height:100%;
-        width:34%;
-        border-radius:inherit;
-        background:linear-gradient(90deg,transparent,rgba(18,139,105,.9),transparent);
-        animation:samaraSplashMove 1.15s ease-in-out infinite;
-      }
-      @keyframes samaraSplashMove{
-        0%{transform:translateX(-115%)}
-        100%{transform:translateX(320%)}
-      }
-      @media(prefers-reduced-motion:reduce){
-        #app-splash,#app-splash .splash-card,#root.samara-app-enter{
-          transition:none!important;
-          animation:none!important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  };
-
-  const updateSplashStatus = text => {
-    const splash=document.getElementById('app-splash');
-    if(!splash)return;
-    const candidates=[
-      splash.querySelector('[data-splash-status]'),
-      ...[...splash.querySelectorAll('p,small,span,div')].filter(node=>
-        /preparing|workspace|loading|secure/i.test(String(node.textContent||''))
-      )
-    ].filter(Boolean);
-    const node=candidates[0];
-    if(node)node.textContent=text;
-  };
-
-  const finishSmoothRefresh = () => {
-    const splash=document.getElementById('app-splash');
-    const root=document.getElementById('root');
-
-    updateSplashStatus('Workspace ready');
-
-    // Reveal the fully-rendered ERP underneath the still-visible splash.
-    document.documentElement.classList.remove('samara-preboot');
-    document.body.classList.add('samara-app-ready');
-    if(root){
-      root.classList.remove('samara-app-enter');
-      root.style.opacity='1';
-      root.style.visibility='visible';
-    }
-
-    requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        if(splash){
-          splash.classList.add('splash-ready');
-          setTimeout(()=>splash.remove(),420);
-        }
-      });
-    });
-  };
-
-  const ensureCleanWorkspaceLayout = () => {
-    if(document.getElementById('samara-clean-workspace-layout'))return;
-    const style=document.createElement('style');
-    style.id='samara-clean-workspace-layout';
-    style.textContent=`
-      /* Remove redundant bottom navigation and old fallback navigation rows. */
-      .mobile-bottom-nav,
-      .mobile-nav,
-      .samara-bottom-actions,
-      .legacy-nav,
-      .legacy-navigation,
-      .fallback-nav,
-      .quick-nav,
-      .bottom-nav,
-      .bottom-navigation,
-      .workspace-tabs,
-      .role-tabs,
-      .module-tabs,
-      .old-menu,
-      .prototype-nav{
-        display:none!important;
-      }
-
-      /* Hide plain browser-style button clusters left by the old prototype. */
-      .app-shell > main > div:last-child > button,
-      .app-main > div:last-child > button,
-      .content-area > div:last-child > button{
-        display:none!important;
-      }
-
-      /* Remove the duplicate compact role/menu panel that appears beneath page content. */
-      .app-shell main .legacy-role-panel,
-      .app-shell main .legacy-workspace-panel,
-      .app-shell main .legacy-user-panel{
-        display:none!important;
-      }
-
-      /* Keep only the proper application header, sidebar and workspace. */
-      .app-main,
-      main,
-      .content-area{
-        padding-bottom:24px!important;
-      }
-
-      /* Refine the page header while preserving the existing current-page title. */
-      .topbar,
-      .app-header,
-      .page-header{
-        min-height:70px;
-      }
-
-      .topbar .brand-mini,
-      .app-header .brand-mini{
-        display:none!important;
-      }
-
-      /* The alert sound remains the only floating action. */
-      .alert-sound-button,
-      .enable-alert-sound,
-      [data-alert-sound]{
-        z-index:90!important;
-      }
-
-      @media(max-width:720px){
-        .app-main,
-        main,
-        .content-area{
-          padding-bottom:76px!important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  };
-
   function App(){
-    React.useEffect(()=>{ensureCleanWorkspaceLayout()},[]);
     const [session,setSession]=React.useState(null);
     const [profile,setProfile]=React.useState(null);
     const [loading,setLoading]=React.useState(true);
@@ -896,42 +478,6 @@ Caring with Compassion. Living with Dignity.`;
         try{sessionStorage.setItem('samara_previous_page',previousPageRef.current)}catch(_error){}
       }
     },[page]);
-    React.useEffect(()=>{
-      ensureGlobalActionSuccessStyle();
-      const root=document.getElementById('root');
-      if(!root)return;
-
-      let closing=false;
-      const observer=new MutationObserver(mutations=>{
-        if(closing)return;
-        const successDetected=mutations.some(mutation=>
-          [...mutation.addedNodes].some(node=>isSuccessfulEntryElement(node))
-        );
-        if(!successDetected)return;
-
-        const hasPopup=document.querySelector('.modal-backdrop');
-        if(!hasPopup)return;
-
-        closing=true;
-
-        // Keep the action-specific green success message visible first.
-        // Close the entry popup only after the confirmation has been readable.
-        setTimeout(()=>{
-          closeTopActionPopup();
-          closing=false;
-        },3600);
-      });
-
-      observer.observe(root,{childList:true,subtree:true});
-      return()=>observer.disconnect();
-    },[]);
-
-    React.useEffect(()=>{
-      const handler=()=>setPage('Discharge Clearance');
-      window.addEventListener('samara-return-discharge-clearance',handler);
-      return()=>window.removeEventListener('samara-return-discharge-clearance',handler);
-    },[]);
-
     React.useEffect(()=>{
       const root=document.getElementById('root');
       if(!root)return;
@@ -951,40 +497,16 @@ Caring with Compassion. Living with Dignity.`;
 
 
     React.useEffect(()=>{
-      ensureSmoothRefreshStyle();
-      updateSplashStatus('Checking secure session…');
-      let active=true;
-      const minimumVisible=new Promise(resolve=>setTimeout(resolve,420));
-      const sessionReady=client.auth.getSession().then(({data})=>{
-        if(!active)return;
-        updateSplashStatus(data.session?'Loading your workspace…':'Preparing sign-in…');
-        setSession(data.session||null);
-      }).catch(error=>{
-        console.error('Session refresh failed:',error);
-      }).finally(()=>{
-        if(active)setLoading(false);
-      });
-
-      const revealFailsafe=setTimeout(()=>{
-        if(active)finishSmoothRefresh();
-      },5000);
-
-      Promise.allSettled([minimumVisible,sessionReady]).then(()=>{
-        if(!active)return;
-        clearTimeout(revealFailsafe);
-        requestAnimationFrame(()=>requestAnimationFrame(finishSmoothRefresh));
-      });
-
+      const splash=document.getElementById('app-splash');
+      const removeSplash=()=>{ if(splash){ splash.classList.add('splash-hide'); setTimeout(()=>splash.remove(),320); } };
+      const splashTimer=setTimeout(removeSplash,1450);
+      client.auth.getSession().then(({data})=>setSession(data.session||null)).finally(()=>setLoading(false));
       const {data:{subscription}}=client.auth.onAuthStateChange((event,next)=>{
         if(event==='PASSWORD_RECOVERY') setRecoveryMode(true);
         setSession(next);
       });
       if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-      return()=>{
-        active=false;
-        clearTimeout(revealFailsafe);
-        subscription.unsubscribe();
-      };
+      return()=>{clearTimeout(splashTimer);subscription.unsubscribe();};
     },[]);
 
     React.useEffect(()=>{
@@ -1081,13 +603,9 @@ Caring with Compassion. Living with Dignity.`;
           page==='Shift Handover'&&h(ShiftHandover,{profile,onNavigate:setPage}),
           page==='Incidents'&&h(Incidents,{profile,onNavigate:setPage}),
           page==='Documents'&&h(Documents,{profile}),
-          page==='Accounts Dashboard'&&h(AccountsDashboard,{profile,onNavigate:setPage}),
-          page==='Charge Approvals'&&h(ClinicalCharges,{profile}),
-          page==='Payments'&&h(BillingPayments,{profile}),
-          page==='Final Billing'&&h(FinalBillingView,{profile,onNavigate:setPage}),
-          page==='Discharge Clearance'&&h(DischargeManagement,{profile,mode:'accounts',onNavigate:setPage}),
-          page==='Refunds'&&h(RefundsView,{profile,onNavigate:setPage}),
-          page==='Accounts Reports'&&h(Reports),
+          page==='Bills & Charges'&&h(BillsCharges,{profile}),
+          page==='Billing & Payments'&&h(BillingPayments,{profile}),
+          page==='Accounts Reports'&&h(AccountsReports,{profile,onNavigate:setPage}),
           page==='Recovery Timeline'&&h(RecoveryTimeline,{profile}),
           page==='Reports'&&h(Reports),
           page==='Intelligent Reports'&&h(IntelligentReports,{profile}),
@@ -1367,57 +885,21 @@ Caring with Compassion. Living with Dignity.`;
   }
 
   function Dashboard({profile,onNavigate}){
-    const [stats,setStats]=React.useState({employees:0,patients:0,beds:25,meds:0,care:0,outstanding:0,risks:0,incidents:0,discharges:0,dischargeStatus:'No active discharge'});
+    const [stats,setStats]=React.useState({employees:0,patients:0,beds:25,meds:0,care:0,outstanding:0,risks:0,incidents:0});
     React.useEffect(()=>{(async()=>{
       const today=new Date().toISOString().slice(0,10);
-      const [emp,pat,med,care,bill,inc,dis]=await Promise.all([
+      const [emp,pat,med,care,bill,inc]=await Promise.all([
         client.from('profiles').select('*',{count:'exact',head:true}).eq('is_active',true),
         client.from('patients').select('*').eq('is_active',true),
         client.from('medication_administrations').select('*',{count:'exact',head:true}).eq('scheduled_date',today),
         client.from('care_logs').select('*',{count:'exact',head:true}).eq('care_date',today),
         client.from('billing_transactions').select('amount,transaction_type'),
-        client.from('incidents').select('*',{count:'exact',head:true}).eq('status','Open'),
-        client.from('patient_discharges').select('id,status,management_status,accounts_status')
+        client.from('incidents').select('*',{count:'exact',head:true}).eq('status','Open')
       ]);
       const patients=pat.data||[];
       const risks=patients.filter(p=>p.fall_risk||p.pressure_sore_risk||p.aspiration_risk||p.wandering_risk||p.infection_risk||p.oxygen_required).length;
       const outstanding=(bill.data||[]).reduce((a,x)=>a+(x.transaction_type==='Charge'?Number(x.amount||0):-Number(x.amount||0)),0);
-      const activeDischarges=(dis.data||[]).filter(row=>
-        String(row.status||'').trim().toLowerCase()!=='completed'
-      );
-      const awaitingManagement=activeDischarges.filter(row=>
-        ['','pending'].includes(String(row.management_status||'').trim().toLowerCase())
-      ).length;
-      const withAccounts=activeDischarges.filter(row=>
-        String(row.management_status||'').trim().toLowerCase()==='approved'&&
-        String(row.accounts_status||'').trim().toLowerCase()!=='cleared'
-      ).length;
-      const awaitingNurse=activeDischarges.filter(row=>
-        String(row.accounts_status||'').trim().toLowerCase()==='cleared'
-      ).length;
-      const returned=activeDischarges.filter(row=>
-        String(row.management_status||'').trim().toLowerCase()==='rejected'||
-        String(row.status||'').trim().toLowerCase()==='returned to nursing'
-      ).length;
-      const dischargeStatus=
-        awaitingManagement?`${awaitingManagement} awaiting Management approval`:
-        withAccounts?`${withAccounts} awaiting Accounts clearance`:
-        awaitingNurse?`${awaitingNurse} awaiting final Nursing discharge`:
-        returned?`${returned} returned to Nursing`:
-        'No active discharge';
-
-      setStats({
-        employees:emp.count||0,
-        patients:patients.length,
-        beds:25,
-        meds:med.count||0,
-        care:care.count||0,
-        outstanding,
-        risks,
-        incidents:inc.count||0,
-        discharges:activeDischarges.length,
-        dischargeStatus
-      });
+      setStats({employees:emp.count||0,patients:patients.length,beds:25,meds:med.count||0,care:care.count||0,outstanding,risks,incidents:inc.count||0});
     })()},[]);
     const cards=[
       {label:'Current patients',value:stats.patients,page:'Patients',icon:'👥'},
@@ -1427,12 +909,11 @@ Caring with Compassion. Living with Dignity.`;
       {label:'Medicine actions today',value:stats.meds,page:'Shift Tasks',icon:'💊'},
       {label:'Care actions today',value:stats.care,page:'Daily Care',icon:'✅'},
       {label:'Open incidents',value:stats.incidents,page:'Incidents',icon:'🚨'},
-      {label:'Outstanding amount',value:`₹${stats.outstanding.toLocaleString('en-IN')}`,page:'Payments',icon:'₹'},
-      {label:'Discharge',value:stats.discharges,page:'Discharge',icon:'🚪',status:stats.dischargeStatus}
+      {label:'Outstanding amount',value:`₹${stats.outstanding.toLocaleString('en-IN')}`,page:'Billing & Payments',icon:'₹'}
     ];
     return h(React.Fragment,null,
       h('div',{className:'shift-summary'},h('div',null,h('strong',null,currentShift()),h('span',null,'Admin and Manager control dashboard')),h('span',{className:'badge'},formalName(profile))),
-      h('div',{className:'grid stats dashboard-links'},cards.map(card=>h('button',{type:'button',className:'card stat dashboard-card',key:card.label,onClick:()=>onNavigate(card.page),title:`Open ${card.page}`},h('span',{className:'dashboard-icon','aria-hidden':'true'},card.icon),h('span',null,card.label),h('strong',null,card.value),h('small',null,card.status||`Open ${card.page} →`)))),
+      h('div',{className:'grid stats dashboard-links'},cards.map(card=>h('button',{type:'button',className:'card stat dashboard-card',key:card.label,onClick:()=>onNavigate(card.page),title:`Open ${card.page}`},h('span',{className:'dashboard-icon','aria-hidden':'true'},card.icon),h('span',null,card.label),h('strong',null,card.value),h('small',null,`Open ${card.page} →`)))),
       h('div',{className:'grid two',style:{marginTop:'18px'}},
         h('button',{type:'button',className:'card panel dashboard-panel-link',onClick:()=>onNavigate('Shift Tasks')},h('div',{className:'panel-head'},h('h3',null,'Today’s operational focus')),h('p',null,'Open medicines, bathing, restroom assistance, feeding, mobility, physiotherapy and special-nurse tasks.'),h('span',{className:'badge'},'Open Shift Tasks →')),
         h('button',{type:'button',className:'card panel dashboard-panel-link',onClick:()=>onNavigate('Reports')},h('div',{className:'panel-head'},h('h3',null,'Management reports')),h('p',null,'Open occupancy, clinical risks, incidents, billing, collections and outstanding details.'),h('span',{className:'badge'},'Open Reports →'))
@@ -1660,7 +1141,7 @@ Caring with Compassion. Living with Dignity.`;
         const link=whatsappWelcomeUrl(createdRow,employeeForm.password);setWelcomeLink(link);
         if(preopened&&link){preopened.location.href=link}else if(preopened){preopened.close()}
         await load();
-        const successText=result.repaired?'Employee account repaired successfully.':'New employee added successfully.';
+        const successText=result.repaired?'Employee account repaired and personnel details saved successfully.':'Employee created successfully with personnel details. The employee can sign in immediately.';
         setMsg(successText);showEmployeeToast('success',successText);
         setForm(empty);setIdFiles([]);setQualificationFiles([]);setExperienceFiles([]);setOtherFiles([]);setCameraFiles([]);setPhotoFiles([]);setPhotoPreview('');
       }catch(error){
@@ -2661,7 +2142,7 @@ Caring with Compassion. Living with Dignity.`;
           if(pe)throw pe;
         }
       }catch(orderError){const text=`Patient details saved, but medicines or care plan could not be updated: ${orderError.message}`;setEditMsg(text);showPatientToast('error',text);setEditBusy(false);return}
-      const successText='Patient information updated successfully.';
+      const successText='Patient information, medicines, care plan and documents updated successfully.';
       setEditMsg(successText);showPatientToast('success',successText);await load();await loadEditMedia({...data,id:editTarget.id});
       if(selected?.id===editTarget.id){setSelected(data);setTimeout(()=>openPatient(data),0)}
       setEditUploads({photo:[],identity:[],prescription:[],discharge:[],reports:[],other:[]});setEditBusy(false);
@@ -2880,586 +2361,211 @@ Caring with Compassion. Living with Dignity.`;
   function Section({title,subtitle,actions,children}){return h('div',{className:'card panel'},h('div',{className:'panel-head'},h('div',null,h('h3',null,title),subtitle&&h('small',null,subtitle)),actions),children)}
 
   
-  const ensureFinalDischargeStyle = () => {
-    if(document.getElementById('samara-final-discharge-style'))return;
-    const style=document.createElement('style');
-    style.id='samara-final-discharge-style';
-    style.textContent=`
-      .final-discharge-modal{
-        width:min(1000px,96vw)!important;
-        max-height:92vh!important;
-        overflow:auto!important;
-      }
-      .final-discharge-checklist{
-        display:grid;
-        grid-template-columns:repeat(2,minmax(0,1fr));
-        gap:10px;
-        margin:14px 0;
-      }
-      .final-discharge-checklist .check-card{
-        min-height:52px;
-      }
-      @media(max-width:700px){
-        .final-discharge-checklist{grid-template-columns:1fr}
-      }
-    `;
-    document.head.appendChild(style);
-  };
-
-  function DischargeManagement({profile,mode='workflow',onNavigate}){
-    React.useEffect(()=>{ensureFinalDischargeStyle()},[]);
-    const isNurse=profile?.role==='Nurse';
-    const isAccountsClearance=mode==='accounts';
-    const canInitiate=!isAccountsClearance&&['Admin','Manager','Nurse'].includes(profile?.role);
-    const canApprove=!isAccountsClearance&&['Admin','Manager'].includes(profile?.role);
-    const canCloseAccounts=isAccountsClearance&&['Admin','Accounts'].includes(profile?.role);
+  function DischargeManagement({profile}){
+    const canInitiate=['Admin','Manager','Nurse'].includes(profile?.role);
+    const canComplete=['Admin','Manager'].includes(profile?.role);
+    const canClearBilling=['Admin','Manager','Accounts'].includes(profile?.role);
     const [rows,setRows]=React.useState([]);
     const [patients,setPatients]=React.useState([]);
+    const [loading,setLoading]=React.useState(true);
+    const [message,setMessage]=React.useState('');
     const [show,setShow]=React.useState(false);
     const [editing,setEditing]=React.useState(null);
     const [busy,setBusy]=React.useState(false);
     const [toast,setToast]=React.useState(null);
-    const [message,setMessage]=React.useState('');
-    const [paymentTarget,setPaymentTarget]=React.useState(null);
-    const [showFinalDischarge,setShowFinalDischarge]=React.useState(false);
-    const [finalDischargeRow,setFinalDischargeRow]=React.useState(null);
-    const [finalForm,setFinalForm]=React.useState({
-      discharge_summary_handed_over:false,
-      medicines_handed_over:false,
-      reports_handed_over:false,
-      belongings_handed_over:false,
-      valuables_handed_over:false,
-      final_instructions_explained:false,
-      patient_condition_confirmed:false,
-      receiving_person_name:'',
-      receiving_person_contact:'',
-      relationship:'',
-      actual_departure_time:localDateTimeValue(),
-      transport_mode:'Own / Family Transport',
-      transport_details:'',
-      accompanied_by_name:'',
-      accompanied_by_relationship:'',
-      accompanied_by_contact:'',
-      review_appointment_date:'',
-      review_appointment_time:'',
-      review_doctor_name:'',
-      review_hospital_clinic:'',
-      review_instructions:'',
-      final_remarks:'Patient left the facility after receiving discharge documents, medicines and belongings.'
-    });
+    const [returnPage,setReturnPage]=React.useState('');
+    const toastTimer=React.useRef(null);
     const initial={
-      patient_id:'',initiation_basis:'Consultant / Doctor Instruction',
-      instructed_by_name:'',instructed_by_contact:'',
-      voluntary_requested_by:'Patient',voluntary_requester_name:'',voluntary_requester_contact:'',
-      discharge_type:'Planned Discharge',proposed_discharge_date:todayISOIndia(),proposed_discharge_time:'10:00',
-      destination:'Home',destination_details:'',doctor_discharge_advice:'',
-      condition_at_discharge:'Stable',relative_name:'',relative_contact:'',
-      transport_arrangement:'Family Transport',medicines_handed_over:false,
-      discharge_summary_handed_over:false,reports_handed_over:false,valuables_handed_over:false,
-      clinical_clearance_status:'Pending',room_clearance_status:'Pending',
-      final_instructions:'',remarks:'',management_status:'Pending',accounts_status:'Pending',status:'Initiated'
+      patient_id:'',
+      discharge_type:'Planned Discharge',
+      proposed_discharge_date:todayISOIndia(),
+      proposed_discharge_time:'10:00',
+      destination:'Home',
+      destination_details:'',
+      doctor_name:'',
+      doctor_contact:'',
+      doctor_discharge_advice:'',
+      condition_at_discharge:'Stable',
+      relative_name:'',
+      relative_contact:'',
+      transport_arrangement:'Family Transport',
+      medicines_handed_over:false,
+      discharge_summary_handed_over:false,
+      reports_handed_over:false,
+      valuables_handed_over:false,
+      billing_clearance_status:'Pending',
+      clinical_clearance_status:'Pending',
+      room_clearance_status:'Pending',
+      final_instructions:'',
+      remarks:'',
+      status:'Initiated'
     };
     const [form,setForm]=React.useState(initial);
 
-    const notify=(type,title,text)=>{setToast({type,title,text});setTimeout(()=>setToast(null),5000)};
-    const patientFor=id=>patients.find(p=>p.id===id)||{};
-    const patientLabel=id=>{
-      const p=patientFor(id);
-      return p.id?`${formalName(p)} · ${p.patient_id||'—'} · Room ${p.room_no||'—'}${p.bed_no?`-${p.bed_no}`:''}`:'—';
-    };
+    function showToast(type,text){
+      clearTimeout(toastTimer.current);
+      setToast({type,text});
+      toastTimer.current=setTimeout(()=>setToast(null),5000);
+    }
+    React.useEffect(()=>()=>clearTimeout(toastTimer.current),[]);
 
     async function load(){
+      setLoading(true);setMessage('');
       const [d,p]=await Promise.all([
         client.from('patient_discharges').select('*').order('created_at',{ascending:false}),
-        client.from('patients').select('id,title,full_name,patient_id,mobile,room_no,bed_no,is_active,attendant_name,attendant_phone,treating_doctor,doctor_phone').order('full_name')
+        client.from('patients').select('id,title,full_name,patient_id,room_no,bed_no,is_active,attendant_name,attendant_phone,treating_doctor,doctor_phone').order('full_name')
       ]);
-      if(d.error){
-        setMessage(d.error.message);
-        setRows([]);
-      }else{
-        setMessage('');
-        const allRows=d.data||[];
-        setRows(isAccountsClearance
-          ?allRows.filter(row=>row.management_status==='Approved'&&row.accounts_status!=='Cleared'&&row.status!=='Completed')
-          :allRows
-        );
-      };
+      if(d.error){setMessage(d.error.message||'Unable to load discharge records.');setRows([])}else setRows(d.data||[]);
       if(!p.error)setPatients(p.data||[]);
+      setLoading(false);
     }
     React.useEffect(()=>{
       load();
-      const ch=client.channel(`discharge-v210-${profile?.id||'user'}`)
+      const ch=client.channel('discharge-live')
         .on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load)
-        .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
+        .on('postgres_changes',{event:'*',schema:'public',table:'patients'},load)
         .subscribe();
       return()=>client.removeChannel(ch);
-    },[profile?.id]);
+    },[]);
 
-    function openNew(){setEditing(null);setForm({...initial,proposed_discharge_date:todayISOIndia()});setShow(true)}
-    function openEdit(row){
-      const patient=patientFor(row.patient_id);
-      const voluntary=row.initiation_basis==='Voluntary Discharge'
-        ?voluntaryDetails(patient,row.voluntary_requested_by||'Patient')
-        :{};
-      setEditing(row);
-      setForm({
-        ...initial,
-        ...row,
-        ...(!row.voluntary_requester_name?voluntary:{}),
-        proposed_discharge_time:String(row.proposed_discharge_time||'10:00').slice(0,5)
-      });
-      setShow(true);
-    }
-    function voluntaryDetails(patient,requesterType){
-      if(requesterType==='Patient'){
-        return {
-          voluntary_requester_name:formalName(patient)||patient.full_name||'',
-          voluntary_requester_contact:patient.mobile||''
-        };
-      }
-      return {
-        voluntary_requester_name:patient.attendant_name||'',
-        voluntary_requester_contact:patient.attendant_phone||''
-      };
-    }
-
-    function selectPatient(id){
+    const patientFor=id=>patients.find(p=>p.id===id)||{};
+    const patientLabel=id=>{
       const p=patientFor(id);
-      const voluntary=voluntaryDetails(p,form.voluntary_requested_by||'Patient');
-      setForm(current=>({
-        ...current,
-        patient_id:id,
-        relative_name:p.attendant_name||'',
-        relative_contact:p.attendant_phone||'',
-        instructed_by_name:p.treating_doctor||'',
-        instructed_by_contact:p.doctor_phone||'',
-        ...voluntary
-      }));
-    }
+      return p.id?`${formalName(p)} · ${p.patient_id||'—'} · Room ${p.room_no||'—'}${p.bed_no?`-${p.bed_no}`:''}`:'Patient not linked';
+    };
+    const clockLabel=value=>{
+      if(!value)return '—';
+      const [h,m]=String(value).slice(0,5).split(':').map(Number);
+      return `${h%12||12}:${String(m||0).padStart(2,'0')} ${h<12?'AM':'PM'}`;
+    };
 
-    function changeInitiationBasis(value){
-      const p=patientFor(form.patient_id);
-      const voluntary=voluntaryDetails(p,form.voluntary_requested_by||'Patient');
-      setForm(current=>({
-        ...current,
-        initiation_basis:value,
-        ...(value==='Voluntary Discharge'?voluntary:{})
-      }));
+    function openNew(){
+      setEditing(null);setForm({...initial,proposed_discharge_date:todayISOIndia()});setShow(true);
     }
-
-    function changeVoluntaryRequester(value){
-      const p=patientFor(form.patient_id);
-      setForm(current=>({
-        ...current,
-        voluntary_requested_by:value,
-        ...voluntaryDetails(p,value)
-      }));
+    function openEdit(row){
+      setEditing(row);setForm({...initial,...row,proposed_discharge_time:String(row.proposed_discharge_time||'10:00').slice(0,5)});setShow(true);
+    }
+    function onPatient(id){
+      const p=patientFor(id);
+      setForm(current=>({...current,patient_id:id,relative_name:p.attendant_name||'',relative_contact:p.attendant_phone||'',doctor_name:p.treating_doctor||'',doctor_contact:p.doctor_phone||''}));
     }
 
     async function save(e){
       e.preventDefault();
-      if(!canInitiate||busy)return;
-      if(!form.patient_id){notify('error','Discharge not initiated','Select the patient.');return}
-      if(form.initiation_basis==='Consultant / Doctor Instruction'&&!form.instructed_by_name.trim()){notify('error','Discharge not initiated','Consultant / Doctor name is mandatory.');return}
-      if(form.initiation_basis==='Voluntary Discharge'&&!form.voluntary_requester_name.trim()){notify('error','Discharge not initiated','Voluntary requester name is mandatory.');return}
-      if(isFutureDateIndia(form.proposed_discharge_date)){notify('error','Discharge not initiated','Future discharge dates are not permitted for final processing.');return}
+      if(!canInitiate&&!editing)return;
+      if(!form.patient_id){showToast('error','Please select the patient.');return}
+      if(isFutureDateIndia(form.proposed_discharge_date)){showToast('error','Future discharge dates are not permitted at the time of final discharge.');return}
+      if(!form.doctor_name.trim()||!form.doctor_discharge_advice.trim()){showToast('error','Doctor name and discharge advice are mandatory.');return}
       setBusy(true);
       const {data:{user}}=await client.auth.getUser();
-      const payload={...form,
-        initiated_by:editing?.initiated_by||user?.id||profile.id,
-        initiated_by_name:editing?.initiated_by_name||formalName(profile)||profile?.full_name||'Nurse',
-        initiated_at:editing?.initiated_at||new Date().toISOString(),
-        management_status:editing?.management_status||'Pending',
-        accounts_status:editing?.accounts_status||'Pending',
-        status:editing?.status||'Initiated',updated_at:new Date().toISOString()
-      };
+      const payload={...form,initiated_by:editing?.initiated_by||user?.id||profile?.id,updated_at:new Date().toISOString()};
       delete payload.id;delete payload.created_at;delete payload.completed_at;delete payload.completed_by;
-      const result=editing
+      let result=editing
         ?await client.from('patient_discharges').update(payload).eq('id',editing.id).select('id').single()
         :await client.from('patient_discharges').insert(payload).select('id').single();
       setBusy(false);
-      if(result.error){notify('error','Discharge not saved',result.error.message);return}
-      notify('success',editing?'Discharge request updated successfully':'Discharge initiated successfully','Forwarded automatically to Admin and Manager for approval.');
-      finishSuccessfulAction({close:()=>setShow(false),refresh:load});
-      writeAuditEvent(editing?'Discharge Updated':'Discharge Initiated','Discharge',result.data?.id,{patient_id:form.patient_id,initiation_basis:form.initiation_basis},'Success');
+      if(result.error){showToast('error',result.error.message||'Unable to save discharge request.');return}
+      showToast('success',editing?'Discharge formalities updated successfully.':'Discharge process initiated successfully.');
+      setShow(false);await load();
+      writeAuditEvent(editing?'Discharge Updated':'Discharge Initiated','Discharge',result.data?.id,{
+        patient_id:form.patient_id,status:form.status,discharge_type:form.discharge_type
+      },'Success');
     }
 
-    async function approve(row,decision){
-      if(!canApprove||busy)return;
-      const remarks=prompt(decision==='Approved'?'Management approval remarks:':'Reason for rejection:',decision)||decision;
+    async function setBilling(row,status){
+      if(!canClearBilling)return;
+      const {error}=await client.from('patient_discharges').update({billing_clearance_status:status,updated_at:new Date().toISOString()}).eq('id',row.id);
+      if(error){showToast('error',error.message);return}
+      showToast('success',`Billing clearance marked ${status}.`);await load();
+    }
+
+    async function complete(row){
+      if(!canComplete)return;
+      const missing=[];
+      if(row.billing_clearance_status!=='Cleared')missing.push('Billing clearance');
+      if(row.clinical_clearance_status!=='Cleared')missing.push('Clinical clearance');
+      if(row.room_clearance_status!=='Cleared')missing.push('Room/property clearance');
+      if(!row.medicines_handed_over)missing.push('Medicines handover');
+      if(!row.discharge_summary_handed_over)missing.push('Discharge summary');
+      if(missing.length){showToast('error',`Complete the following before discharge: ${missing.join(', ')}.`);return}
+      if(!confirm(`Complete discharge for ${patientLabel(row.patient_id)}? The room and bed will become Available automatically.`))return;
       setBusy(true);
-      const {error}=await client.rpc('approve_patient_discharge_v2',{p_discharge_id:row.id,p_decision:decision,p_remarks:remarks});
+      const {data,error}=await client.rpc('complete_patient_discharge',{p_discharge_id:row.id});
       setBusy(false);
-      if(error){notify('error','Management decision not saved',error.message);return}
-      notify('success',decision==='Approved'?'Discharge approved successfully':'Discharge rejected',decision==='Approved'?'Forwarded automatically to Accounts for payment clearance.':'Returned automatically to Nursing.');
+      if(error){showToast('error',error.message||'Unable to complete discharge.');return}
+      showToast('success','Patient discharged successfully. The room and bed are now Available.');
       await load();
-    }
-
-    function openPayments(row){
-      const patient=patientFor(row.patient_id);
-      const target={
-        discharge_id:row.id,
-        patient_id:row.patient_id,
-        patient_name:formalName(patient)||patient.full_name||'Patient',
-        patient_code:patient.patient_id||'',
-        room_no:patient.room_no||'',
-        bed_no:patient.bed_no||''
-      };
-      setPaymentTarget(target);
-      try{
-        sessionStorage.setItem('samara_discharge_payment_target',JSON.stringify(target));
-      }catch(_error){}
-      onNavigate?.('Payments');
-    }
-
-    async function closeAccounts(row){
-      if(!canCloseAccounts||busy)return;
-      const remarks=prompt('Payment reference / Accounts closure remarks:','All payments received')||'';
-      if(!remarks.trim()){notify('error','Discharge not closed','Payment reference is mandatory.');return}
-      setBusy(true);
-      const {error}=await client.rpc('close_patient_discharge_accounts_v2',{p_discharge_id:row.id,p_remarks:remarks});
-      setBusy(false);
-      if(error){notify('error','Discharge not closed',error.message);return}
-      notify('success','Discharge closed successfully','All payments are cleared, the room is released and the final status returned automatically to Nursing.');
-      await load();
-    }
-
-    function openFinalDischarge(row){
-      ensureFinalDischargeStyle();
-      setFinalDischargeRow(row);
-      setFinalForm({
-        discharge_summary_handed_over:!!row.discharge_summary_handed_over,
-        medicines_handed_over:!!row.medicines_handed_over,
-        reports_handed_over:!!row.reports_handed_over,
-        belongings_handed_over:!!row.valuables_handed_over,
-        valuables_handed_over:!!row.valuables_handed_over,
-        final_instructions_explained:false,
-        patient_condition_confirmed:false,
-        receiving_person_name:row.relative_name||row.voluntary_requester_name||'',
-        receiving_person_contact:row.relative_contact||row.voluntary_requester_contact||'',
-        relationship:row.voluntary_requested_by||'Relative / Attendant',
-        actual_departure_time:localDateTimeValue(),
-        transport_mode:row.transport_arrangement||'Own / Family Transport',
-        transport_details:'',
-        accompanied_by_name:row.relative_name||row.voluntary_requester_name||'',
-        accompanied_by_relationship:row.voluntary_requested_by||'Relative / Attendant',
-        accompanied_by_contact:row.relative_contact||row.voluntary_requester_contact||'',
-        review_appointment_date:row.review_appointment_date||'',
-        review_appointment_time:row.review_appointment_time||'',
-        review_doctor_name:row.review_doctor_name||row.instructed_by_name||'',
-        review_hospital_clinic:row.review_hospital_clinic||'',
-        review_instructions:row.review_instructions||'',
-        final_remarks:'Patient left the facility after receiving discharge documents, medicines and belongings.'
-      });
-      setShowFinalDischarge(true);
-    }
-
-    async function completeFinalDischarge(e){
-      e.preventDefault();
-      if(!isNurse||busy||!finalDischargeRow)return;
-
-      const requiredChecks=[
-        ['discharge_summary_handed_over','Discharge summary handed over'],
-        ['medicines_handed_over','Medicines handed over'],
-        ['reports_handed_over','Reports/documents handed over'],
-        ['belongings_handed_over','Personal belongings handed over'],
-        ['valuables_handed_over','Valuables handed over / confirmed none'],
-        ['final_instructions_explained','Final instructions explained'],
-        ['patient_condition_confirmed','Patient condition confirmed before departure']
-      ];
-      const missing=requiredChecks.filter(([key])=>!finalForm[key]).map(([,label])=>label);
-      if(missing.length){
-        notify('error','Final discharge not completed',`Complete all checklist items: ${missing.join(', ')}.`);
-        return;
-      }
-      if(!finalForm.receiving_person_name.trim()){
-        notify('error','Final discharge not completed','Receiving person name is mandatory.');
-        return;
-      }
-      if(!finalForm.actual_departure_time){
-        notify('error','Final discharge not completed','Actual departure date and time are mandatory.');
-        return;
-      }
-      if(!finalForm.transport_mode){
-        notify('error','Final discharge not completed','Select the transport mode.');
-        return;
-      }
-      if(!finalForm.accompanied_by_name.trim()){
-        notify('error','Final discharge not completed','Accompanying person name is mandatory.');
-        return;
-      }
-      if(!finalForm.accompanied_by_relationship.trim()){
-        notify('error','Final discharge not completed','Relationship of the accompanying person is mandatory.');
-        return;
-      }
-      if(!finalForm.accompanied_by_contact.trim()){
-        notify('error','Final discharge not completed','Accompanying person contact number is mandatory.');
-        return;
-      }
-      if(!finalForm.final_remarks.trim()){
-        notify('error','Final discharge not completed','Final discharge remarks are mandatory.');
-        return;
-      }
-
-      setBusy(true);
-      const {data,error}=await client.rpc('confirm_patient_departure_v3',{
-        p_discharge_id:finalDischargeRow.id,
-        p_received_by_name:finalForm.receiving_person_name.trim(),
-        p_received_by_contact:finalForm.receiving_person_contact.trim()||null,
-        p_relationship:finalForm.relationship.trim()||null,
-        p_actual_departure_at:new Date(finalForm.actual_departure_time).toISOString(),
-        p_transport_mode:finalForm.transport_mode,
-        p_transport_details:finalForm.transport_details.trim()||null,
-        p_accompanied_by_name:finalForm.accompanied_by_name.trim(),
-        p_accompanied_by_relationship:finalForm.accompanied_by_relationship.trim(),
-        p_accompanied_by_contact:finalForm.accompanied_by_contact.trim(),
-        p_review_appointment_date:finalForm.review_appointment_date||null,
-        p_review_appointment_time:finalForm.review_appointment_time||null,
-        p_review_doctor_name:finalForm.review_doctor_name.trim()||null,
-        p_review_hospital_clinic:finalForm.review_hospital_clinic.trim()||null,
-        p_review_instructions:finalForm.review_instructions.trim()||null,
-        p_departure_remarks:finalForm.final_remarks.trim(),
-        p_discharge_summary_handed_over:finalForm.discharge_summary_handed_over,
-        p_medicines_handed_over:finalForm.medicines_handed_over,
-        p_reports_handed_over:finalForm.reports_handed_over,
-        p_belongings_handed_over:finalForm.belongings_handed_over,
-        p_valuables_handed_over:finalForm.valuables_handed_over,
-        p_final_instructions_explained:finalForm.final_instructions_explained,
-        p_patient_condition_confirmed:finalForm.patient_condition_confirmed
-      });
-      setBusy(false);
-
-      if(error){
-        notify('error','Final discharge not completed',error.message||'Unable to complete final discharge.');
-        return;
-      }
-
-      notify(
-        'success',
-        'Patient discharged successfully',
-        `Final nursing clearance completed. Room ${data?.room_no||'—'}-${data?.bed_no||'—'} is now available.`
-      );
-      setTimeout(()=>setShowFinalDischarge(false),3600);
-      await load();
-      writeAuditEvent(
-        'Patient Final Discharge Completed',
-        'Discharge',
-        finalDischargeRow.id,
-        {
-          patient_id:finalDischargeRow.patient_id,
-          received_by_name:finalForm.receiving_person_name.trim(),
-          actual_departure_at:finalForm.actual_departure_time,
-          room_released:true
-        },
-        'Success'
-      );
+      writeAuditEvent('Patient Discharged','Discharge',row.id,{patient_id:row.patient_id,bed_released:true},'Success');
     }
 
     const tableRows=rows.map(row=>[
       patientLabel(row.patient_id),
-      row.initiation_basis||'—',
-      row.initiation_basis==='Voluntary Discharge'
-        ?`${row.voluntary_requested_by||'Voluntary'} · ${row.voluntary_requester_name||'—'} · ${row.voluntary_requester_contact||'—'}`
-        :`${row.instructed_by_name||'—'} · ${row.instructed_by_contact||'—'}`,
-      formatDateIN(row.proposed_discharge_date),
-      h('span',{className:`badge ${row.management_status==='Approved'?'':'off'}`},row.management_status||'Pending'),
-      row.management_approved_by_name||'—',
-      row.management_approved_at?fmt(row.management_approved_at):'—',
-      h('span',{className:`badge ${row.accounts_status==='Cleared'?'':'off'}`},row.accounts_status||'Pending'),
-      row.accounts_cleared_by_name||'—',
-      row.accounts_cleared_at?fmt(row.accounts_cleared_at):'—',
+      row.discharge_type||'—',
+      `${formatDateIN(row.proposed_discharge_date)} ${clockLabel(row.proposed_discharge_time)}`,
+      row.destination||'—',
+      row.doctor_name||'—',
+      h('span',{className:`badge ${row.billing_clearance_status==='Cleared'?'':'off'}`},`Billing: ${row.billing_clearance_status||'Pending'}`),
+      h('span',{className:`badge ${row.clinical_clearance_status==='Cleared'?'':'off'}`},`Clinical: ${row.clinical_clearance_status||'Pending'}`),
       h('span',{className:`badge ${row.status==='Completed'?'':'off'}`},row.status||'Initiated'),
       h('div',{className:'employee-actions'},
-        canInitiate&&row.status==='Initiated'&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Update'),
-        canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-primary',onClick:()=>approve(row,'Approved')},'Approve'),
-        canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-danger',onClick:()=>approve(row,'Rejected')},'Reject'),
-        canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&h('button',{className:'btn btn-secondary',onClick:()=>openPayments(row)},'View Payments'),
-        canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&row.accounts_status==='Ready to Close'&&h('button',{className:'btn btn-primary',onClick:()=>closeAccounts(row)},'Enter Closure Remarks & Close'),
-        isNurse&&String(row.accounts_status||'').trim().toLowerCase()==='cleared'&&String(row.status||'').trim().toLowerCase()!=='completed'&&h('button',{
-          type:'button',
-          className:'btn btn-primary',
-          onMouseDown:event=>event.stopPropagation(),
-          onClick:event=>{
-            event.preventDefault();
-            event.stopPropagation();
-            setTimeout(()=>openFinalDischarge(row),0);
-          }
-        },'Final Discharge Clearance'),
-        isNurse&&h('span',{className:'small-note'},
-          String(row.status||'').trim().toLowerCase()==='completed'
-            ?'Discharge completed'
-            :String(row.accounts_status||'').trim().toLowerCase()==='cleared'
-              ?'Accounts cleared — confirm departure'
-              :row.management_status==='Rejected'
-                ?'Returned by Manager'
-                :row.management_status==='Approved'
-                  ?'With Accounts'
-                  :'Awaiting Management'
-        )
+        ['Admin','Manager','Nurse'].includes(profile.role)&&row.status!=='Completed'&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Update'),
+        canClearBilling&&row.status!=='Completed'&&h('button',{className:'btn btn-secondary',onClick:()=>setBilling(row,row.billing_clearance_status==='Cleared'?'Pending':'Cleared')},row.billing_clearance_status==='Cleared'?'Reopen Billing':'Clear Billing'),
+        canComplete&&row.status!=='Completed'&&h('button',{className:'btn btn-primary',onClick:()=>complete(row),disabled:busy},'Complete Discharge')
       )
     ]);
 
     return h(React.Fragment,null,
-      h(Section,{
-        title:isAccountsClearance?'Discharge Clearance':'Patient Discharge',
-        subtitle:isAccountsClearance
-          ?'Management-approved cases only — verify final billing, receive/adjust payment and complete financial clearance'
-          :'Nursing initiation → Admin/Manager approval → Accounts payment closure → automatic return to Nursing'
-      },
+      h(Section,{title:'Patient Discharge',subtitle:'Controlled discharge formalities with automatic room and bed release'},
         message&&h('div',{className:'message error'},message),
         h('div',{className:'panel-head'},
-          h('p',{className:'small-note'},
-            isAccountsClearance
-              ?'Accounts does not initiate or clinically approve discharge. Open Payments first, complete the financial settlement, then return here to enter closure remarks and close the discharge.'
-              :isNurse
-                ?(
-                rows.some(row=>row.accounts_status==='Cleared'&&row.status!=='Completed')
-                  ?'Accounts clearance is complete. Open Final Discharge Clearance and complete the nursing handover before releasing the patient, room and bed.'
-                  :'Initiate only under Consultant/Doctor instruction or a clearly recorded voluntary request.'
-              )
-                :canApprove
-                  ?'Approve or reject after clinical review.'
-                  :'Review discharge status.'
-          ),
-          canInitiate&&!(
-            isNurse&&rows.some(row=>
-              row.accounts_status==='Cleared'&&
-              row.status!=='Completed'
-            )
-          )&&h('button',{className:'btn btn-primary',onClick:openNew},'Initiate Discharge')
+          h('p',{className:'small-note'},'Nurse initiates the clinical discharge process. Accounts clears billing. Admin or Manager verifies all formalities and completes discharge.'),
+          canInitiate&&h('button',{className:'btn btn-primary',onClick:openNew},'Initiate Discharge')
         )
       ),
-      h(LogTable,{title:isAccountsClearance?`Pending Financial Clearance (${tableRows.length})`:`Discharge Workflow Register (${tableRows.length})`,
-        heads:['Patient','Initiation Basis','Instruction / Request','Date','Management','Decision By','Decision Time','Accounts','Closed By','Closure Time','Final Status','Action'],
+      h(LogTable,{
+        title:`Discharge Register (${tableRows.length})`,
+        subtitle:'The bed is released only after Admin/Manager completes discharge',
+        heads:['Patient','Type','Planned Date / Time','Destination','Doctor','Billing','Clinical','Status','Action'],
         rows:tableRows
       }),
-      show&&h('div',{className:'modal-backdrop'},
+      !loading&&!message&&!tableRows.length&&h('div',{className:'card panel'},h('p',{className:'small-note'},'No discharge process has been initiated.')),
+      show&&h('div',{className:'modal-backdrop',onClick:e=>{if(e.target===e.currentTarget)setShow(false)}},
         h('form',{className:'card modal',style:{width:'min(1100px,96vw)',maxHeight:'92vh',overflow:'auto'},onSubmit:save},
-          h('div',{className:'panel-head'},h('div',null,h('h3',null,editing?'Update Discharge Request':'Initiate Patient Discharge'),h('small',null,'Record only the essential instruction or voluntary request. Final handover details will be completed later by Nursing after Accounts clearance.')),h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')),
-          h('div',{className:'modal-grid'},
-            h('div',{className:'field'},h('label',null,'Patient'),h('select',{required:true,value:form.patient_id,disabled:!!editing,onChange:e=>selectPatient(e.target.value)},h('option',{value:''},'Select active patient'),patients.filter(p=>p.is_active!==false).map(p=>h('option',{key:p.id,value:p.id},patientLabel(p.id))))),
-            miniSelect('Initiation Basis',form.initiation_basis,['Consultant / Doctor Instruction','Voluntary Discharge'],changeInitiationBasis),
-            form.initiation_basis==='Consultant / Doctor Instruction'&&h(React.Fragment,null,
-              miniInput('Consultant / Doctor Name',form.instructed_by_name,v=>setForm({...form,instructed_by_name:v}),true),
-              miniInput('Consultant / Doctor Contact',form.instructed_by_contact,v=>setForm({...form,instructed_by_contact:v})),
-              h('div',{className:'field span-2'},h('label',null,'Doctor Discharge Advice'),h('textarea',{required:true,rows:3,value:form.doctor_discharge_advice,onChange:e=>setForm({...form,doctor_discharge_advice:e.target.value})}))
-            ),
-            form.initiation_basis==='Voluntary Discharge'&&h(React.Fragment,null,
-              miniSelect('Voluntary Request From',form.voluntary_requested_by,['Patient','Relative / Attendant','Guardian / Authorised Person'],changeVoluntaryRequester),
-              h('div',{className:'field span-2'},h('div',{className:'message info'},'Requester name and contact are filled automatically from the patient record. The Nurse may correct them only when the stored details have changed.')),
-              miniInput('Requester Name',form.voluntary_requester_name,v=>setForm({...form,voluntary_requester_name:v}),true),
-              miniInput('Requester Contact',form.voluntary_requester_contact,v=>setForm({...form,voluntary_requester_contact:v}),true),
-              h('div',{className:'field span-2'},h('label',null,'Voluntary Declaration / Reason'),h('textarea',{required:true,rows:3,value:form.doctor_discharge_advice,onChange:e=>setForm({...form,doctor_discharge_advice:e.target.value})}))
-            ),
-            miniSelect('Discharge Type',form.discharge_type,['Planned Discharge','Transfer to Hospital','Discharge Against Medical Advice','Home Care Transfer','Death / Expiry','Other'],v=>setForm({...form,discharge_type:v})),
-            miniInput('Discharge Date',form.proposed_discharge_date,v=>setForm({...form,proposed_discharge_date:v}),true,'date'),
-            miniInput('Discharge Time',form.proposed_discharge_time,v=>setForm({...form,proposed_discharge_time:v}),true,'time'),
-            miniSelect('Destination',form.destination,['Home','Hospital','Rehabilitation Centre','Another Assisted Living Facility','Relative Residence','Other'],v=>setForm({...form,destination:v})),
-            miniInput('Destination Details',form.destination_details,v=>setForm({...form,destination_details:v})),
-            miniSelect('Condition at Discharge',form.condition_at_discharge,['Stable','Improved','Requires Continued Monitoring','Transferred for Higher Care','Critical','Other'],v=>setForm({...form,condition_at_discharge:v})),
-            h('div',{className:'field span-2'},h('label',null,'Initiation Remarks'),h('textarea',{
-              rows:3,
-              value:form.remarks,
-              onChange:e=>setForm({...form,remarks:e.target.value}),
-              placeholder:'Brief reason for initiating discharge or any important note for Management review.'
-            }))
-          ),
-          h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShow(false)},'Cancel'),h('button',{className:'btn btn-primary',disabled:busy},busy?'Saving…':editing?'Update Request':'Submit for Management Approval'))
-        )
-      ),
-      showFinalDischarge&&finalDischargeRow&&h('div',{
-        className:'modal-backdrop',
-        'data-manual-close':'true',
-        onMouseDown:event=>event.stopPropagation()
-      },
-        h('form',{
-          className:'card modal final-discharge-modal',
-          onSubmit:completeFinalDischarge,
-          onClick:event=>event.stopPropagation()
-        },
           h('div',{className:'panel-head'},
-            h('div',null,
-              h('h3',null,'Final Nursing Discharge Clearance'),
-              h('small',null,patientLabel(finalDischargeRow.patient_id))
-            ),
-            h('button',{type:'button',className:'close',onClick:()=>setShowFinalDischarge(false)},'×')
-          ),
-          h('div',{className:'message success'},
-            'Accounts clearance completed. Confirm all clinical handover items and the patient’s actual departure before releasing the room and bed.'
-          ),
-          h('div',{className:'final-discharge-checklist'},
-            [
-              ['discharge_summary_handed_over','Discharge summary handed over'],
-              ['medicines_handed_over','Medicines handed over'],
-              ['reports_handed_over','Reports and investigation documents handed over'],
-              ['belongings_handed_over','Personal belongings handed over'],
-              ['valuables_handed_over','Valuables handed over / confirmed none'],
-              ['final_instructions_explained','Medication, diet and follow-up instructions explained'],
-              ['patient_condition_confirmed','Patient condition checked and fit for departure / transfer']
-            ].map(([key,label])=>h('label',{className:'check-card',key},
-              h('input',{
-                type:'checkbox',
-                checked:!!finalForm[key],
-                onChange:e=>setFinalForm({...finalForm,[key]:e.target.checked})
-              }),
-              h('span',null,label)
-            ))
+            h('div',null,h('h3',null,editing?'Update Discharge Formalities':'Initiate Patient Discharge'),h('small',null,'Clinical, billing, documents, belongings and room-clearance checklist')),
+            h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')
           ),
           h('div',{className:'modal-grid'},
-            miniInput('Received / Accompanied By',finalForm.receiving_person_name,v=>setFinalForm({...finalForm,receiving_person_name:v}),true),
-            miniInput('Contact Number',finalForm.receiving_person_contact,v=>setFinalForm({...finalForm,receiving_person_contact:v})),
-            miniInput('Relationship',finalForm.relationship,v=>setFinalForm({...finalForm,relationship:v})),
-            miniInput('Actual Departure Date & Time',finalForm.actual_departure_time,v=>setFinalForm({...finalForm,actual_departure_time:v}),true,'datetime-local'),
-            miniSelect(
-              'Transport Mode',
-              finalForm.transport_mode,
-              [
-                'Own / Family Transport',
-                'Ambulance',
-                'Samara Vehicle',
-                'Taxi / Cab',
-                'Auto-rickshaw',
-                'Hospital Ambulance',
-                'Other'
-              ],
-              v=>setFinalForm({...finalForm,transport_mode:v})
-            ),
-            miniInput('Transport / Vehicle Details',finalForm.transport_details,v=>setFinalForm({...finalForm,transport_details:v})),
-            miniInput('Accompanied By',finalForm.accompanied_by_name,v=>setFinalForm({...finalForm,accompanied_by_name:v}),true),
-            miniInput('Relationship',finalForm.accompanied_by_relationship,v=>setFinalForm({...finalForm,accompanied_by_relationship:v}),true),
-            miniInput('Accompanying Person Contact',finalForm.accompanied_by_contact,v=>setFinalForm({...finalForm,accompanied_by_contact:v}),true),
-            miniInput('Review Appointment Date',finalForm.review_appointment_date,v=>setFinalForm({...finalForm,review_appointment_date:v}),false,'date'),
-            miniInput('Review Appointment Time',finalForm.review_appointment_time,v=>setFinalForm({...finalForm,review_appointment_time:v}),false,'time'),
-            miniInput('Review Doctor / Consultant',finalForm.review_doctor_name,v=>setFinalForm({...finalForm,review_doctor_name:v})),
-            miniInput('Hospital / Clinic',finalForm.review_hospital_clinic,v=>setFinalForm({...finalForm,review_hospital_clinic:v})),
-            h('div',{className:'field span-2'},
-              h('label',null,'Review Appointment Instructions'),
-              h('textarea',{
-                rows:3,
-                value:finalForm.review_instructions,
-                onChange:e=>setFinalForm({...finalForm,review_instructions:e.target.value}),
-                placeholder:'Follow-up instructions, reports to carry, fasting requirement, tests or appointment notes.'
-              })
-            ),
-            h('div',{className:'field span-2'},
-              h('label',null,'Final Nursing Remarks'),
-              h('textarea',{
-                rows:4,
-                required:true,
-                value:finalForm.final_remarks,
-                onChange:e=>setFinalForm({...finalForm,final_remarks:e.target.value}),
-                placeholder:'Patient condition, documents handed over, medicines, belongings, receiving person and departure details.'
-              })
-            )
+            h('div',{className:'field'},h('label',null,'Patient'),h('select',{required:true,value:form.patient_id,disabled:!!editing,onChange:e=>onPatient(e.target.value)},h('option',{value:''},'Select active patient'),patients.filter(p=>p.is_active!==false).map(p=>h('option',{key:p.id,value:p.id},patientLabel(p.id))))),
+            h('div',{className:'field'},h('label',null,'Discharge Type'),h('select',{value:form.discharge_type,onChange:e=>setForm({...form,discharge_type:e.target.value})},['Planned Discharge','Transfer to Hospital','Discharge Against Medical Advice','Home Care Transfer','Death / Expiry','Other'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field'},h('label',null,'Discharge Date'),h('input',{type:'date',max:todayISOIndia(),value:form.proposed_discharge_date,onChange:e=>setForm({...form,proposed_discharge_date:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Discharge Time'),h('input',{type:'time',value:form.proposed_discharge_time,onChange:e=>setForm({...form,proposed_discharge_time:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Destination'),h('select',{value:form.destination,onChange:e=>setForm({...form,destination:e.target.value})},['Home','Hospital','Rehabilitation Centre','Another Assisted Living Facility','Relative Residence','Other'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field'},h('label',null,'Destination Details'),h('input',{value:form.destination_details,onChange:e=>setForm({...form,destination_details:e.target.value}),placeholder:'Hospital/facility/address'})),
+            h('div',{className:'field'},h('label',null,'Doctor Name'),h('input',{required:true,value:form.doctor_name,onChange:e=>setForm({...form,doctor_name:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Doctor Contact'),h('input',{value:form.doctor_contact,onChange:e=>setForm({...form,doctor_contact:e.target.value})})),
+            h('div',{className:'field span-2'},h('label',null,'Doctor Discharge Advice'),h('textarea',{required:true,rows:3,value:form.doctor_discharge_advice,onChange:e=>setForm({...form,doctor_discharge_advice:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Condition at Discharge'),h('select',{value:form.condition_at_discharge,onChange:e=>setForm({...form,condition_at_discharge:e.target.value})},['Stable','Improved','Requires Continued Monitoring','Transferred for Higher Care','Critical','Other'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field'},h('label',null,'Transport Arrangement'),h('select',{value:form.transport_arrangement,onChange:e=>setForm({...form,transport_arrangement:e.target.value})},['Family Transport','Ambulance','Facility Vehicle','Taxi','Other'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field'},h('label',null,'Receiving Relative / Attendant'),h('input',{value:form.relative_name,onChange:e=>setForm({...form,relative_name:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Relative Contact'),h('input',{value:form.relative_contact,onChange:e=>setForm({...form,relative_contact:e.target.value})})),
+            h('div',{className:'field span-2'},h('label',null,'Handover Checklist'),h('div',{className:'check-grid'},
+              [['medicines_handed_over','Medicines handed over'],['discharge_summary_handed_over','Discharge summary handed over'],['reports_handed_over','Reports/documents handed over'],['valuables_handed_over','Personal belongings/valuables handed over']].map(([key,label])=>h('label',{className:'check-card',key},h('input',{type:'checkbox',checked:!!form[key],onChange:e=>setForm({...form,[key]:e.target.checked})}),h('span',null,label)))
+            )),
+            h('div',{className:'field'},h('label',null,'Clinical Clearance'),h('select',{value:form.clinical_clearance_status,onChange:e=>setForm({...form,clinical_clearance_status:e.target.value})},['Pending','Cleared'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field'},h('label',null,'Room / Property Clearance'),h('select',{value:form.room_clearance_status,onChange:e=>setForm({...form,room_clearance_status:e.target.value})},['Pending','Cleared'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field'},h('label',null,'Billing Clearance'),h('select',{disabled:!canClearBilling,value:form.billing_clearance_status,onChange:e=>setForm({...form,billing_clearance_status:e.target.value})},['Pending','Cleared'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field span-2'},h('label',null,'Final Instructions'),h('textarea',{rows:3,value:form.final_instructions,onChange:e=>setForm({...form,final_instructions:e.target.value})})),
+            h('div',{className:'field span-2'},h('label',null,'Remarks'),h('textarea',{rows:2,value:form.remarks,onChange:e=>setForm({...form,remarks:e.target.value})}))
           ),
-          h('div',{className:'actions'},
-            h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShowFinalDischarge(false)},'Cancel'),
-            h('button',{className:'btn btn-primary',disabled:busy},busy?'Completing…':'Complete Final Discharge & Release Room')
-          )
+          h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShow(false)},'Cancel'),h('button',{className:'btn btn-primary',disabled:busy},busy?'Saving…':editing?'Update Formalities':'Initiate Discharge'))
         )
       ),
-
-      toast&&h('div',{className:`samara-toast ${toast.type}`},h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),h('div',null,h('strong',null,toast.title),h('span',null,toast.text)),h('button',{onClick:()=>setToast(null)},'×'))
+      toast&&h('div',{className:`samara-toast ${toast.type}`,role:'status','aria-live':'polite'},
+        h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),
+        h('div',null,h('strong',null,toast.type==='success'?'Discharge updated':'Discharge failed'),h('span',null,toast.text)),
+        h('button',{type:'button',onClick:()=>setToast(null)},'×')
+      )
     );
   }
 
@@ -3468,9 +2574,7 @@ function RoomsBeds({profile}){
     const empty={
       room_no:'100',bed_no:'A',room_type:'Twin Sharing',status:'Available',
       room_daily_rate:'2000',nursing_daily_rate:'800',special_nurse_daily_rate:'0',
-      floor:'',wing:'',notes:'',
-      reserved_for_name:'',reserved_for_contact:'',reserved_by_name:'',reserved_by_contact:'',
-      expected_admission_date:'',reservation_notes:''
+      floor:'',wing:'',notes:''
     };
     const [rows,setRows]=React.useState([]);
     const [patients,setPatients]=React.useState([]);
@@ -3478,8 +2582,6 @@ function RoomsBeds({profile}){
     const [loading,setLoading]=React.useState(true);
     const [show,setShow]=React.useState(false);
     const [showTransfer,setShowTransfer]=React.useState(false);
-    const [showReservation,setShowReservation]=React.useState(false);
-    const [reservationRow,setReservationRow]=React.useState(null);
     const [form,setForm]=React.useState(empty);
     const [transfer,setTransfer]=React.useState({patient_id:'',to_room_bed_id:'',reason:'',effective_at:new Date().toISOString().slice(0,16)});
     const [editing,setEditing]=React.useState(null);
@@ -3535,13 +2637,7 @@ function RoomsBeds({profile}){
       return {room:'2000',nursing:'800'};
     }
     function openNew(){
-      setEditing(null);
-      setForm({
-        ...empty,
-        reserved_by_name:formalName(profile)||profile?.full_name||'',
-        reserved_by_contact:profile?.mobile||profile?.phone||profile?.contact_number||''
-      });
-      setMsg('');setShow(true);
+      setEditing(null);setForm(empty);setMsg('');setShow(true);
     }
     function openEdit(row){
       setEditing(row);
@@ -3551,23 +2647,13 @@ function RoomsBeds({profile}){
         room_daily_rate:String(row.room_daily_rate??row.daily_rate??''),
         nursing_daily_rate:String(row.nursing_daily_rate??''),
         special_nurse_daily_rate:String(row.special_nurse_daily_rate??''),
-        floor:row.floor||'',wing:row.wing||'',notes:row.notes||'',
-        reserved_for_name:row.reserved_for_name||'',
-        reserved_for_contact:row.reserved_for_contact||'',
-        reserved_by_name:row.reserved_by_name||formalName(profile)||profile?.full_name||'',
-        reserved_by_contact:row.reserved_by_contact||profile?.mobile||profile?.phone||profile?.contact_number||'',
-        expected_admission_date:row.expected_admission_date||'',
-        reservation_notes:row.reservation_notes||''
+        floor:row.floor||'',wing:row.wing||'',notes:row.notes||''
       });
       setShow(true);
     }
     function changeRoomType(value){
       const tariff=defaultTariff(value);
       setForm(current=>({...current,room_type:value,room_daily_rate:tariff.room,nursing_daily_rate:tariff.nursing}));
-    }
-    function openReservationView(row){
-      setReservationRow(row);
-      setShowReservation(true);
     }
 
     async function saveRoom(e){
@@ -3585,13 +2671,6 @@ function RoomsBeds({profile}){
           daily_rate:Number(form.room_daily_rate||0),
           status:editing&&patientFor(editing)?'Occupied':form.status,
           floor:form.floor||null,wing:form.wing||null,notes:form.notes||null,
-          reserved_for_name:form.status==='Reserved'?String(form.reserved_for_name||'').trim():null,
-          reserved_for_contact:form.status==='Reserved'?String(form.reserved_for_contact||'').trim():null,
-          reserved_by_name:form.status==='Reserved'?String(form.reserved_by_name||'').trim():null,
-          reserved_by_contact:form.status==='Reserved'?String(form.reserved_by_contact||'').trim():null,
-          expected_admission_date:form.status==='Reserved'?(form.expected_admission_date||null):null,
-          reservation_notes:form.status==='Reserved'?String(form.reservation_notes||'').trim()||null:null,
-          reserved_at:form.status==='Reserved'?(editing?.reserved_at||new Date().toISOString()):null,
           updated_at:new Date().toISOString()
         };
         if(!payload.room_no||!payload.bed_no)throw new Error('Room number and bed code are required.');
@@ -3602,12 +2681,6 @@ function RoomsBeds({profile}){
         );
         if(duplicate)throw new Error(`Room ${payload.room_no} / Bed ${payload.bed_no} already exists.`);
         if(payload.room_daily_rate<0||payload.nursing_daily_rate<0||payload.special_nurse_daily_rate<0)throw new Error('Tariff amounts cannot be negative.');
-        if(payload.status==='Reserved'){
-          if(!payload.reserved_for_name)throw new Error('Reserved for name is required.');
-          if(!payload.reserved_for_contact)throw new Error('Reserved person contact number is required.');
-          if(!payload.reserved_by_name)throw new Error('Reserved by name is required.');
-          if(!payload.expected_admission_date)throw new Error('Expected admission date is required.');
-        }
         let result;
         if(editing?.id)result=await client.from('room_beds').update(payload).eq('id',editing.id);
         else result=await client.from('room_beds').insert(payload);
@@ -3682,16 +2755,12 @@ function RoomsBeds({profile}){
                 h('td',null,`₹${Number(row.nursing_daily_rate||0).toLocaleString('en-IN')}`),
                 h('td',null,`₹${Number(row.special_nurse_daily_rate||0).toLocaleString('en-IN')}`),
                 h('td',null,h('span',{className:`room-status room-status-${String(status).toLowerCase()}`},status)),
-                h('td',null,
-                  p?h('div',null,h('strong',null,formalName(p)),h('small',null,p.patient_id||'—')):
-                  status==='Reserved'?h('div',null,h('strong',null,row.reserved_for_name||'Reservation details pending'),h('small',null,row.expected_admission_date?`Expected: ${formatDateIN(row.expected_admission_date)}`:'Expected date not entered')):'—'
-                ),
+                h('td',null,p?h('div',null,h('strong',null,formalName(p)),h('small',null,p.patient_id||'—')):'—'),
                 h('td',null,canManage?h('div',{className:'employee-actions'},
-                  status==='Reserved'&&h('button',{className:'btn btn-secondary',onClick:()=>openReservationView(row)},'View'),
                   h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Edit / Tariff'),
                   p&&h('button',{className:'btn btn-primary',onClick:()=>openTransfer(row)},'Shift Room'),
                   h('button',{className:'btn btn-danger',disabled:!!p,onClick:()=>removeRoom(row)},'Delete')
-                ):status==='Reserved'?h('button',{className:'btn btn-secondary',onClick:()=>openReservationView(row)},'View'):h('span',{className:'small-note'},'View only'))
+                ):h('span',{className:'small-note'},'View only'))
               )
             }),
             rows.length===0&&h('tr',null,h('td',{colSpan:10,className:'empty'},'No rooms configured.'))
@@ -3731,34 +2800,9 @@ function RoomsBeds({profile}){
           miniInput('Floor',form.floor,v=>setForm({...form,floor:v})),
           miniInput('Wing',form.wing,v=>setForm({...form,wing:v})),
           h('div',{className:'field'},h('label',null,'Status'),h('select',{value:form.status,onChange:e=>setForm({...form,status:e.target.value}),disabled:editing&&!!patientFor(editing)},['Available','Reserved','Maintenance','Occupied'].map(x=>h('option',{key:x,value:x},x)))),
-          form.status==='Reserved'&&h(React.Fragment,null,
-            miniInput('Reserved For — Name',form.reserved_for_name,v=>setForm({...form,reserved_for_name:v}),true),
-            miniInput('Reserved For — Contact Number',form.reserved_for_contact,v=>setForm({...form,reserved_for_contact:v}),true),
-            miniInput('Reserved By — Name',form.reserved_by_name,v=>setForm({...form,reserved_by_name:v}),true),
-            miniInput('Reserved By — Contact Number',form.reserved_by_contact,v=>setForm({...form,reserved_by_contact:v})),
-            h('div',{className:'field'},h('label',null,'Expected Date of Admission'),h('input',{type:'date',value:form.expected_admission_date,onChange:e=>setForm({...form,expected_admission_date:e.target.value}),min:todayISOIndia(),required:true})),
-            h('div',{className:'field span-2'},h('label',null,'Reservation Notes'),h('textarea',{rows:3,value:form.reservation_notes,onChange:e=>setForm({...form,reservation_notes:e.target.value}),placeholder:'Source of request, advance received, special requirements, follow-up instructions, etc.'}))
-          ),
           h('div',{className:'field span-2'},h('label',null,'Notes'),h('textarea',{rows:3,value:form.notes,onChange:e=>setForm({...form,notes:e.target.value})}))
         ),
         h('button',{className:'btn btn-primary full',disabled:busy},busy?'Saving…':'Save Room & Tariff')
-      )),
-
-      showReservation&&reservationRow&&h('div',{className:'modal-backdrop'},h('div',{className:'card modal'},
-        h('div',{className:'panel-head'},
-          h('div',null,h('h3',null,`Reserved Room ${reservationRow.room_no}-${reservationRow.bed_no}`),h('small',null,reservationRow.room_type||'Room reservation details')),
-          h('button',{type:'button',className:'close',onClick:()=>{setShowReservation(false);setReservationRow(null)}},'×')
-        ),
-        h('div',{className:'modal-grid reservation-details-grid'},
-          h('div',{className:'reservation-detail'},h('span',null,'Reserved For'),h('strong',null,reservationRow.reserved_for_name||'—')),
-          h('div',{className:'reservation-detail'},h('span',null,'Contact Number'),h('strong',null,reservationRow.reserved_for_contact||'—')),
-          h('div',{className:'reservation-detail'},h('span',null,'Reserved By'),h('strong',null,reservationRow.reserved_by_name||'—')),
-          h('div',{className:'reservation-detail'},h('span',null,'Reserved By Contact'),h('strong',null,reservationRow.reserved_by_contact||'—')),
-          h('div',{className:'reservation-detail'},h('span',null,'Expected Admission Date'),h('strong',null,reservationRow.expected_admission_date?formatDateIN(reservationRow.expected_admission_date):'—')),
-          h('div',{className:'reservation-detail'},h('span',null,'Reserved On'),h('strong',null,reservationRow.reserved_at?fmt(reservationRow.reserved_at):'—')),
-          h('div',{className:'reservation-detail span-2'},h('span',null,'Reservation Notes'),h('strong',null,reservationRow.reservation_notes||'—'))
-        ),
-        h('button',{type:'button',className:'btn btn-secondary full',onClick:()=>{setShowReservation(false);setReservationRow(null)}},'Close')
       )),
 
       showTransfer&&h('div',{className:'modal-backdrop'},h('form',{className:'card modal',onSubmit:transferPatient},
@@ -3776,7 +2820,7 @@ function RoomsBeds({profile}){
     );
   }
   function ClinicalDashboard({profile,onNavigate}){
-    const [state,setState]=React.useState({loading:true,patients:[],medOrders:[],medLogs:[],careOrders:[],careLogs:[],vitals:[],physioOrders:[],physioSessions:[],incidents:[],handovers:[],discharges:[]});
+    const [state,setState]=React.useState({loading:true,patients:[],medOrders:[],medLogs:[],careOrders:[],careLogs:[],vitals:[],physioOrders:[],physioSessions:[],incidents:[],handovers:[]});
     const today=new Date().toISOString().slice(0,10);
     const timeToMinutes=value=>{const text=String(value||'').trim();const m=text.match(/^(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):9999};
     const nowMinutes=new Date().getHours()*60+new Date().getMinutes();
@@ -3791,15 +2835,12 @@ function RoomsBeds({profile}){
         client.from('physiotherapy_plans').select('*,patients(full_name,title,patient_id,room_no,bed_no)').eq('is_active',true),
         client.from('physiotherapy_sessions').select('*').eq('session_date',today),
         client.from('incidents').select('*,patients(full_name,title,patient_id,room_no,bed_no)').eq('status','Open').order('incident_at',{ascending:false}),
-        client.from('shift_handovers').select('*,profiles!shift_handovers_submitted_by_fkey(full_name,title)').order('created_at',{ascending:false}).limit(5),
-        client.from('patient_discharges')
-          .select('id,patient_id,status,management_status,accounts_status,proposed_discharge_date,patients(full_name,title,patient_id,room_no,bed_no)')
-          .order('created_at',{ascending:false})
+        client.from('shift_handovers').select('*,profiles!shift_handovers_submitted_by_fkey(full_name,title)').order('created_at',{ascending:false}).limit(5)
       ]);
       const data=results.map(r=>r.data||[]);
-      setState({loading:false,patients:data[0],medOrders:data[1],medLogs:data[2],careOrders:data[3],careLogs:data[4],vitals:data[5],physioOrders:data[6],physioSessions:data[7],incidents:data[8],handovers:data[9],discharges:data[10]});
+      setState({loading:false,patients:data[0],medOrders:data[1],medLogs:data[2],careOrders:data[3],careLogs:data[4],vitals:data[5],physioOrders:data[6],physioSessions:data[7],incidents:data[8],handovers:data[9]});
     }
-    React.useEffect(()=>{load();const ch=client.channel('clinical-dashboard-live').on('postgres_changes',{event:'*',schema:'public',table:'vital_signs'},load).on('postgres_changes',{event:'*',schema:'public',table:'medication_administrations'},load).on('postgres_changes',{event:'*',schema:'public',table:'care_logs'},load).on('postgres_changes',{event:'*',schema:'public',table:'incidents'},load).on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load).subscribe();return()=>client.removeChannel(ch)},[]);
+    React.useEffect(()=>{load();const ch=client.channel('clinical-dashboard-live').on('postgres_changes',{event:'*',schema:'public',table:'vital_signs'},load).on('postgres_changes',{event:'*',schema:'public',table:'medication_administrations'},load).on('postgres_changes',{event:'*',schema:'public',table:'care_logs'},load).on('postgres_changes',{event:'*',schema:'public',table:'incidents'},load).subscribe();return()=>client.removeChannel(ch)},[]);
     const medTasks=[];
     state.medOrders.forEach(order=>(order.scheduled_times||[]).forEach(time=>{const done=state.medLogs.some(log=>log.order_id===order.id&&String(log.scheduled_time||'').slice(0,5)===String(time).slice(0,5));if(!done)medTasks.push({order,time,overdue:timeToMinutes(time)<nowMinutes})}));
     const carePending=state.careOrders.flatMap(order=>{
@@ -3817,39 +2858,6 @@ function RoomsBeds({profile}){
     const patientName=row=>formalName(row?.patients||row)||row?.patients?.full_name||row?.full_name||'Patient';
     const currentShiftCarePending=carePending.filter(x=>!x.isUpcoming);
     const upcomingShiftCarePending=carePending.filter(x=>x.isUpcoming);
-    const activeDischarges=state.discharges.filter(row=>
-      String(row.status||'').trim().toLowerCase()!=='completed'
-    );
-    const dischargeReady=activeDischarges.filter(row=>
-      String(row.accounts_status||'').trim().toLowerCase()==='cleared'
-    );
-    const dischargeWithAccounts=activeDischarges.filter(row=>
-      String(row.management_status||'').trim().toLowerCase()==='approved'&&
-      String(row.accounts_status||'').trim().toLowerCase()!=='cleared'
-    );
-    const dischargeAwaitingManagement=activeDischarges.filter(row=>
-      ['','pending'].includes(String(row.management_status||'').trim().toLowerCase())
-    );
-    const dischargeReturned=activeDischarges.filter(row=>
-      String(row.management_status||'').trim().toLowerCase()==='rejected'||
-      String(row.status||'').trim().toLowerCase()==='returned to nursing'
-    );
-    const dischargeStatusText=
-      dischargeReady.length
-        ?`${dischargeReady.length} ready for final departure`
-        :dischargeReturned.length
-          ?`${dischargeReturned.length} returned for action`
-          :dischargeWithAccounts.length
-            ?`${dischargeWithAccounts.length} with Accounts`
-            :dischargeAwaitingManagement.length
-              ?`${dischargeAwaitingManagement.length} awaiting Management`
-              :'No active discharge';
-    const dischargeTone=
-      dischargeReady.length||dischargeReturned.length
-        ?'clinical-red'
-        :state.discharges.length
-          ?'clinical-amber'
-          :'clinical-green';
     const cards=[
       ['Patients under care',state.patients.length,'Patients','👥','clinical-green'],
       ['Medicines due',medTasks.length,'Shift Tasks','💊',medTasks.some(x=>x.overdue)?'clinical-red':'clinical-blue'],
@@ -3857,27 +2865,18 @@ function RoomsBeds({profile}){
       ['Current-shift care pending',currentShiftCarePending.length,'Shift Tasks','✅',currentShiftCarePending.length?'clinical-amber':'clinical-green'],
       ['Next-shift care scheduled',upcomingShiftCarePending.length,'Shift Tasks','🕒','clinical-blue'],
       ['Physiotherapy pending',physioPending.length,'Physiotherapy','🏃','clinical-purple'],
-      ['Open incidents',state.incidents.length,'Incidents','⚠️',state.incidents.length?'clinical-red':'clinical-green'],
-      ['Discharge',activeDischarges.length,'Discharge','🚪',dischargeTone,dischargeStatusText]
+      ['Open incidents',state.incidents.length,'Incidents','⚠️',state.incidents.length?'clinical-red':'clinical-green']
     ];
     return h(React.Fragment,null,
       h('div',{className:'clinical-welcome'},h('div',null,h('small',null,currentShift().toUpperCase()),h('h2',null,`Good ${new Date().getHours()<12?'Morning':new Date().getHours()<17?'Afternoon':'Evening'}, ${formalName(profile)}`),h('p',null,'Your clinical worklist for today — complete urgent and overdue items first.')),h('div',{className:'clinical-date'},`${new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',weekday:'long'}).format(new Date())}, ${formatDateIN(new Date())}`)),
-      h('div',{className:'clinical-card-grid'},cards.map(([label,value,page,icon,tone,statusText])=>h('button',{type:'button',className:`clinical-metric ${tone}`,key:label,onClick:()=>onNavigate(page)},h('span',{className:'clinical-metric-icon'},icon),h('strong',null,value),h('span',null,label),h('small',null,statusText||`Open ${page} →`)))),
+      h('div',{className:'clinical-card-grid'},cards.map(([label,value,page,icon,tone])=>h('button',{type:'button',className:`clinical-metric ${tone}`,key:label,onClick:()=>onNavigate(page)},h('span',{className:'clinical-metric-icon'},icon),h('strong',null,value),h('span',null,label),h('small',null,`Open ${page} →`)))),
       h('div',{className:'clinical-columns'},
         h('section',{className:'card clinical-panel'},h('div',{className:'clinical-panel-head'},h('div',null,h('h3',null,'Priority Worklist'),h('small',null,'Overdue and pending tasks requiring attention')),h('button',{className:'btn btn-secondary',onClick:load},'Refresh')),
           medTasks.filter(x=>x.overdue).slice(0,5).map((x,i)=>h('div',{className:'clinical-work-row urgent',key:'m'+i},h('span',null,'💊'),h('div',null,h('strong',null,patientName(x.order)),h('small',null,`${x.order.medicine_name} ${x.order.dose||''} · Due ${x.time}`)),h('b',null,'OVERDUE'))),
           vitalsPending.slice(0,4).map(p=>h('div',{className:'clinical-work-row',key:p.id},h('span',null,'🩺'),h('div',null,h('strong',null,formalName(p)),h('small',null,`${p.patient_id||''} · Room ${p.room_no||'—'}-${p.bed_no||'—'} · Vitals not entered today`)),h('button',{className:'mini-link',onClick:()=>onNavigate('Vital Signs')},'Enter'))),
           currentShiftCarePending.slice(0,5).map((x,i)=>h('div',{className:'clinical-work-row',key:`care-${x.id}-${x.taskShift}-${i}`},h('span',null,'✅'),h('div',null,h('strong',null,patientName(x)),h('small',null,`${x.care_type||x.activity||'Care task'} · ${x.taskShift}`)),h('button',{className:'mini-link',onClick:()=>onNavigate('Shift Tasks')},'View'))),
           upcomingShiftCarePending.length>0&&h('div',{className:'clinical-work-row upcoming-summary'},h('span',null,'🕒'),h('div',null,h('strong',null,`${upcomingShiftCarePending.length} care task(s) scheduled for next shift`),h('small',null,'Shown as a compact summary; they become actionable when the next shift starts.')),h('button',{className:'mini-link',onClick:()=>onNavigate('Shift Tasks')},'Review')),
-          dischargeReady.slice(0,3).map(row=>h('div',{className:'clinical-work-row urgent',key:`discharge-${row.id}`},
-            h('span',null,'🚪'),
-            h('div',null,
-              h('strong',null,formalName(row.patients||{})||row.patients?.full_name||'Patient'),
-              h('small',null,`${row.patients?.patient_id||'—'} · Room ${row.patients?.room_no||'—'}-${row.patients?.bed_no||'—'} · Accounts cleared — confirm patient departure`)
-            ),
-            h('button',{className:'mini-link',onClick:()=>onNavigate('Discharge')},'Open')
-          )),
-          !medTasks.some(x=>x.overdue)&&!vitalsPending.length&&!currentShiftCarePending.length&&!dischargeReady.length&&h('div',{className:'clinical-empty'},'No urgent clinical tasks are pending in the current shift.')),
+          !medTasks.some(x=>x.overdue)&&!vitalsPending.length&&!currentShiftCarePending.length&&h('div',{className:'clinical-empty'},'No urgent clinical tasks are pending in the current shift.')),
         h('section',{className:'card clinical-panel'},h('div',{className:'clinical-panel-head'},h('div',null,h('h3',null,'Latest Shift Handover'),h('small',null,'Important information from the previous shift'))),
           state.handovers.length?state.handovers.slice(0,3).map(x=>h('div',{className:`handover-card ${String(x.priority||'').toLowerCase()}`,key:x.id},h('div',null,h('strong',null,`${x.shift} · ${x.priority}`),h('small',null,fmt(x.created_at))),h('p',null,x.patient_summary||'No patient summary.'),x.pending_tasks&&h('p',null,h('b',null,'Pending: '),x.pending_tasks),h('small',null,`Submitted by ${formalName(x.profiles||{})||x.profiles?.full_name||'Staff'}`))):h('div',{className:'clinical-empty'},'No shift handover has been submitted yet.'))
       )
@@ -4468,50 +3467,7 @@ function RoomsBeds({profile}){
       )
     ));
 
-    async function markDischargeReady(){
-      if(!dischargeTarget?.discharge_id)return;
-      const visible=rows.filter(row=>row.patient_id===dischargeTarget.patient_id);
-      const totals=visible.reduce((sum,row)=>{
-        const type=row.transaction_type||'Charge';
-        sum[type]=(sum[type]||0)+Number(row.amount||0);
-        return sum;
-      },{Charge:0,Payment:0,Advance:0,Discount:0,Refund:0});
-      const due=totals.Charge-(totals.Payment+totals.Advance)-totals.Discount+totals.Refund;
-      if(due>0.009){
-        setMessage(`Pending balance is ₹${due.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}. Complete payment before returning to Discharge Clearance.`);
-        return;
-      }
-      const {error}=await client.from('patient_discharges')
-        .update({
-          accounts_status:'Ready to Close',
-          updated_at:new Date().toISOString()
-        })
-        .eq('id',dischargeTarget.discharge_id);
-      if(error){
-        setMessage(error.message||'Unable to mark discharge ready for closure.');
-        return;
-      }
-      setMessage('Payment completed successfully. Accounts clearance is complete and the case has returned to Nursing for final physical discharge confirmation.');
-      try{sessionStorage.removeItem('samara_discharge_payment_target')}catch(_error){}
-      setTimeout(()=>window.dispatchEvent(new CustomEvent('samara-return-discharge-clearance')),800);
-    }
-
     return h(React.Fragment,null,
-      dischargeTarget&&h(Section,{
-        title:'Discharge Payment Clearance',
-        subtitle:`${dischargeTarget.patient_name} · ${dischargeTarget.patient_code||'No ID'} · Room ${dischargeTarget.room_no||'—'}${dischargeTarget.bed_no?`-${dischargeTarget.bed_no}`:''}`
-      },
-        h('div',{className:'message info'},
-          'Complete all payment entries for this patient. When the outstanding balance becomes zero, click Confirm Payment Completed.'
-        ),
-        h('div',{className:'actions'},
-          h('button',{type:'button',className:'btn btn-primary',onClick:markDischargeReady},'Confirm Payment Completed'),
-          h('button',{type:'button',className:'btn btn-secondary',onClick:()=>{
-            try{sessionStorage.removeItem('samara_discharge_payment_target')}catch(_error){}
-            setDischargeTarget(null);
-          }},'Cancel Discharge Payment Link')
-        )
-      ),
       h('div',{className:'grid stats'},
         [['Safety Score',`${safetyScore}%`],['Total Events',total],['Open Review',openCount],['Major / Critical',high],['Residents Affected',affectedPatients]].map(([label,value])=>h('div',{className:'card stat',key:label},h('span',null,label),h('strong',null,value)))
       ),
@@ -5221,12 +4177,9 @@ function ShiftHandover({profile,onNavigate}){
     const [patients]=usePatients();
     const [rows,setRows]=React.useState([]);
     const [saving,setSaving]=React.useState(false);
-    const [actionBusy,setActionBusy]=React.useState('');
     const [toast,setToast]=React.useState(null);
-    const canReport=['Admin','Nurse','Caregiver'].includes(profile?.role);
-    const canManage=['Admin','Manager'].includes(profile?.role);
     const [returnPage]=React.useState(()=>{
-      try{return sessionStorage.getItem('samara_previous_page')||'Clinical Dashboard'}catch(_error){return 'Clinical Dashboard'}
+      try{return sessionStorage.getItem('samara_previous_page')||'Nursing Dashboard'}catch(_error){return 'Nursing Dashboard'}
     });
     const [form,setForm]=React.useState({
       patient_id:'',
@@ -5237,34 +4190,19 @@ function ShiftHandover({profile,onNavigate}){
     });
 
     async function load(){
-      let query=client.from('incidents')
+      const {data,error}=await client.from('incidents')
         .select('*,patients(full_name,patient_id,room_no,bed_no),profiles!incidents_reported_by_fkey(full_name)')
         .order('incident_at',{ascending:false})
         .limit(150);
-
-      // Nurses and Caregivers see incidents reported by them.
-      // Managers and Admins receive the complete incident register.
-      if(['Nurse','Caregiver'].includes(profile?.role)){
-        query=query.eq('reported_by',profile.id);
-      }
-
-      const {data,error}=await query;
       if(error){
         console.error('Incidents could not be loaded:',error);
         setRows([]);
-        showToast('error',error.message||'Incident register could not be loaded.');
         return;
       }
       setRows(data||[]);
     }
 
-    React.useEffect(()=>{
-      load();
-      const channel=client.channel(`incidents-live-${profile?.id||'user'}`)
-        .on('postgres_changes',{event:'*',schema:'public',table:'incidents'},load)
-        .subscribe();
-      return()=>client.removeChannel(channel);
-    },[profile?.id,profile?.role]);
+    React.useEffect(()=>{load()},[]);
 
     function showToast(type,text){
       setToast({type,text});
@@ -5273,7 +4211,7 @@ function ShiftHandover({profile,onNavigate}){
 
     async function save(e){
       e.preventDefault();
-      if(!canReport||saving)return;
+      if(saving)return;
       if(!form.patient_id){
         showToast('error','Select the patient involved in the incident.');
         return;
@@ -5301,95 +4239,18 @@ function ShiftHandover({profile,onNavigate}){
         return;
       }
       showToast('success',`Incident ${data?.incident_no||''} reported successfully.`.trim());
-      setForm(current=>({...current,patient_id:'',description:'',immediate_action:''}));
+      setForm(current=>({...current,description:'',immediate_action:''}));
       await load();
       writeAuditEvent('Incident Reported','Incidents',data?.id||form.patient_id,{
-        incident_no:data?.incident_no||null,
-        patient_id:form.patient_id,
-        type:form.incident_type,
-        severity:form.severity
+        incident_no:data?.incident_no||null,patient_id:form.patient_id,
+        type:form.incident_type,severity:form.severity
       },'Success');
       setSaving(false);
       finishSuccessfulAction({returnPage,onNavigate,delay:700});
     }
 
-    async function managerAction(incident,nextStatus){
-      if(!canManage||actionBusy)return;
-      let closureNote='';
-      if(nextStatus==='Closed'){
-        closureNote=prompt('Enter the Manager closure note / final action taken:')||'';
-        if(!closureNote.trim()){
-          showToast('error','Closure note is mandatory before closing an incident.');
-          return;
-        }
-      }else{
-        closureNote=prompt('Enter the review action / instruction (optional):')||'';
-      }
-
-      setActionBusy(incident.id);
-      const payload={
-        status:nextStatus,
-        reviewed_by:profile.id,
-        closure_note:closureNote.trim()||incident.closure_note||null,
-        closed_at:nextStatus==='Closed'?new Date().toISOString():null
-      };
-      const {error}=await client.from('incidents').update(payload).eq('id',incident.id);
-      if(error){
-        showToast('error',error.message||'Incident status could not be updated.');
-        setActionBusy('');
-        return;
-      }
-      writeAuditEvent(
-        nextStatus==='Closed'?'Incident Closed':'Incident Reviewed',
-        'Incidents',
-        incident.id,
-        {
-          incident_no:incident.incident_no||null,
-          patient_id:incident.patient_id,
-          status:nextStatus,
-          action_note:closureNote.trim()||null
-        },
-        'Success'
-      );
-      showToast('success',nextStatus==='Closed'?'Incident closed successfully.':'Incident marked Under Review.');
-      setActionBusy('');
-      await load();
-    }
-
-    const registerRows=rows.map(r=>[
-      r.incident_no||'—',
-      r.patients?.full_name||'—',
-      r.patients?`${r.patients.room_no||'—'}-${r.patients.bed_no||'—'}`:'—',
-      r.incident_type,
-      r.severity,
-      r.description,
-      r.immediate_action,
-      h('span',{className:`badge incident-status-${String(r.status||'Open').toLowerCase().replace(/\s+/g,'-')}`},r.status||'Open'),
-      r.closure_note||'—',
-      r.profiles?.full_name||'—',
-      fmt(r.incident_at),
-      canManage
-        ?h('div',{className:'employee-actions'},
-          String(r.status||'Open')!=='Closed'&&h('button',{
-            type:'button',
-            className:'btn btn-secondary',
-            disabled:actionBusy===r.id,
-            onClick:()=>managerAction(r,'Under Review')
-          },actionBusy===r.id?'Updating…':'Review / Act'),
-          String(r.status||'Open')!=='Closed'&&h('button',{
-            type:'button',
-            className:'btn btn-primary',
-            disabled:actionBusy===r.id,
-            onClick:()=>managerAction(r,'Closed')
-          },'Close'),
-          String(r.status||'Open')==='Closed'&&h('span',{className:'badge'},'Closed')
-        )
-        :h('span',{className:'small-note'},String(r.status||'Open')==='Closed'?'Closed by Manager':'Awaiting Manager action')
-    ]);
-
     return h(React.Fragment,null,
-      canReport&&h(Section,{title:'Report Incident',subtitle:'Nurse/Caregiver reporting of patient safety events'},
-        h('div',{className:'message info'},'After submission, the Manager can review, record action and close the incident.'),
+      h(Section,{title:'Incident & Fall Register',subtitle:'Report, review and close patient safety events'},
         h('form',{className:'modal-grid',onSubmit:save},
           patientSelect(patients,form.patient_id,v=>setForm({...form,patient_id:v})),
           miniSelect('Incident type',form.incident_type,['Fall','Medicine error','Injury','Behaviour','Food issue','Equipment failure','Hospital transfer','Other'],v=>setForm({...form,incident_type:v})),
@@ -5399,17 +4260,20 @@ function ShiftHandover({profile,onNavigate}){
           h('button',{className:'btn btn-primary',disabled:saving},saving?'Reporting…':'Report incident')
         )
       ),
-      canManage&&h(Section,{title:'Manager Incident Review',subtitle:'View, investigate, record action and close incidents'},
-        h('div',{className:'message info'},'Incidents are raised by the Nursing team. Manager/Admin may review the action taken and close the record.')
-      ),
       h(LogTable,{
-        title:canManage?'Complete Incident Register':'My Reported Incidents',
-        heads:['Incident No.','Patient','Room / Bed','Type','Severity','Description','Immediate Action','Status','Manager Action / Closure Note','Reported By','Time','Action'],
-        rows:registerRows
+        title:'Incident Register',
+        heads:['Incident No.','Patient','Room / Bed','Type','Severity','Description','Immediate Action','Status','Reported By','Time'],
+        rows:rows.map(r=>[
+          r.incident_no||'—',
+          r.patients?.full_name||'—',
+          r.patients?`${r.patients.room_no||'—'}-${r.patients.bed_no||'—'}`:'—',
+          r.incident_type,r.severity,r.description,r.immediate_action,r.status,
+          r.profiles?.full_name||'—',fmt(r.incident_at)
+        ])
       }),
       toast&&h('div',{className:`samara-toast ${toast.type}`},
         h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),
-        h('div',null,h('strong',null,toast.type==='success'?'Incident updated':'Action failed'),h('span',null,toast.text)),
+        h('div',null,h('strong',null,toast.type==='success'?'Incident reported':'Report failed'),h('span',null,toast.text)),
         h('button',{onClick:()=>setToast(null)},'×')
       )
     );
@@ -5424,1000 +4288,901 @@ function ShiftHandover({profile,onNavigate}){
   }
 
   
-
-
-  const ensureAccountsWorkspaceStyle = () => {
-    if(document.getElementById('samara-accounts-workspace-style'))return;
-    const style=document.createElement('style');
-    style.id='samara-accounts-workspace-style';
-    style.textContent=`
-      .accounts-dashboard-card{
-        border:0;
-        text-align:left;
-        cursor:pointer;
-        font:inherit;
-      }
-      .accounts-dashboard-card:hover{
-        transform:translateY(-2px);
-        box-shadow:0 10px 24px rgba(7,75,60,.12);
-      }
-      .management-cards{
-        display:grid;
-        grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
-        gap:12px;
-      }
-      .management-card{
-        display:grid;
-        gap:7px;
-        min-height:115px;
-        padding:16px;
-        border:1px solid #dce8e4;
-        border-radius:13px;
-        background:#fff;
-        text-align:left;
-        cursor:pointer;
-        font:inherit;
-      }
-      .management-card:hover{
-        border-color:#75b5a4;
-        background:#f3faf7;
-      }
-      .management-card strong{font-size:16px;color:#0b5d4b}
-      .management-card span{font-size:13px;line-height:1.45;color:#667085}
-    `;
-    document.head.appendChild(style);
-  };
-
-  function AccountsDashboard({profile,onNavigate}){
-    React.useEffect(()=>{ensureAccountsWorkspaceStyle()},[]);
-    const [state,setState]=React.useState({
-      loading:true,
-      pendingCharges:0,
-      approvedCharges:0,
-      pendingDischarges:0,
-      todayCollections:0,
-      pendingBalance:0,
-      refunds:0
-    });
-
-    async function load(){
-      const today=todayISOIndia();
-      const [charges,discharges,transactions]=await Promise.all([
-        client.from('bill_charge_requests').select('approval_status,approved_amount,final_amount,requested_amount'),
-        client.from('patient_discharges').select('management_status,accounts_status,status'),
-        client.from('billing_transactions').select('transaction_type,amount,transaction_date')
-      ]);
-
-      const chargeRows=charges.data||[];
-      const dischargeRows=discharges.data||[];
-      const transactionRows=transactions.data||[];
-
-      const totalCharges=transactionRows
-        .filter(row=>row.transaction_type==='Charge')
-        .reduce((sum,row)=>sum+Number(row.amount||0),0);
-      const payments=transactionRows
-        .filter(row=>['Payment','Advance'].includes(row.transaction_type))
-        .reduce((sum,row)=>sum+Number(row.amount||0),0);
-      const discounts=transactionRows
-        .filter(row=>row.transaction_type==='Discount')
-        .reduce((sum,row)=>sum+Number(row.amount||0),0);
-      const refunds=transactionRows
-        .filter(row=>row.transaction_type==='Refund')
-        .reduce((sum,row)=>sum+Number(row.amount||0),0);
-
-      setState({
-        loading:false,
-        pendingCharges:chargeRows.filter(row=>(row.approval_status||'Pending')==='Pending').length,
-        approvedCharges:chargeRows
-          .filter(row=>['Approved','Partially Approved'].includes(row.approval_status))
-          .reduce((sum,row)=>sum+Number(row.approved_amount||row.final_amount||row.requested_amount||0),0),
-        pendingDischarges:dischargeRows.filter(row=>
-          row.management_status==='Approved'&&
-          row.accounts_status!=='Cleared'&&
-          row.status!=='Completed'
-        ).length,
-        todayCollections:transactionRows
-          .filter(row=>
-            ['Payment','Advance'].includes(row.transaction_type)&&
-            String(row.transaction_date||'').slice(0,10)===today
-          )
-          .reduce((sum,row)=>sum+Number(row.amount||0),0),
-        pendingBalance:Math.max(0,totalCharges-payments-discounts+refunds),
-        refunds
-      });
-    }
-
-    React.useEffect(()=>{
-      load();
-      const channel=client.channel('accounts-dashboard-live')
-        .on('postgres_changes',{event:'*',schema:'public',table:'bill_charge_requests'},load)
-        .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
-        .on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load)
-        .subscribe();
-      return()=>client.removeChannel(channel);
-    },[]);
-
-    const cards=[
-      ['Pending Charge Approvals',state.pendingCharges,'Charge Approvals'],
-      ['Approved Charge Value',`₹${Number(state.approvedCharges||0).toLocaleString('en-IN')}`,'Charge Approvals'],
-      ['Pending Discharge Clearance',state.pendingDischarges,'Discharge Clearance'],
-      ["Today's Collections",`₹${Number(state.todayCollections||0).toLocaleString('en-IN')}`,'Payments'],
-      ['Overall Pending Balance',`₹${Number(state.pendingBalance||0).toLocaleString('en-IN')}`,'Final Billing'],
-      ['Refunds Recorded',`₹${Number(state.refunds||0).toLocaleString('en-IN')}`,'Refunds']
-    ];
-
-    return h(React.Fragment,null,
-      h('div',{className:'clinical-charges-hero'},
-        h('div',null,
-          h('small',null,'ACCOUNTS WORKSPACE'),
-          h('h3',null,'Accounts Dashboard'),
-          h('p',null,profile?.role==='Admin'
-            ?'Admin has complete Accounts access and may perform the Accountant role for the facility.'
-            :'Billing, collections, final settlement and discharge clearance.'
-          )
-        ),
-        h('button',{className:'btn btn-secondary',onClick:load},state.loading?'Loading…':'Refresh')
-      ),
-      h('div',{className:'grid stats'},
-        cards.map(([label,value,page])=>h('button',{
-          type:'button',
-          className:'card stat accounts-dashboard-card',
-          key:label,
-          onClick:()=>onNavigate?.(page)
-        },h('span',null,label),h('strong',null,value)))
-      ),
-      h(Section,{title:'Accounts Workflow',subtitle:'Use the cards below to complete each financial stage'},
-        h('div',{className:'management-cards'},
-          [
-            ['Charge Approvals','Review Nurse-raised additional services and approve, partially approve or reject.'],
-            ['Payments','Record advances, payments and other financial transactions.'],
-            ['Final Billing','Review patient-wise charges, payments, discounts and outstanding balance.'],
-            ['Discharge Clearance','Close only Management-approved discharges after the balance becomes zero.'],
-            ['Refunds','Review advance refunds and refund history.'],
-            ['Accounts Reports','Open financial and management reports.']
-          ].map(([title,text])=>h('button',{
-            type:'button',
-            className:'management-card',
-            key:title,
-            onClick:()=>onNavigate?.(title)
-          },h('strong',null,title),h('span',null,text)))
-        )
-      )
-    );
-  }
-
-  function FinalBillingView({profile,onNavigate}){
-    return h(React.Fragment,null,
-      h(Section,{
-        title:'Final Billing',
-        subtitle:'Patient-wise final account review before discharge clearance'
-      },
-        h('div',{className:'message info'},
-          'Review the selected patient’s complete transaction history, approved charges, advance, payments, Admin-approved discounts and final outstanding balance.'
-        ),
-        h('button',{className:'btn btn-primary',onClick:()=>onNavigate?.('Payments')},'Open Patient Transactions')
-      ),
-      h(BillingPayments,{profile})
-    );
-  }
-
-  function RefundsView({profile,onNavigate}){
-    const [rows,setRows]=React.useState([]);
-    const [loading,setLoading]=React.useState(true);
-
-    async function load(){
-      setLoading(true);
-      const {data}=await client.from('billing_transactions')
-        .select('*,patients(full_name,title,patient_id)')
-        .eq('transaction_type','Refund')
-        .order('transaction_date',{ascending:false})
-        .limit(300);
-      setRows(data||[]);
-      setLoading(false);
-    }
-
-    React.useEffect(()=>{load()},[]);
-
-    return h(React.Fragment,null,
-      h(Section,{title:'Refunds',subtitle:'Advance and payment refund register'},
-        h('div',{className:'panel-head'},
-          h('p',{className:'small-note'},'Refund entries are recorded through Payments and remain permanently available in this register.'),
-          h('button',{className:'btn btn-primary',onClick:()=>onNavigate?.('Payments')},'Record Refund')
-        )
-      ),
-      h(LogTable,{
-        title:loading?'Loading refunds…':`Refund History (${rows.length})`,
-        heads:['Date','Patient','Patient ID','Amount','Mode','Description'],
-        rows:rows.map(row=>[
-          fmt(row.transaction_date),
-          formalName(row.patients||{})||row.patients?.full_name||'—',
-          row.patients?.patient_id||'—',
-          `₹${Number(row.amount||0).toLocaleString('en-IN')}`,
-          row.payment_mode||'—',
-          row.description||'—'
-        ])
-      })
-    );
-  }
-
-  const ensurePaymentSettlementStyle = () => {
-    if(document.getElementById('samara-payment-settlement-style'))return;
-    const style=document.createElement('style');
-    style.id='samara-payment-settlement-style';
-    style.textContent=`
-      .payment-filter-grid,
-      .payment-entry-grid{
-        display:grid;
-        grid-template-columns:repeat(2,minmax(0,1fr));
-        gap:12px;
-      }
-      .payment-quick-buttons{
-        display:grid;
-        grid-template-columns:repeat(2,minmax(0,1fr));
-        gap:12px;
-        margin-top:10px;
-      }
-      .payment-summary-grid{
-        display:grid;
-        grid-template-columns:repeat(4,minmax(0,1fr));
-        gap:12px;
-        margin:0 0 14px;
-      }
-      .payment-summary-card{
-        min-height:84px;
-        display:grid;
-        align-content:center;
-        gap:7px;
-        padding:15px;
-        border:1px solid #dce8e4;
-        border-radius:15px;
-        background:#fff;
-      }
-      .payment-summary-card span{font-size:13px;color:#68758a}
-      .payment-summary-card strong{font-size:25px;line-height:1}
-      .payment-summary-card.summary-red{
-        background:#fff0f0;border-color:#f3b2b2;color:#b42318
-      }
-      .payment-summary-card.summary-green{
-        background:#eaf8ef;border-color:#a8dfbb;color:#067333
-      }
-      .payment-summary-card.summary-orange{
-        background:#fff6e7;border-color:#f4c475;color:#b54708
-      }
-      .payment-summary-card.summary-blue{
-        background:#eef5ff;border-color:#adcbf8;color:#175cd3
-      }
-      .payment-entry-grid .field{margin:0}
-      .payment-submit{min-height:48px}
-      @media(max-width:1000px){
-        .payment-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-      }
-      @media(max-width:700px){
-        .payment-filter-grid,
-        .payment-entry-grid,
-        .payment-quick-buttons,
-        .payment-summary-grid{grid-template-columns:1fr}
-      }
-    `;
-    document.head.appendChild(style);
-  };
-
-  function BillingPayments({profile}){
-    const [patients]=usePatients();
-    const [rows,setRows]=React.useState([]);
-    const [loading,setLoading]=React.useState(true);
-    const [saving,setSaving]=React.useState(false);
-    const [message,setMessage]=React.useState('');
-    const [toast,setToast]=React.useState(null);
-    const canEnter=['Admin','Manager','Accounts'].includes(profile?.role);
-    const canDiscount=profile?.role==='Admin';
-
-    const [dischargeTarget,setDischargeTarget]=React.useState(()=>{
-      try{return JSON.parse(sessionStorage.getItem('samara_discharge_payment_target')||'null')}catch(_error){return null}
-    });
-
-    const [patientFilter,setPatientFilter]=React.useState(dischargeTarget?.patient_id||'');
-    const [quickView,setQuickView]=React.useState('Pending Bills');
-    const [form,setForm]=React.useState({
-      patient_id:dischargeTarget?.patient_id||'',
-      transaction_type:'Payment',
-      category:'Final Settlement',
-      amount:'',
-      payment_mode:'Cash',
-      payment_reference:'',
-      description:'',
-      closure_remarks:'All payments received and final account settled.'
-    });
-
-    function notify(type,title,text){
-      setToast({type,title,text});
-      setTimeout(()=>setToast(null),5000);
-    }
-
-    function money(value){
-      return `₹${Number(value||0).toLocaleString('en-IN',{
-        minimumFractionDigits:0,
-        maximumFractionDigits:2
-      })}`;
-    }
-
-    async function load(){
-      setLoading(true);
-      const {data,error}=await client.from('billing_transactions')
-        .select('*,patients(full_name,title,patient_id,room_no,bed_no)')
-        .order('transaction_date',{ascending:false})
-        .limit(1000);
-
-      if(error){
-        console.error('Billing transactions could not be loaded:',error);
-        setRows([]);
-        setMessage(error.message||'Billing information could not be loaded.');
-      }else{
-        setRows(data||[]);
-        setMessage('');
-      }
-      setLoading(false);
-    }
-
-    React.useEffect(()=>{
-      ensurePaymentSettlementStyle();
-      load();
-      const channel=client.channel('billing-payments-live-v216')
-        .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
-        .on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load)
-        .subscribe();
-      return()=>client.removeChannel(channel);
-    },[]);
-
-    const visibleRows=patientFilter
-      ?rows.filter(row=>row.patient_id===patientFilter)
-      :rows;
-
-    const totals=visibleRows.reduce((sum,row)=>{
-      const type=row.transaction_type||'Charge';
-      sum[type]=(sum[type]||0)+Number(row.amount||0);
-      return sum;
-    },{Charge:0,Payment:0,Advance:0,Discount:0,Refund:0});
-
-    const paidTotal=totals.Payment+totals.Advance;
-    const netPayable=totals.Charge-paidTotal-totals.Discount+totals.Refund;
-    const pendingBills=Math.max(0,netPayable);
-    const advanceBalance=Math.max(0,-netPayable);
-
-    React.useEffect(()=>{
-      if(dischargeTarget&&patientFilter===dischargeTarget.patient_id&&pendingBills>0){
-        setForm(current=>({
-          ...current,
-          patient_id:dischargeTarget.patient_id,
-          transaction_type:'Payment',
-          category:'Final Settlement',
-          amount:String(pendingBills),
-          description:`Final payment for discharge clearance of ${dischargeTarget.patient_name||'patient'}`
-        }));
-      }
-    },[dischargeTarget?.discharge_id,patientFilter,pendingBills]);
-
-    const pendingRows=visibleRows.filter(row=>row.transaction_type==='Charge');
-    const paymentRows=visibleRows.filter(row=>['Payment','Advance'].includes(row.transaction_type));
-    const filteredRows=
-      quickView==='Pending Bills'?pendingRows:
-      quickView==='Payments / Advances'?paymentRows:
-      quickView==='Discounts'?visibleRows.filter(row=>row.transaction_type==='Discount'):
-      quickView==='Refunds'?visibleRows.filter(row=>row.transaction_type==='Refund'):
-      visibleRows;
-
-    async function savePaymentAndPossiblyClose(e){
-      e.preventDefault();
-      if(!canEnter||saving)return;
-
-      if(!form.patient_id){
-        setMessage('Select a patient before saving the transaction.');
-        return;
-      }
-
-      const amount=Number(form.amount);
-      if(!Number.isFinite(amount)||amount<=0){
-        setMessage('Enter a valid amount greater than zero.');
-        return;
-      }
-
-      if(form.transaction_type==='Discount'&&!canDiscount){
-        setMessage('Discount can be entered only by the Admin.');
-        return;
-      }
-
-      if(
-        dischargeTarget &&
-        form.transaction_type==='Payment' &&
-        amount>pendingBills+0.009
-      ){
-        setMessage(`Payment cannot exceed the Net Payable amount of ${money(pendingBills)}.`);
-        return;
-      }
-
-      if(
-        dischargeTarget &&
-        form.transaction_type==='Payment' &&
-        !String(form.payment_reference||'').trim()
-      ){
-        setMessage('Payment reference / receipt number is mandatory for discharge settlement.');
-        return;
-      }
-
-      if(
-        dischargeTarget &&
-        form.transaction_type==='Payment' &&
-        amount>=pendingBills-0.009 &&
-        !String(form.closure_remarks||'').trim()
-      ){
-        setMessage('Closure remarks are mandatory before completing discharge settlement.');
-        return;
-      }
-
-      setSaving(true);
-      setMessage('');
-
-      const payload={
-        patient_id:form.patient_id,
-        transaction_type:form.transaction_type,
-        category:form.category,
-        amount,
-        payment_mode:form.transaction_type==='Charge'?'Not applicable':form.payment_mode,
-        description:[
-          form.description,
-          form.payment_reference?`Reference: ${form.payment_reference}`:''
-        ].filter(Boolean).join(' | '),
-        transaction_date:new Date().toISOString(),
-        entered_by:profile.id
-      };
-
-      const {data,error}=await client.from('billing_transactions')
-        .insert(payload)
-        .select('id')
-        .single();
-
-      if(error){
-        setMessage(error.message||'Transaction could not be saved.');
-        setSaving(false);
-        return;
-      }
-
-      writeAuditEvent(
-        'Billing Transaction Saved',
-        'Billing',
-        data?.id||form.patient_id,
-        {
-          patient_id:form.patient_id,
-          transaction_type:form.transaction_type,
-          category:form.category,
-          amount,
-          payment_mode:form.payment_mode,
-          payment_reference:form.payment_reference||null
-        },
-        'Success'
-      );
-
-      const expectedBalance=
-        form.transaction_type==='Payment'||form.transaction_type==='Advance'
-          ?netPayable-amount
-          :form.transaction_type==='Discount'
-            ?netPayable-amount
-            :form.transaction_type==='Refund'
-              ?netPayable+amount
-              :netPayable+amount;
-
-      if(dischargeTarget && expectedBalance<=0.009){
-        const closeResult=await client.rpc('close_patient_discharge_accounts_v2',{
-          p_discharge_id:dischargeTarget.discharge_id,
-          p_remarks:[
-            form.closure_remarks,
-            `Payment mode: ${form.payment_mode}`,
-            form.payment_reference?`Reference: ${form.payment_reference}`:''
-          ].filter(Boolean).join(' | ')
-        });
-
-        if(closeResult.error){
-          notify(
-            'error',
-            'Payment recorded, but discharge not closed',
-            closeResult.error.message||'Return to Discharge Clearance and complete closure.'
-          );
-          await load();
-          setSaving(false);
-          return;
-        }
-
-        try{sessionStorage.removeItem('samara_discharge_payment_target')}catch(_error){}
-        setDischargeTarget(null);
-
-        notify(
-          'success',
-          'Payment received and accounts cleared successfully',
-          'The account is financially cleared and the case has been forwarded automatically to Nursing for final physical discharge confirmation. The room and bed remain occupied until the Nurse confirms that the patient has left.'
-        );
-
-        await load();
-        setSaving(false);
-        setTimeout(()=>window.dispatchEvent(new CustomEvent('samara-return-discharge-clearance')),3800);
-        return;
-      }
-
-      notify(
-        'success',
-        `${form.transaction_type} recorded successfully`,
-        `${money(amount)} received through ${form.payment_mode}${form.payment_reference?` · Reference ${form.payment_reference}`:''}.`
-      );
-
-      setForm(current=>({
-        ...current,
-        amount:'',
-        payment_reference:'',
-        description:''
-      }));
-
-      await load();
-      setSaving(false);
-    }
-
-    const summaryCards=[
-      ['Total Charges',totals.Charge,'summary-red'],
-      ['Payments / Advance',paidTotal,'summary-green'],
-      ['Discounts',totals.Discount,'summary-orange'],
-      ['Pending Bills',pendingBills,pendingBills>0?'summary-red':'summary-green'],
-      ['Advance Balance',advanceBalance,'summary-blue'],
-      ['Net Payable',pendingBills,pendingBills>0?'summary-red':'summary-green']
-    ];
-
-    return h(React.Fragment,null,
-      dischargeTarget&&h(Section,{
-        title:'Discharge Final Payment',
-        subtitle:`${dischargeTarget.patient_name} · ${dischargeTarget.patient_code||'No ID'} · Room ${dischargeTarget.room_no||'—'}${dischargeTarget.bed_no?`-${dischargeTarget.bed_no}`:''}`
-      },
-        h('div',{className:'message info'},
-          'Complete the final payment below. When Net Payable becomes zero, the system will close the discharge automatically and return the completed status to Nursing.'
-        )
-      ),
-
-      h(Section,{
-        title:'Patient Bills, Charges & Transaction History',
-        subtitle:'Select one patient to display only that patient’s financial records'
-      },
-        h('div',{className:'payment-filter-grid'},
-          h('div',{className:'field'},
-            h('label',null,'Patient'),
-            h('select',{
-              value:patientFilter,
-              disabled:!!dischargeTarget,
-              onChange:e=>{
-                const value=e.target.value;
-                setPatientFilter(value);
-                setForm(current=>({...current,patient_id:value}));
-              }
-            },
-              h('option',{value:''},'Select patient'),
-              patients.map(patient=>h('option',{key:patient.id,value:patient.id},
-                `${formalName(patient)||patient.full_name} · ${patient.patient_id||'No ID'}`
-              ))
-            )
-          ),
-          h('div',{className:'field'},
-            h('label',null,'Quick View'),
-            h('select',{value:quickView,onChange:e=>setQuickView(e.target.value)},
-              ['Pending Bills','Payments / Advances','Discounts','Refunds','Complete Transaction History']
-                .map(option=>h('option',{key:option,value:option},option))
-            )
-          )
-        ),
-        h('div',{className:'payment-quick-buttons'},
-          h('button',{type:'button',className:'btn btn-primary',onClick:()=>setQuickView('Pending Bills')},'Pending Bills as on Date'),
-          h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setQuickView('Complete Transaction History')},'Complete Transaction History')
-        )
-      ),
-
-      h('div',{className:'payment-summary-grid'},
-        summaryCards.map(([label,value,klass])=>h('div',{className:`payment-summary-card ${klass}`,key:label},
-          h('span',null,label),
-          h('strong',null,money(value))
-        ))
-      ),
-
-      h(Section,{
-        title:dischargeTarget?'Final Payment & Discharge Settlement':'Manual Billing & Payment Entry',
-        subtitle:dischargeTarget
-          ?'Enter payment details. Exact settlement will close the discharge automatically.'
-          :'Accounts, Admin and Manager only'
-      },
-        h('form',{className:'payment-entry-grid',onSubmit:savePaymentAndPossiblyClose},
-          h('div',{className:'field'},
-            h('label',null,'Patient'),
-            h('select',{
-              value:form.patient_id,
-              disabled:!!dischargeTarget,
-              onChange:e=>setForm({...form,patient_id:e.target.value})
-            },
-              h('option',{value:''},'Select patient'),
-              patients.map(patient=>h('option',{key:patient.id,value:patient.id},
-                `${patient.patient_id||'No ID'} · ${formalName(patient)||patient.full_name} · Room ${patient.room_no||'—'}-${patient.bed_no||'—'}`
-              ))
-            )
-          ),
-          h('div',{className:'field'},
-            h('label',null,'Transaction'),
-            h('select',{
-              value:form.transaction_type,
-              disabled:!!dischargeTarget,
-              onChange:e=>setForm({...form,transaction_type:e.target.value})
-            },
-              (canDiscount?['Payment','Advance','Charge','Discount','Refund']:['Payment','Advance','Charge','Refund'])
-                .map(option=>h('option',{key:option,value:option},option))
-            )
-          ),
-          h('div',{className:'field'},
-            h('label',null,'Category'),
-            h('select',{
-              value:form.category,
-              onChange:e=>setForm({...form,category:e.target.value})
-            },
-              [
-                'Final Settlement','Advance','Room Charges','Nursing Charges',
-                'Special Nurse Charges','Food Charges','Medicine Charges',
-                'Physiotherapy','Consumables','Doctor Visit','Lab Charges',
-                'Hospital Charges','Ambulance / Transport','Equipment','Other'
-              ].map(option=>h('option',{key:option,value:option},option))
-            )
-          ),
-          h('div',{className:'field'},
-            h('label',null,dischargeTarget?'Net Payable Amount':'Amount'),
-            h('input',{
-              type:'number',
-              min:'0.01',
-              step:'0.01',
-              required:true,
-              value:form.amount,
-              onChange:e=>setForm({...form,amount:e.target.value})
-            })
-          ),
-          h('div',{className:'field'},
-            h('label',null,'Payment Mode'),
-            h('select',{value:form.payment_mode,onChange:e=>setForm({...form,payment_mode:e.target.value})},
-              ['Cash','UPI','Card','Bank Transfer','Cheque']
-                .map(option=>h('option',{key:option,value:option},option))
-            )
-          ),
-          h('div',{className:'field'},
-            h('label',null,'Payment Reference / Receipt No.'),
-            h('input',{
-              value:form.payment_reference,
-              required:!!dischargeTarget,
-              placeholder:'UPI reference, receipt number, card slip or cheque number',
-              onChange:e=>setForm({...form,payment_reference:e.target.value})
-            })
-          ),
-          h('div',{className:'field span-2'},
-            h('label',null,'Description'),
-            h('input',{
-              value:form.description,
-              placeholder:'Payment particulars',
-              onChange:e=>setForm({...form,description:e.target.value})
-            })
-          ),
-          dischargeTarget&&h('div',{className:'field span-2'},
-            h('label',null,'Accounts Closure Remarks'),
-            h('textarea',{
-              rows:3,
-              required:true,
-              value:form.closure_remarks,
-              onChange:e=>setForm({...form,closure_remarks:e.target.value}),
-              placeholder:'Confirm final settlement, receipt details, advance adjustment or refund, if any.'
-            })
-          ),
-          h('button',{
-            className:'btn btn-primary span-2 payment-submit',
-            disabled:saving||!form.patient_id
-          },saving
-            ?'Processing…'
-            :dischargeTarget
-              ?`Receive ${money(Number(form.amount||pendingBills))} & Close Discharge`
-              :'Save Transaction'
-          )
-        ),
-        message&&h('div',{className:'message error'},message)
-      ),
-
-      h(LogTable,{
-        title:quickView==='Complete Transaction History'
-          ?'Complete Transaction History'
-          :quickView,
-        heads:['Patient','Type','Category','Amount','Mode','Description','Date'],
-        rows:filteredRows.map(row=>[
-          formalName(row.patients||{})||row.patients?.full_name||'—',
-          row.transaction_type,
-          row.category,
-          money(row.amount),
-          row.payment_mode||'—',
-          row.description||'—',
-          fmt(row.transaction_date)
-        ])
-      }),
-
-      toast&&h('div',{className:`samara-toast ${toast.type}`},
-        h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),
-        h('div',null,h('strong',null,toast.title),h('span',null,toast.text)),
-        h('button',{onClick:()=>setToast(null)},'×')
-      )
-    );
-  }
-
-  function ClinicalCharges({profile}){
+  function BillsCharges({profile}){
     const canRaise=['Admin','Manager','Nurse','Accounts'].includes(profile?.role);
-    const canApprove=['Admin','Manager','Accounts'].includes(profile?.role);
+    const canFinalise=['Admin','Manager','Accounts'].includes(profile?.role);
     const [patients]=usePatients();
     const [rows,setRows]=React.useState([]);
-    const [diagnostics,setDiagnostics]=React.useState([]);
+    const [loading,setLoading]=React.useState(true);
+    const [message,setMessage]=React.useState('');
     const [show,setShow]=React.useState(false);
+    const [editing,setEditing]=React.useState(null);
     const [busy,setBusy]=React.useState(false);
     const [toast,setToast]=React.useState(null);
-    const [files,setFiles]=React.useState([]);
-    const categories={
-      'Doctor Services':['General Physician Visit','Emergency Doctor Visit','Specialist Consultation','Teleconsultation','Home Visit','Follow-up Consultation'],
-      'Nursing Procedures':['Dressing','Injection','IV Cannulation','IV Fluid Administration','Blood Transfusion Assistance','Catheterization','Ryle’s Tube Feeding','Nebulization','Oxygen Therapy','Suctioning','ECG','Blood Sample Collection','Wound Care','Pressure Sore Care','Other Nursing Procedure'],
-      'Physiotherapy':['Regular Physiotherapy Session','Additional Physiotherapy Session','Walking Training','Gait Training','Balance Training','Respiratory Physiotherapy','Electrotherapy','Home Exercise Training','Mobility Assessment','Wheelchair Training','Other Physiotherapy Service'],
-      'Laboratory Services':['Blood Sample Collection','Urine Sample Collection','Stool Sample Collection','Sputum Sample Collection','Swab Collection','Complete Blood Count (CBC)','Blood Sugar','HbA1c','Renal Function Test (RFT)','Liver Function Test (LFT)','Lipid Profile','Thyroid Profile','Electrolytes','Coagulation Profile','Urine Routine','Urine Culture','Blood Culture','COVID / Influenza Test','Other Laboratory Test'],
-      'Diagnostic / Imaging':['X-Ray','Ultrasound','CT Scan','MRI','ECG','Echo','Doppler','Endoscopy','Colonoscopy','Other Imaging'],
-      'Hospital Visits':['Patient Taken to Hospital','Hospital Bill Paid by Samara','Hospital Registration Fee','Investigation Charges','Outside Pharmacy Purchase','Radiology Charges'],
-      'Transport':['Ambulance','Samara Vehicle','Taxi','Auto','Fuel','Toll','Parking'],
-      'Special Care':['Special Nurse','Extra Caregiver','Additional Nursing Hours','Night Duty Charges'],
-      'Consumables':['Adult Diapers','Gloves','Syringes','Dressing Materials','PPE','Feeding Tubes','Catheters','Oxygen Consumables','Other Consumables'],
-      'Food & Nutrition':['Special Diet','Nutritional Supplements','Tube Feed Formula','Outside Food Purchase'],
-      'Miscellaneous':['Laundry','Courier','Miscellaneous Expense']
+    const toastTimer=React.useRef(null);
+    const initial={
+      patient_id:'',
+      charge_date:todayISOIndia(),
+      category:'Doctor Visit',
+      service_provider:'',
+      description:'',
+      quantity:'1',
+      unit_cost:'',
+      estimated_amount:'',
+      bill_available:false,
+      bill_number:'',
+      bill_date:'',
+      bill_reference:'',
+      requested_amount:'',
+      final_amount:'',
+      urgency:'Routine',
+      requested_for_date:todayISOIndia(),
+      remarks:'',
+      status:'Raised'
     };
-    const fresh=()=>({
-      patient_id:'',charge_date:todayISOIndia(),service_datetime:localDateTimeValue(),
-      category:'Doctor Services',service_name:'General Physician Visit',
-      service_provider:'',doctor_name:'',description:'General Physician Visit',
-      quantity:'1',unit:'Service',unit_cost:'',requested_amount:'',urgency:'Routine',
-      billable:true,bill_available:false,bill_number:'',bill_date:'',
-      hospital_name:'',visit_reason:'',out_time:'',return_time:'',escort_staff:'',
-      relative_accompanied:false,admission_required:false,
-      laboratory_name:'',test_name:'',sample_type:'',sample_collected_at:'',
-      report_status:'Ordered',report_received_at:'',transport_type:'',paid_by_samara:false,remarks:''
-    });
-    const [form,setForm]=React.useState(fresh());
-    const [filter,setFilter]=React.useState({patient_id:'',status:'All',category:'All'});
+    const [form,setForm]=React.useState(initial);
 
-    const notify=(type,text)=>{setToast({type,text});setTimeout(()=>setToast(null),4500)};
-    const pFor=id=>patients.find(p=>p.id===id)||{};
-    const pLabel=id=>{const p=pFor(id);return p.id?`${formalName(p)} · ${p.patient_id||'—'} · Room ${p.room_no||'—'}-${p.bed_no||'—'}`:'—'};
-    const money=v=>v!==null&&v!==undefined&&v!==''?`₹${Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`:'—';
+    function showToast(type,text){
+      clearTimeout(toastTimer.current);
+      setToast({type,text});
+      toastTimer.current=setTimeout(()=>setToast(null),5000);
+    }
+    React.useEffect(()=>()=>clearTimeout(toastTimer.current),[]);
 
     async function load(){
-      let requestQuery=client.from('bill_charge_requests').select('*').order('created_at',{ascending:false}).limit(1000);
-      if(profile?.role==='Nurse')requestQuery=requestQuery.eq('raised_by',profile.id);
-      const [a,b]=await Promise.all([
-        requestQuery,
-        client.from('diagnostic_services').select('*').order('ordered_at',{ascending:false}).limit(500)
-      ]);
-      if(a.error)notify('error',a.error.message);
-      setRows(a.data||[]);
-      setDiagnostics(b.data||[]);
+      setLoading(true);setMessage('');
+      const {data,error}=await client.from('bill_charge_requests').select('*').order('created_at',{ascending:false}).limit(500);
+      if(error){setMessage(error.message||'Unable to load bills and charges.');setRows([])}
+      else setRows(data||[]);
+      setLoading(false);
     }
     React.useEffect(()=>{
       load();
-      const ch=client.channel('clinical-charges-v2')
+      const ch=client.channel('bill-charge-live')
         .on('postgres_changes',{event:'*',schema:'public',table:'bill_charge_requests'},load)
-        .on('postgres_changes',{event:'*',schema:'public',table:'diagnostic_services'},load)
         .subscribe();
       return()=>client.removeChannel(ch);
     },[]);
 
-    function openNew(){setFiles([]);setForm(fresh());setShow(true)}
-    function changeCategory(value){
-      const first=categories[value][0];
-      setForm(current=>({...current,category:value,service_name:first,description:first,test_name:['Laboratory Services','Diagnostic / Imaging'].includes(value)?first:''}));
+    const patientFor=id=>patients.find(p=>p.id===id)||{};
+    const patientLabel=id=>{
+      const p=patientFor(id);
+      return p.id?`${formalName(p)} · ${p.patient_id||'—'}${p.room_no?` · Room ${p.room_no}${p.bed_no?`-${p.bed_no}`:''}`:''}`:'Patient not linked';
+    };
+    const currency=value=>value!==null&&value!==undefined&&value!==''?`₹${Number(value||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`:'—';
+    const actionLabel=row=>{
+      if(row.approval_status)return row.approval_status;
+      if(row.status==='Rejected')return 'Rejected';
+      if(row.status==='Posted'||row.status==='Approved')return 'Approved';
+      if(row.status==='Partially Approved')return 'Partially Approved';
+      return 'Pending';
+    };
+    const decisionByLabel=row=>{
+      if(actionLabel(row)==='Pending')return '—';
+      const name=row.decision_by_name||'Authorised user';
+      const role=row.decision_by_role?` · ${row.decision_by_role}`:'';
+      return `${name}${role}`;
+    };
+    const decisionTimeLabel=row=>{
+      if(actionLabel(row)==='Pending')return '—';
+      return row.decision_date||row.approved_at?fmt(row.decision_date||row.approved_at):'—';
+    };
+    const actionBadge=row=>{
+      const label=actionLabel(row);
+      const style=label==='Approved'
+        ?{background:'#e8f7ee',color:'#087a3d'}
+        :label==='Partially Approved'
+          ?{background:'#fff4dd',color:'#9a6700'}
+          :label==='Rejected'
+            ?{background:'#fdecec',color:'#b42318'}
+            :{background:'#eef2f6',color:'#475467'};
+      return h('span',{className:'badge',style},label);
+    };
+
+    function openNew(){
+      setEditing(null);
+      setForm({...initial,charge_date:todayISOIndia(),requested_for_date:todayISOIndia()});
+      setShow(true);
     }
-    async function uploadFiles(requestId){
-      for(const file of files){
-        const safe=String(file.name||'bill').replace(/[^a-zA-Z0-9._-]/g,'_');
-        const path=`${form.patient_id}/clinical-charges/${requestId}/${Date.now()}-${safe}`;
-        const up=await client.storage.from('patient-documents').upload(path,file,{contentType:file.type||undefined});
-        if(up.error)throw up.error;
-        const doc=await client.from('patient_documents').insert({
-          patient_id:form.patient_id,document_type:'Clinical Charge Bill / Report',
-          document_name:file.name,storage_path:path,mime_type:file.type||null,file_size:file.size||null,
-          remarks:`Clinical charge ${requestId}`,uploaded_by:profile.id,is_verified:true
-        });
-        if(doc.error)throw doc.error;
-      }
+    function openEdit(row){
+      setEditing(row);
+      setForm({...initial,...row,charge_date:row.charge_date||todayISOIndia(),requested_for_date:row.requested_for_date||todayISOIndia(),bill_date:row.bill_date||''});
+      setShow(true);
     }
+
     async function save(e){
       e.preventDefault();
-      if(busy)return;
-      if(!form.patient_id){notify('error','Select the patient.');return}
-      if(isFutureDateIndia(form.charge_date)||isFutureDateIndia(form.bill_date)){notify('error','Future dates are not permitted.');return}
+      if(!canRaise)return;
+      if(!form.patient_id){showToast('error','Please select the patient.');return}
+      if(isFutureDateIndia(form.charge_date)||isFutureDateIndia(form.bill_date)){showToast('error','Future bill or charge dates are not permitted.');return}
+      if(!form.description.trim()){showToast('error','Please describe the service, item or expense.');return}
+      if(form.bill_available&&!form.bill_number.trim()&&!form.bill_reference.trim()){showToast('error','Enter the bill number or bill reference when a bill is available.');return}
+      if(profile.role==='Nurse'&&form.bill_available&&!Number(form.requested_amount||form.estimated_amount||0)){showToast('error','Enter the bill amount or estimated amount.');return}
       setBusy(true);
-      try{
-        const qty=Math.max(1,Number(form.quantity||1));
-        const rate=Number(form.unit_cost||0);
-        const amount=Number(form.requested_amount||qty*rate||0);
-        const auth=await client.auth.getUser();
-        const user=auth.data?.user;
-        const payload={
-          patient_id:form.patient_id,charge_date:form.charge_date,
-          service_datetime:new Date(form.service_datetime).toISOString(),
-          category:form.category,service_code:form.service_name.toUpperCase().replace(/[^A-Z0-9]+/g,'_'),
-          service_name:form.service_name,service_provider:form.service_provider||null,
-          doctor_name:form.doctor_name||null,description:form.description||form.service_name,
-          quantity:qty,unit:form.unit,unit_cost:rate||null,estimated_amount:qty*rate||null,
-          requested_amount:amount||null,billable:form.billable,bill_available:form.bill_available,
-          bill_number:form.bill_number||null,bill_date:form.bill_date||null,
-          urgency:form.urgency,status:'Raised',approval_status:'Pending',
-          hospital_name:form.hospital_name||null,visit_reason:form.visit_reason||null,
-          out_time:form.out_time?new Date(form.out_time).toISOString():null,
-          return_time:form.return_time?new Date(form.return_time).toISOString():null,
-          escort_staff:form.escort_staff||null,relative_accompanied:form.relative_accompanied,
-          admission_required:form.admission_required,laboratory_name:form.laboratory_name||null,
-          test_name:form.test_name||null,sample_type:form.sample_type||null,
-          sample_collected_at:form.sample_collected_at?new Date(form.sample_collected_at).toISOString():null,
-          report_status:form.report_status||null,
-          report_received_at:form.report_received_at?new Date(form.report_received_at).toISOString():null,
-          transport_type:form.transport_type||null,paid_by_samara:form.paid_by_samara,
-          remarks:form.remarks||null,raised_by:user?.id||profile.id,raised_by_name:formalName(profile)||profile?.full_name||profile?.username||'Nursing staff',raised_at:new Date().toISOString(),returned_to_nurse_at:null,updated_at:new Date().toISOString()
-        };
-        const saved=await client.from('bill_charge_requests').insert(payload).select('id').single();
-        if(saved.error)throw saved.error;
-        if(files.length)await uploadFiles(saved.data.id);
-        if(['Laboratory Services','Diagnostic / Imaging'].includes(form.category)){
-          const diag=await client.from('diagnostic_services').insert({
-            charge_request_id:saved.data.id,patient_id:form.patient_id,service_type:form.category,
-            test_name:form.test_name||form.service_name,laboratory_name:form.laboratory_name||form.service_provider||null,
-            sample_type:form.sample_type||null,ordered_at:payload.service_datetime,
-            sample_collected_at:payload.sample_collected_at,report_status:form.report_status,
-            report_received_at:payload.report_received_at,bill_amount:amount||null,
-            paid_by_samara:form.paid_by_samara,requested_by:user?.id||profile.id
-          });
-          if(diag.error)throw diag.error;
-        }
-        notify('success','Bill / charge raised successfully and forwarded for approval.');
-        finishSuccessfulAction({close:()=>setShow(false),refresh:load});
-      }catch(error){notify('error',error.message||'Unable to save clinical charge.')}
+      const {data:{user}}=await client.auth.getUser();
+      const qty=Math.max(1,Number(form.quantity||1));
+      const calculated=Number(form.unit_cost||0)*qty;
+      const requested=Number(form.requested_amount||form.estimated_amount||calculated||0);
+      const payload={
+        patient_id:form.patient_id,
+        charge_date:form.charge_date,
+        category:form.category,
+        service_provider:form.service_provider||null,
+        description:form.description.trim(),
+        quantity:qty,
+        unit_cost:form.unit_cost===''?null:Number(form.unit_cost),
+        estimated_amount:form.estimated_amount===''?(calculated||null):Number(form.estimated_amount),
+        bill_available:!!form.bill_available,
+        bill_number:form.bill_available?(form.bill_number||null):null,
+        bill_date:form.bill_available?(form.bill_date||null):null,
+        bill_reference:form.bill_available?(form.bill_reference||null):null,
+        requested_amount:requested||null,
+        final_amount:canFinalise&&form.final_amount!==''?Number(form.final_amount):null,
+        urgency:form.urgency,
+        requested_for_date:form.requested_for_date,
+        remarks:form.remarks||null,
+        status:editing?.status||'Raised',
+        approval_status:editing?.approval_status||'Pending',
+        raised_by:editing?.raised_by||user?.id||profile?.id,
+        updated_at:new Date().toISOString()
+      };
+      let result=editing
+        ?await client.from('bill_charge_requests').update(payload).eq('id',editing.id).select('id').single()
+        :await client.from('bill_charge_requests').insert(payload).select('id').single();
       setBusy(false);
+      if(result.error){showToast('error',result.error.message||'Unable to save bill/charge request.');return}
+      showToast('success',editing?'Bill/charge request updated successfully.':'Bill/charge request raised successfully.');
+      setShow(false);await load();
+      writeAuditEvent(editing?'Bill/Charge Request Updated':'Bill/Charge Request Raised','Bills & Charges',result.data?.id,{
+        patient_id:form.patient_id,category:form.category,requested_amount:requested||null,bill_available:form.bill_available
+      },'Success');
     }
-    async function decide(row,decision){
-      if(!canApprove||busy)return;
-      let amount=Number(row.requested_amount||row.estimated_amount||0);
-      if(decision==='Partially Approved'){
-        const entered=prompt(`Requested ${money(amount)}. Enter approved amount:`,String(amount));
-        if(entered===null)return;
-        amount=Number(entered);
-        if(!Number.isFinite(amount)||amount<0){notify('error','Enter a valid approved amount.');return}
-      }
-      const remarks=prompt('Decision remarks:',decision)||decision;
+
+    async function approveFull(row){
+      if(!canFinalise)return;
+      const amount=Number(row.requested_amount||row.estimated_amount||row.final_amount||0);
+      if(!amount){showToast('error','Enter the requested or final fee before approval.');openEdit(row);return}
+      if(!confirm(`Approve the full amount ${currency(amount)} for ${patientLabel(row.patient_id)} and post it to the Patient Ledger?`))return;
       setBusy(true);
-      const result=await client.rpc('decide_bill_charge_request_v3',{
+      const {data,error}=await client.rpc('decide_bill_charge_request',{
         p_request_id:row.id,
-        p_decision:decision,
-        p_approved_amount:decision==='Rejected'?0:amount,
+        p_decision:'Approved',
+        p_approved_amount:amount,
+        p_remarks:'Approved in full'
+      });
+      setBusy(false);
+      if(error){showToast('error',error.message||'Unable to approve and post the charge.');return}
+      showToast('success','Charge approved in full and posted to the Patient Ledger.');
+      await load();
+      writeAuditEvent('Bill/Charge Approved','Bills & Charges',row.id,{patient_id:row.patient_id,approved_amount:amount,decision:'Approved'},'Success');
+    }
+
+    async function approvePartial(row){
+      if(!canFinalise)return;
+      const requested=Number(row.requested_amount||row.estimated_amount||0);
+      const value=prompt(`Requested amount: ${currency(requested)}\nEnter the partially approved amount:`,row.final_amount||'');
+      if(value===null)return;
+      const amount=Number(value);
+      if(!amount||amount<=0){showToast('error','Enter a valid partially approved amount.');return}
+      if(requested&&amount>=requested){showToast('error','Partial approval must be less than the requested amount. Use Approve Full for the full amount.');return}
+      const remarks=prompt('Enter the reason or remarks for partial approval:');
+      if(!remarks)return;
+      setBusy(true);
+      const {data,error}=await client.rpc('decide_bill_charge_request',{
+        p_request_id:row.id,
+        p_decision:'Partially Approved',
+        p_approved_amount:amount,
         p_remarks:remarks
       });
       setBusy(false);
-      if(result.error)notify('error',result.error.message);
-      else{
-        notify('success',`Charge ${decision.toLowerCase()} by ${formalName(profile)||profile?.full_name||profile?.role} at ${fmt(new Date())}. Returned automatically to Nursing.`);
-        await load();
-      }
+      if(error){showToast('error',error.message||'Unable to partially approve the charge.');return}
+      showToast('success',`Charge partially approved for ${currency(amount)} and posted to the Patient Ledger.`);
+      await load();
+      writeAuditEvent('Bill/Charge Partially Approved','Bills & Charges',row.id,{patient_id:row.patient_id,requested_amount:requested,approved_amount:amount,remarks},'Success');
     }
 
-    const filtered=rows.filter(r=>
-      (!filter.patient_id||r.patient_id===filter.patient_id)&&
-      (filter.status==='All'||(r.approval_status||'Pending')===filter.status)&&
-      (filter.category==='All'||r.category===filter.category)
-    );
-    const pending=rows.filter(r=>(r.approval_status||'Pending')==='Pending').length;
-    const approved=rows.filter(r=>['Approved','Partially Approved'].includes(r.approval_status));
-
-    const summary=h('div',{className:'grid stats'},
-      h('div',{className:'card stat'},h('span',null,'Today’s Entries'),h('strong',null,rows.filter(r=>r.charge_date===todayISOIndia()).length)),
-      h('div',{className:'card stat'},h('span',null,'Pending Approval'),h('strong',null,pending)),
-      h('div',{className:'card stat'},h('span',null,'Approved'),h('strong',null,approved.length)),
-      h('div',{className:'card stat'},h('span',null,'Approved Value'),h('strong',null,money(approved.reduce((s,r)=>s+Number(r.final_amount||r.requested_amount||0),0))))
-    );
-
-    const register=h(LogTable,{
-      title:`Bill & Charge Requests (${filtered.length})`,
-      heads:['Date','Patient','Category','Service','Provider','Qty','Requested','Approved','Decision','Decision By','Decision Time','Remarks','Action'],
-      rows:filtered.map(r=>[
-        formatDateIN(r.charge_date),pLabel(r.patient_id),r.category,r.service_name||r.description,
-        r.service_provider||r.hospital_name||r.laboratory_name||'—',
-        `${r.quantity||1} ${r.unit||''}`,money(r.requested_amount||r.estimated_amount),money(r.approved_amount??r.final_amount),
-        h('span',{className:'badge'},r.approval_status||'Pending'),
-        r.decision_by_name||'—',r.decision_at?fmt(r.decision_at):'—',r.decision_remarks||'—',
-        h('div',{className:'employee-actions'},
-          canApprove&&(r.approval_status||'Pending')==='Pending'&&h('button',{className:'btn btn-primary',onClick:()=>decide(r,'Approved')},'Approve'),
-          canApprove&&(r.approval_status||'Pending')==='Pending'&&h('button',{className:'btn btn-secondary',onClick:()=>decide(r,'Partially Approved')},'Partial'),
-          canApprove&&(r.approval_status||'Pending')==='Pending'&&h('button',{className:'btn btn-danger',onClick:()=>decide(r,'Rejected')},'Reject')
-        )
-      ])
-    });
-
-    const diagTable=h(LogTable,{
-      title:'Diagnostic Services Timeline',
-      heads:['Patient','Type','Test / Investigation','Centre','Ordered','Sample','Report Status','Report Received','Amount'],
-      rows:diagnostics.map(d=>[
-        pLabel(d.patient_id),d.service_type,d.test_name,d.laboratory_name||'—',
-        fmt(d.ordered_at),fmt(d.sample_collected_at),d.report_status||'—',fmt(d.report_received_at),money(d.bill_amount)
-      ])
-    });
-
-    const basicFields=[
-      patientSelect(patients,form.patient_id,v=>setForm({...form,patient_id:v})),
-      h('div',{className:'field'},h('label',null,'Category'),h('select',{value:form.category,onChange:e=>changeCategory(e.target.value)},Object.keys(categories).map(x=>h('option',{key:x,value:x},x)))),
-      h('div',{className:'field'},h('label',null,'Service / Item'),h('select',{value:form.service_name,onChange:e=>setForm({...form,service_name:e.target.value,description:e.target.value,test_name:['Laboratory Services','Diagnostic / Imaging'].includes(form.category)?e.target.value:form.test_name})},categories[form.category].map(x=>h('option',{key:x,value:x},x)))),
-      miniInput('Service Date',form.charge_date,v=>setForm({...form,charge_date:v}),true,'date'),
-      miniInput('Service Date & Time',form.service_datetime,v=>setForm({...form,service_datetime:v}),true,'datetime-local'),
-      miniInput('Provider / Organisation',form.service_provider,v=>setForm({...form,service_provider:v})),
-      miniInput('Doctor / Consultant',form.doctor_name,v=>setForm({...form,doctor_name:v})),
-      miniInput('Quantity',form.quantity,v=>setForm({...form,quantity:v}),true,'number'),
-      miniInput('Unit',form.unit,v=>setForm({...form,unit:v})),
-      miniInput('Unit Cost',form.unit_cost,v=>setForm({...form,unit_cost:v}),false,'number'),
-      miniInput('Total Amount',form.requested_amount,v=>setForm({...form,requested_amount:v}),false,'number'),
-      miniSelect('Urgency',form.urgency,['Routine','Urgent','Emergency'],v=>setForm({...form,urgency:v})),
-      h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.billable,onChange:e=>setForm({...form,billable:e.target.checked})}),h('span',null,'Billable')),
-      h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.bill_available,onChange:e=>setForm({...form,bill_available:e.target.checked})}),h('span',null,'Bill available'))
-    ];
-    if(form.bill_available){
-      basicFields.push(miniInput('Bill Number',form.bill_number,v=>setForm({...form,bill_number:v})));
-      basicFields.push(miniInput('Bill Date',form.bill_date,v=>setForm({...form,bill_date:v}),false,'date'));
+    async function reject(row){
+      if(!canFinalise)return;
+      const reason=prompt('Reason for rejecting this charge request:');
+      if(!reason)return;
+      setBusy(true);
+      const {data,error}=await client.rpc('decide_bill_charge_request',{
+        p_request_id:row.id,
+        p_decision:'Rejected',
+        p_approved_amount:0,
+        p_remarks:reason
+      });
+      setBusy(false);
+      if(error){showToast('error',error.message||'Unable to reject the charge request.');return}
+      showToast('success','Charge request rejected.');await load();
+      writeAuditEvent('Bill/Charge Rejected','Bills & Charges',row.id,{patient_id:row.patient_id,reason},'Success');
     }
-    if(form.category==='Hospital Visits'){
-      basicFields.push(miniInput('Hospital Name',form.hospital_name,v=>setForm({...form,hospital_name:v})));
-      basicFields.push(miniInput('Reason for Visit',form.visit_reason,v=>setForm({...form,visit_reason:v})));
-      basicFields.push(miniInput('Out Time',form.out_time,v=>setForm({...form,out_time:v}),false,'datetime-local'));
-      basicFields.push(miniInput('Return Time',form.return_time,v=>setForm({...form,return_time:v}),false,'datetime-local'));
-      basicFields.push(miniInput('Escort Staff',form.escort_staff,v=>setForm({...form,escort_staff:v})));
-    }
-    if(['Laboratory Services','Diagnostic / Imaging'].includes(form.category)){
-      basicFields.push(miniInput('Lab / Diagnostic Centre',form.laboratory_name,v=>setForm({...form,laboratory_name:v})));
-      basicFields.push(miniInput('Test / Investigation',form.test_name,v=>setForm({...form,test_name:v}),true));
-      basicFields.push(miniSelect('Report Status',form.report_status,['Ordered','Sample Collected','In Process','Report Received','Cancelled'],v=>setForm({...form,report_status:v})));
-    }
-    basicFields.push(miniInput('Description',form.description,v=>setForm({...form,description:v}),true));
-    basicFields.push(miniInput('Remarks',form.remarks,v=>setForm({...form,remarks:v})));
-    basicFields.push(h('div',{className:'field span-2'},h('label',null,'Supporting Bill / Report'),h('input',{type:'file',multiple:true,accept:'image/*,.pdf',onChange:e=>setFiles(Array.from(e.target.files||[]))})));
 
-    const modal=show?h('div',{className:'modal-backdrop'},
-      h('form',{className:'card modal clinical-charge-modal',onSubmit:save},
-        h('div',{className:'panel-head'},
-          h('div',null,h('h3',null,'Raise Bill / Charge'),h('small',null,'The form closes automatically after successful save.')),
-          h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')
-        ),
-        h('div',{className:'modal-grid'},...basicFields),
-        h('button',{className:'btn btn-primary full',disabled:busy},busy?'Saving…':'Submit for Approval')
+    const tableRows=rows.map(row=>[
+      patientLabel(row.patient_id),
+      formatDateIN(row.charge_date),
+      row.category||'—',
+      row.description||'—',
+      row.service_provider||'—',
+      row.bill_available?`Yes${row.bill_number?` · ${row.bill_number}`:''}`:'No',
+      currency(row.requested_amount||row.estimated_amount),
+      currency(row.final_amount),
+      row.urgency||'Routine',
+      h('span',{className:`badge ${['Approved','Posted','Partially Approved'].includes(row.status)?'':'off'}`},row.status||'Raised'),
+      decisionByLabel(row),
+      decisionTimeLabel(row),
+      h('div',{className:'employee-actions'},
+        actionBadge(row),
+        canFinalise&&actionLabel(row)==='Pending'&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Review / Enter Fee'),
+        !canFinalise&&actionLabel(row)==='Pending'&&row.status==='Raised'&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Edit'),
+        canFinalise&&actionLabel(row)==='Pending'&&h('button',{className:'btn btn-primary',disabled:busy,onClick:()=>approveFull(row)},'Approve'),
+        canFinalise&&actionLabel(row)==='Pending'&&h('button',{className:'btn btn-secondary',disabled:busy,onClick:()=>approvePartial(row)},'Partially Approve'),
+        canFinalise&&actionLabel(row)==='Pending'&&h('button',{className:'btn btn-danger',disabled:busy,onClick:()=>reject(row)},'Reject')
       )
-    ):null;
+    ]);
 
     return h(React.Fragment,null,
-      h('div',{className:'clinical-charges-hero'},
-        h('div',null,h('small',null,'DOCUMENT ONCE · BILL ACCURATELY'),h('h3',null,'Bills & Charges'),h('p',null,'Nurses raise additional services and expenses. Base room rent and routine nursing charges remain system-generated. Accounts, Manager or Admin approves with a time stamp.')),
-        canRaise&&h('button',{className:'btn btn-primary',onClick:openNew},'+ Raise Bill / Charge')
-      ),
-      summary,
-      h(Section,{title:'Bills & Charges Register',subtitle:'Doctor, nursing, physiotherapy, laboratory, hospital, transport and other expenses'},
-        h('div',{className:'clinical-charge-filters'},
-          patientSelect(patients,filter.patient_id,v=>setFilter({...filter,patient_id:v})),
-          miniSelect('Status',filter.status,['All','Pending','Approved','Partially Approved','Rejected'],v=>setFilter({...filter,status:v})),
-          miniSelect('Category',filter.category,['All',...Object.keys(categories)],v=>setFilter({...filter,category:v}))
+      h(Section,{title:'Bills & Charges',subtitle:'Clinical staff raise service/expense requests; Accounts or Manager verifies fees and posts approved charges'},
+        message&&h('div',{className:'message error'},message),
+        h('div',{className:'panel-head'},
+          h('p',{className:'small-note'},'Nurses may raise Doctor Visit, Medicines, Physiotherapy, Additional Food and other charges. When the bill or fee is unavailable, Accounts/Manager enters the final amount before posting.'),
+          canRaise&&h('button',{className:'btn btn-primary',onClick:openNew},'Raise Bill / Charge')
         )
       ),
-      register,
-      diagTable,
-      modal,
-      toast&&h('div',{className:`samara-toast ${toast.type}`},
+      h(LogTable,{
+        title:`Bill & Charge Requests (${tableRows.length})`,
+        subtitle:'Action shows Pending, Approved, Partially Approved or Rejected, together with the decision-maker and exact timestamp.',
+        heads:['Patient','Date','Category','Description','Provider','Bill Available','Requested / Estimate','Final Charge','Urgency','Request Status','Decision By','Decision Date & Time','Action / Decision'],
+        rows:tableRows
+      }),
+      !loading&&!message&&!tableRows.length&&h('div',{className:'card panel'},h('p',{className:'small-note'},'No bill or charge request has been raised.')),
+      show&&h('div',{className:'modal-backdrop',onClick:e=>{if(e.target===e.currentTarget)setShow(false)}},
+        h('form',{className:'card modal',style:{width:'min(1050px,96vw)',maxHeight:'92vh',overflow:'auto'},onSubmit:save},
+          h('div',{className:'panel-head'},
+            h('div',null,h('h3',null,editing?'Review Bill / Charge':'Raise Bill / Charge'),h('small',null,'Patient-specific additional service or expense')),
+            h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')
+          ),
+          h('div',{className:'modal-grid'},
+            h('div',{className:'field'},h('label',null,'Patient'),h('select',{required:true,value:form.patient_id,disabled:!!editing,onChange:e=>setForm({...form,patient_id:e.target.value})},h('option',{value:''},'Select patient'),patients.filter(p=>p.is_active!==false).map(p=>h('option',{key:p.id,value:p.id},patientLabel(p.id))))),
+            h('div',{className:'field'},h('label',null,'Charge / Service Date'),h('input',{type:'date',max:todayISOIndia(),value:form.charge_date,onChange:e=>setForm({...form,charge_date:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Category'),h('select',{value:form.category,onChange:e=>setForm({...form,category:e.target.value})},['Doctor Visit','Medicines','Physiotherapy','Additional Food','Diagnostic Test','Consumables','Medical Equipment','Ambulance / Transport','Special Nurse','Procedure / Dressing','Other'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field'},h('label',null,'Service Provider / Vendor'),h('input',{value:form.service_provider,onChange:e=>setForm({...form,service_provider:e.target.value}),placeholder:'Doctor, pharmacy, therapist, lab, vendor'})),
+            h('div',{className:'field span-2'},h('label',null,'Description / Query'),h('textarea',{required:true,rows:3,value:form.description,onChange:e=>setForm({...form,description:e.target.value}),placeholder:'Example: Doctor visit consultation on request / medicine purchased / extra protein diet'})),
+            h('div',{className:'field'},h('label',null,'Quantity'),h('input',{type:'number',min:'1',step:'1',value:form.quantity,onChange:e=>setForm({...form,quantity:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Unit Cost (if known)'),h('input',{type:'number',min:'0',step:'0.01',value:form.unit_cost,onChange:e=>setForm({...form,unit_cost:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Estimated Amount'),h('input',{type:'number',min:'0',step:'0.01',value:form.estimated_amount,onChange:e=>setForm({...form,estimated_amount:e.target.value})})),
+            h('div',{className:'field'},h('label',null,'Requested / Bill Amount'),h('input',{type:'number',min:'0',step:'0.01',value:form.requested_amount,onChange:e=>setForm({...form,requested_amount:e.target.value})})),
+            h('label',{className:'check-card'},h('input',{type:'checkbox',checked:!!form.bill_available,onChange:e=>setForm({...form,bill_available:e.target.checked})}),h('span',null,'Bill / Receipt is available')),
+            h('div',{className:'field'},h('label',null,'Urgency'),h('select',{value:form.urgency,onChange:e=>setForm({...form,urgency:e.target.value})},['Routine','Urgent','Immediate'].map(x=>h('option',{key:x,value:x},x)))),
+            form.bill_available&&h('div',{className:'field'},h('label',null,'Bill Number'),h('input',{value:form.bill_number,onChange:e=>setForm({...form,bill_number:e.target.value})})),
+            form.bill_available&&h('div',{className:'field'},h('label',null,'Bill Date'),h('input',{type:'date',max:todayISOIndia(),value:form.bill_date,onChange:e=>setForm({...form,bill_date:e.target.value})})),
+            form.bill_available&&h('div',{className:'field span-2'},h('label',null,'Bill / Receipt Reference'),h('input',{value:form.bill_reference,onChange:e=>setForm({...form,bill_reference:e.target.value}),placeholder:'Invoice reference, receipt details or document location'})),
+            canFinalise&&h('div',{className:'field'},h('label',null,'Final Approved Fee / Charge'),h('input',{type:'number',min:'0',step:'0.01',value:form.final_amount,onChange:e=>setForm({...form,final_amount:e.target.value}),placeholder:'Entered by Accounts / Manager'})),
+            h('div',{className:'field'},h('label',null,'Service Required On'),h('input',{type:'date',value:form.requested_for_date,onChange:e=>setForm({...form,requested_for_date:e.target.value})})),
+            h('div',{className:'field span-2'},h('label',null,'Remarks'),h('textarea',{rows:2,value:form.remarks,onChange:e=>setForm({...form,remarks:e.target.value})}))
+          ),
+          h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShow(false)},'Cancel'),h('button',{className:'btn btn-primary',disabled:busy},busy?'Saving…':editing?'Save Review':'Raise Request'))
+        )
+      ),
+      toast&&h('div',{className:`samara-toast ${toast.type}`,role:'status','aria-live':'polite'},
         h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),
-        h('div',null,h('strong',null,toast.type==='success'?'Saved':'Failed'),h('span',null,toast.text)),
-        h('button',{onClick:()=>setToast(null)},'×')
+        h('div',null,h('strong',null,toast.type==='success'?'Bills & Charges updated':'Update failed'),h('span',null,toast.text)),
+        h('button',{type:'button',onClick:()=>setToast(null)},'×')
       )
     );
   }
+
+function BillingPayments({profile}){
+    const [patients]=usePatients();
+    const [rows,setRows]=React.useState([]);
+    const [disputes,setDisputes]=React.useState([]);
+    const [selectedPatient,setSelectedPatient]=React.useState('');
+    const [viewMode,setViewMode]=React.useState('Pending Bills');
+    const [form,setForm]=React.useState({patient_id:'',transaction_type:'Charge',category:'Room Charges',amount:'',description:'',payment_mode:'Cash'});
+    const [message,setMessage]=React.useState('');
+    const [toast,setToast]=React.useState(null);
+    const [queryTarget,setQueryTarget]=React.useState(null);
+    const [queryText,setQueryText]=React.useState('');
+    const [queryCategory,setQueryCategory]=React.useState('Wrong amount');
+    const [busy,setBusy]=React.useState(false);
+    const toastTimer=React.useRef(null);
+    const canManage=['Admin','Manager','Accounts'].includes(profile?.role);
+    const canView=['Admin','Manager','Accounts','Nurse','Caregiver'].includes(profile?.role);
+    const canRaiseQuery=['Nurse','Caregiver','Manager','Admin'].includes(profile?.role);
+
+    function showToast(type,text){
+      clearTimeout(toastTimer.current);
+      setToast({type,text});
+      toastTimer.current=setTimeout(()=>setToast(null),4500);
+    }
+    React.useEffect(()=>()=>clearTimeout(toastTimer.current),[]);
+
+    async function load(){
+      const [ledgerResult,queryResult]=await Promise.all([
+        client.from('billing_transactions').select('*,patients(full_name,patient_id,room_no,bed_no)').order('transaction_date',{ascending:false}).limit(2000),
+        client.from('billing_discrepancies').select('*').order('created_at',{ascending:false}).limit(500)
+      ]);
+      if(ledgerResult.error){setMessage(ledgerResult.error.message||'Unable to load billing transactions.');setRows([])}
+      else {setMessage('');setRows(ledgerResult.data||[])}
+      if(!queryResult.error)setDisputes(queryResult.data||[]);
+    }
+
+    React.useEffect(()=>{
+      load();
+      const ch=client.channel('billing-review-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
+        .on('postgres_changes',{event:'*',schema:'public',table:'billing_discrepancies'},load)
+        .subscribe();
+      return()=>client.removeChannel(ch);
+    },[]);
+
+    async function save(e){
+      e.preventDefault();
+      if(!canManage)return;
+      const {error}=await client.from('billing_transactions').insert({...form,amount:Number(form.amount),transaction_date:new Date().toISOString(),entered_by:profile.id,auto_generated:false});
+      if(error){showToast('error',error.message);return}
+      setForm({...form,amount:'',description:''});showToast('success','Billing transaction saved successfully.');await load();
+    }
+
+    async function submitQuery(e){
+      e.preventDefault();
+      if(!queryTarget||!queryText.trim())return;
+      setBusy(true);
+      const {data:{user}}=await client.auth.getUser();
+      const {data,error}=await client.from('billing_discrepancies').insert({
+        patient_id:queryTarget.patient_id,
+        billing_transaction_id:queryTarget.id,
+        discrepancy_type:queryCategory,
+        description:queryText.trim(),
+        status:'Open',
+        raised_by:user?.id||profile.id
+      }).select('id').single();
+      setBusy(false);
+      if(error){showToast('error',error.message||'Unable to raise billing query.');return}
+      showToast('success','Billing discrepancy query raised successfully.');
+      setQueryTarget(null);setQueryText('');await load();
+      writeAuditEvent('Billing Discrepancy Raised','Billing',data?.id,{patient_id:queryTarget.patient_id,transaction_id:queryTarget.id,type:queryCategory},'Success');
+    }
+
+    async function closeQuery(row,status){
+      if(!canManage)return;
+      const remarks=prompt(status==='Closed'?'Enter decision / closure remarks:':'Enter correction remarks:');
+      if(!remarks)return;
+      const {data:{user}}=await client.auth.getUser();
+      const {error}=await client.from('billing_discrepancies').update({
+        status,decision:remarks,resolved_by:user?.id||profile.id,resolved_at:new Date().toISOString(),updated_at:new Date().toISOString()
+      }).eq('id',row.id);
+      if(error){showToast('error',error.message);return}
+      showToast('success',`Billing query marked ${status}.`);await load();
+    }
+
+    const patientRows=selectedPatient?rows.filter(r=>r.patient_id===selectedPatient):rows;
+    const totals=patientRows.reduce((a,r)=>{a[r.transaction_type]=(a[r.transaction_type]||0)+Number(r.amount||0);return a},{Charge:0,Payment:0,Discount:0,Refund:0,Advance:0});
+    const payments=totals.Payment+totals.Advance;
+    const outstanding=Math.max(0,totals.Charge-payments-totals.Discount+totals.Refund);
+    const advance=Math.max(0,payments+totals.Discount-totals.Charge-totals.Refund);
+
+    const patientDisputes=selectedPatient?disputes.filter(d=>d.patient_id===selectedPatient):disputes;
+    const openDisputes=patientDisputes.filter(d=>!['Closed','Corrected','Rejected'].includes(d.status));
+
+    const today=todayISOIndia();
+    const todayCollection=patientRows
+      .filter(r=>['Payment','Advance'].includes(r.transaction_type)&&String(r.transaction_date||'').slice(0,10)===today)
+      .reduce((sum,r)=>sum+Number(r.amount||0),0);
+    const roomGeneratedToday=patientRows
+      .filter(r=>r.category==='Room Charges'&&String(r.transaction_date||'').slice(0,10)===today)
+      .reduce((sum,r)=>sum+Number(r.amount||0),0);
+    const nursingGeneratedToday=patientRows
+      .filter(r=>r.category==='Nursing Charges'&&String(r.transaction_date||'').slice(0,10)===today)
+      .reduce((sum,r)=>sum+Number(r.amount||0),0);
+
+    const chargeAgeDays=row=>{
+      const d=new Date(row.transaction_date);
+      if(Number.isNaN(d.getTime()))return 0;
+      return Math.max(0,Math.floor((Date.now()-d.getTime())/86400000));
+    };
+    const paymentCredit=patientRows
+      .filter(r=>['Payment','Advance','Discount'].includes(r.transaction_type))
+      .reduce((sum,r)=>sum+Number(r.amount||0),0);
+    let remainingCredit=paymentCredit;
+    const unpaidCharges=patientRows
+      .filter(r=>r.transaction_type==='Charge')
+      .sort((a,b)=>new Date(a.transaction_date)-new Date(b.transaction_date))
+      .map(r=>{
+        const amount=Number(r.amount||0);
+        const adjusted=Math.min(amount,remainingCredit);
+        remainingCredit=Math.max(0,remainingCredit-adjusted);
+        return {...r,pending_amount:Math.max(0,amount-adjusted),age_days:chargeAgeDays(r)};
+      })
+      .filter(r=>r.pending_amount>0);
+
+    const displayedRows=viewMode==='Complete History'
+      ?patientRows
+      :viewMode==='Advances / Payments'
+        ?patientRows.filter(r=>['Payment','Advance'].includes(r.transaction_type))
+        :unpaidCharges;
+
+    const ageing={
+      '0–30 days':unpaidCharges.filter(r=>r.age_days<=30).reduce((s,r)=>s+r.pending_amount,0),
+      '31–60 days':unpaidCharges.filter(r=>r.age_days>=31&&r.age_days<=60).reduce((s,r)=>s+r.pending_amount,0),
+      '61–90 days':unpaidCharges.filter(r=>r.age_days>=61&&r.age_days<=90).reduce((s,r)=>s+r.pending_amount,0),
+      'Above 90 days':unpaidCharges.filter(r=>r.age_days>90).reduce((s,r)=>s+r.pending_amount,0)
+    };
+    const overdue7=unpaidCharges.filter(r=>r.age_days>7);
+    const overdue7Amount=overdue7.reduce((s,r)=>s+r.pending_amount,0);
+
+    const monthlyRevenue=Array.from({length:6},(_,i)=>{
+      const date=new Date();
+      date.setMonth(date.getMonth()-(5-i),1);
+      const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0');
+      const key=`${y}-${m}`;
+      const value=patientRows.filter(r=>['Payment','Advance'].includes(r.transaction_type)&&String(r.transaction_date||'').slice(0,7)===key).reduce((s,r)=>s+Number(r.amount||0),0);
+      return {label:new Intl.DateTimeFormat('en-IN',{month:'short'}).format(date),value};
+    });
+    const monthlyMax=Math.max(1,...monthlyRevenue.map(x=>x.value));
+    const selectedPatientRecord=patients.find(p=>p.id===selectedPatient)||null;
+    const selectedPatientName=selectedPatientRecord?`${formalName(selectedPatientRecord)} · ${selectedPatientRecord.patient_id||'—'}`:'';
+    const selectedRoomChargeToday=patientRows.filter(r=>r.category==='Room Charges'&&String(r.transaction_date||'').slice(0,10)===today).reduce((s,r)=>s+Number(r.amount||0),0);
+    const selectedNursingChargeToday=patientRows.filter(r=>r.category==='Nursing Charges'&&String(r.transaction_date||'').slice(0,10)===today).reduce((s,r)=>s+Number(r.amount||0),0);
+    const showPending=viewMode==='Pending Bills';
+    const showHistory=viewMode==='Complete History';
+    const showPayments=viewMode==='Advances / Payments';
+
+    const cardStyle=(kind,value=0)=>{
+      const palette={
+        charge:{background:'#fff1f1',border:'1px solid #f2b8b8',color:'#b42318'},
+        payment:{background:'#eaf8ef',border:'1px solid #a9dfbb',color:'#087a3d'},
+        advance:{background:'#eef5ff',border:'1px solid #b7cff4',color:'#175cd3'},
+        discount:{background:'#fff6e8',border:'1px solid #f5d19a',color:'#b54708'},
+        query:{background:'#f7f0ff',border:'1px solid #d8bdf4',color:'#7a2ca3'},
+        neutral:{background:'#f4f6f6',border:'1px solid #d7dfdc',color:'#344054'}
+      };
+      if(kind==='pending'){
+        if(Number(value)<=0)return palette.payment;
+        if(Number(value)<=5000)return palette.discount;
+        return palette.charge;
+      }
+      return palette[kind]||palette.neutral;
+    };
+
+    return h(React.Fragment,null,
+      h(Section,{title:'Patient Bills, Charges & Transaction History',subtitle:'Select one patient to view only that patient’s financial records'},
+        h('div',{className:'modal-grid'},
+          h('div',{className:'field'},h('label',null,'Patient'),h('select',{value:selectedPatient,onChange:e=>{const value=e.target.value;setSelectedPatient(value);setForm(current=>({...current,patient_id:value}))}},
+            h('option',{value:''},'Select patient'),
+            patients.map(p=>h('option',{key:p.id,value:p.id},`${formalName(p)} · ${p.patient_id||'—'}`))
+          )),
+          h('div',{className:'field'},h('label',null,'Quick View'),h('select',{value:viewMode,onChange:e=>setViewMode(e.target.value)},['Pending Bills','Complete History','Advances / Payments'].map(x=>h('option',{key:x,value:x},x)))),
+          h('button',{type:'button',className:'btn btn-primary',disabled:!selectedPatient,onClick:()=>setViewMode('Pending Bills')},'Pending Bills as on Date'),
+          h('button',{type:'button',className:'btn btn-secondary',disabled:!selectedPatient,onClick:()=>setViewMode('Complete History')},'Complete Transaction History')
+        )
+      ),
+
+      !selectedPatient&&h(Section,{title:'Select a Patient',subtitle:'No financial details are displayed until a patient is selected.'},
+        h('p',{className:'small-note'},'Choose a patient above to view that patient’s charges, payments, advances, outstanding balance, transaction history, ageing analysis and billing queries.')
+      ),
+
+      selectedPatient&&h(React.Fragment,null,
+        h('div',{className:'grid stats'},
+          h('div',{className:'card stat',style:cardStyle('charge')},h('span',null,'Total Charges'),h('strong',{style:{color:cardStyle('charge').color}},`₹${totals.Charge.toLocaleString('en-IN')}`)),
+          h('div',{className:'card stat',style:cardStyle('payment')},h('span',null,'Payments / Advance'),h('strong',{style:{color:cardStyle('payment').color}},`₹${payments.toLocaleString('en-IN')}`)),
+          h('div',{className:'card stat',style:cardStyle('discount')},h('span',null,'Discounts'),h('strong',{style:{color:cardStyle('discount').color}},`₹${totals.Discount.toLocaleString('en-IN')}`)),
+          h('div',{className:'card stat',style:cardStyle('pending',outstanding)},h('span',null,'Pending Bills'),h('strong',{style:{color:cardStyle('pending',outstanding).color}},`₹${outstanding.toLocaleString('en-IN')}`)),
+          h('div',{className:'card stat',style:cardStyle('advance')},h('span',null,'Advance Balance'),h('strong',{style:{color:cardStyle('advance').color}},`₹${advance.toLocaleString('en-IN')}`)),
+          h('div',{className:'card stat',style:cardStyle('query')},h('span',null,'Open Queries'),h('strong',{style:{color:cardStyle('query').color}},openDisputes.length))
+        ),
+
+        showPending&&h(React.Fragment,null,
+          h('div',{className:'grid stats',style:{marginTop:'14px'}},
+            h('div',{className:'card stat',style:cardStyle('charge')},h('span',null,'Outstanding > 7 Days'),h('strong',{style:{color:cardStyle('charge').color}},`₹${overdue7Amount.toLocaleString('en-IN')}`),h('small',null,`${overdue7.length} pending item(s)`)),
+            h('div',{className:'card stat',style:cardStyle('neutral')},h('span',null,'Room Rent Generated Today'),h('strong',null,`₹${selectedRoomChargeToday.toLocaleString('en-IN')}`)),
+            h('div',{className:'card stat',style:cardStyle('neutral')},h('span',null,'Nursing Charges Today'),h('strong',null,`₹${selectedNursingChargeToday.toLocaleString('en-IN')}`))
+          ),
+          h(Section,{title:'Automatic Accommodation Charges',subtitle:`System-generated charges for ${selectedPatientName}`},
+            h('div',{className:'grid stats'},
+              h('div',{className:'card stat'},h('span',null,'Room Charge Today'),h('strong',null,`₹${selectedRoomChargeToday.toLocaleString('en-IN')}`)),
+              h('div',{className:'card stat'},h('span',null,'Nursing Charge Today'),h('strong',null,`₹${selectedNursingChargeToday.toLocaleString('en-IN')}`))
+            )
+          ),
+          h('div',{className:'grid two',style:{marginTop:'16px'}},
+            h(Section,{title:'Outstanding Ageing Analysis',subtitle:`Pending charges for ${selectedPatientName}`},
+              h('div',{className:'grid stats'},
+                Object.entries(ageing).map(([label,value])=>h('div',{className:'card stat',key:label,style:cardStyle(value>0?'charge':'payment')},
+                  h('span',null,label),
+                  h('strong',{style:{color:cardStyle(value>0?'charge':'payment').color}},`₹${value.toLocaleString('en-IN')}`)
+                ))
+              )
+            ),
+            h(Section,{title:'Top Pending Bills',subtitle:`Pending charge items for ${selectedPatientName}`},
+              h('p',{className:'small-note'},`${unpaidCharges.length} pending item(s) as on ${formatDateIN(todayISOIndia())}.`)
+            )
+          ),
+          h(LogTable,{
+            title:'Pending Bills',
+            subtitle:`Unpaid charges for ${selectedPatientName}`,
+            heads:['Category','Original Charge','Pending','Age','Description','Date','Action'],
+            rows:unpaidCharges.slice().sort((a,b)=>b.pending_amount-a.pending_amount||b.age_days-a.age_days).map(r=>[
+              r.category||'—',
+              `₹${Number(r.amount||0).toLocaleString('en-IN')}`,
+              `₹${Number(r.pending_amount||0).toLocaleString('en-IN')}`,
+              `${r.age_days} day(s)`,
+              r.description||'—',
+              fmt(r.transaction_date),
+              canRaiseQuery?h('button',{className:'btn btn-secondary',onClick:()=>{setQueryTarget(r);setQueryText('')}},'Raise Query'):h('span',{className:'small-note'},'View')
+            ])
+          })
+        ),
+
+        showPayments&&h(React.Fragment,null,
+          h('div',{className:'grid stats',style:{marginTop:'14px'}},
+            h('div',{className:'card stat',style:cardStyle('payment')},h('span',null,"Today's Collection"),h('strong',{style:{color:cardStyle('payment').color}},`₹${todayCollection.toLocaleString('en-IN')}`)),
+            h('div',{className:'card stat',style:cardStyle('advance')},h('span',null,'Available Advance'),h('strong',{style:{color:cardStyle('advance').color}},`₹${advance.toLocaleString('en-IN')}`)),
+            h('div',{className:'card stat',style:cardStyle('payment')},h('span',null,'Total Payments / Advance'),h('strong',{style:{color:cardStyle('payment').color}},`₹${payments.toLocaleString('en-IN')}`))
+          ),
+          h(Section,{title:'Monthly Collections',subtitle:`Payments and advances received from ${selectedPatientName}`},
+            h('div',{style:{display:'flex',alignItems:'flex-end',gap:'12px',height:'190px',padding:'12px 6px 4px'}},
+              monthlyRevenue.map(item=>h('div',{key:item.label,style:{flex:'1',textAlign:'center'}},
+                h('div',{title:`₹${item.value.toLocaleString('en-IN')}`,style:{height:`${Math.max(6,(item.value/monthlyMax)*135)}px`,background:'#118553',borderRadius:'9px 9px 3px 3px',minWidth:'24px',margin:'0 auto 8px'}}),
+                h('strong',{style:{display:'block',fontSize:'12px'}},item.label),
+                h('small',null,item.value?`₹${Math.round(item.value/1000)}k`:'₹0')
+              ))
+            )
+          ),
+          h(LogTable,{
+            title:'Advances / Payments',
+            subtitle:`Only payment and advance transactions for ${selectedPatientName}`,
+            heads:['Type','Category','Amount','Mode','Description / Reference','Date'],
+            rows:patientRows.filter(r=>['Payment','Advance'].includes(r.transaction_type)).map(r=>[
+              r.transaction_type,
+              r.category||'—',
+              `₹${Number(r.amount||0).toLocaleString('en-IN')}`,
+              r.payment_mode||'—',
+              r.description||'—',
+              fmt(r.transaction_date)
+            ])
+          })
+        ),
+
+        showHistory&&h(React.Fragment,null,
+          canManage&&h(Section,{title:'Manual Billing & Payment Entry',subtitle:`Transaction entry for ${selectedPatientName}`},
+            message&&h('div',{className:'message error'},message),
+            h('form',{className:'modal-grid',onSubmit:save},
+              h('div',{className:'field'},h('label',null,'Patient'),h('input',{value:selectedPatientName,readOnly:true})),
+              miniSelect('Transaction',form.transaction_type,['Charge','Payment','Advance','Discount','Refund'],v=>setForm({...form,transaction_type:v})),
+              miniSelect('Category',form.category,['Admission Fee','Room Charges','Nursing Charges','Food Charges','Medicine Charges','Physiotherapy','Consumables','Doctor Visit','Equipment','Advance','Other'],v=>setForm({...form,category:v})),
+              miniInput('Amount',form.amount,v=>setForm({...form,amount:v}),true,'number'),
+              miniSelect('Payment mode',form.payment_mode,['Cash','UPI','Bank transfer','Card','Cheque','Not applicable'],v=>setForm({...form,payment_mode:v})),
+              miniInput('Description / reference',form.description,v=>setForm({...form,description:v})),
+              h('button',{className:'btn btn-primary'},'Save Transaction')
+            )
+          ),
+          h(LogTable,{
+            title:'Complete Transaction History',
+            subtitle:`All financial transactions for ${selectedPatientName}`,
+            heads:['Type','Category','Amount','Mode','Description','Source','Date','Action'],
+            rows:patientRows.map(r=>[
+              r.transaction_type,
+              r.category,
+              `₹${Number(r.amount||0).toLocaleString('en-IN')}`,
+              r.payment_mode||'—',
+              r.description||'—',
+              r.auto_generated?'System generated':'Manual',
+              fmt(r.transaction_date),
+              canRaiseQuery&&r.transaction_type==='Charge'?h('button',{className:'btn btn-secondary',onClick:()=>{setQueryTarget(r);setQueryText('')}},'Raise Query'):h('span',{className:'small-note'},'View')
+            ])
+          }),
+          h(LogTable,{
+            title:`Billing Discrepancy Queries (${patientDisputes.length})`,
+            subtitle:`Queries for ${selectedPatientName}`,
+            heads:['Transaction','Type','Query','Status','Decision','Raised','Action'],
+            rows:patientDisputes.map(d=>[
+              d.billing_transaction_id||'—',
+              d.discrepancy_type,
+              d.description,
+              h('span',{className:`badge ${d.status==='Open'?'off':''}`},d.status),
+              d.decision||'—',
+              fmt(d.created_at),
+              canManage&&d.status==='Open'?h('div',{className:'employee-actions'},
+                h('button',{className:'btn btn-primary',onClick:()=>closeQuery(d,'Corrected')},'Correct & Close'),
+                h('button',{className:'btn btn-secondary',onClick:()=>closeQuery(d,'Closed')},'Close / Reject')
+              ):h('span',{className:'small-note'},'View only')
+            ])
+          })
+        )
+      ),
+
+      queryTarget&&h('div',{className:'modal-backdrop',onClick:e=>{if(e.target===e.currentTarget)setQueryTarget(null)}},
+        h('form',{className:'card modal',onSubmit:submitQuery},
+          h('div',{className:'panel-head'},h('div',null,h('h3',null,'Raise Billing Discrepancy'),h('small',null,`${queryTarget.category} · ₹${Number(queryTarget.amount||0).toLocaleString('en-IN')}`)),h('button',{type:'button',className:'close',onClick:()=>setQueryTarget(null)},'×')),
+          h('div',{className:'modal-grid'},
+            h('div',{className:'field'},h('label',null,'Discrepancy Type'),h('select',{value:queryCategory,onChange:e=>setQueryCategory(e.target.value)},['Wrong amount','Duplicate charge','Wrong patient','Wrong category','Service not provided','Wrong date','Advance not adjusted','Other'].map(x=>h('option',{key:x,value:x},x)))),
+            h('div',{className:'field span-2'},h('label',null,'Query / Explanation'),h('textarea',{required:true,rows:4,value:queryText,onChange:e=>setQueryText(e.target.value),placeholder:'Explain why this billing entry appears incorrect'}))
+          ),
+          h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setQueryTarget(null)},'Cancel'),h('button',{className:'btn btn-primary',disabled:busy},busy?'Submitting…':'Raise Query'))
+        )
+      ),
+
+      toast&&h('div',{className:`samara-toast ${toast.type}`,role:'status','aria-live':'polite'},
+        h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),
+        h('div',null,h('strong',null,toast.type==='success'?'Billing updated':'Billing failed'),h('span',null,toast.text)),
+        h('button',{type:'button',onClick:()=>setToast(null)},'×')
+      )
+    );
+  }
+  function AccountsReports({profile,onNavigate}){
+    const [patients]=usePatients();
+    const [rows,setRows]=React.useState([]);
+    const [busy,setBusy]=React.useState(true);
+    const [period,setPeriod]=React.useState('This Month');
+    const [patientId,setPatientId]=React.useState('');
+    const [report,setReport]=React.useState('Financial Summary');
+    const [message,setMessage]=React.useState('');
+
+    const todayISO=todayISOIndia();
+    const todayDate=new Date(`${todayISO}T00:00:00`);
+    const monthStart=new Date(todayDate.getFullYear(),todayDate.getMonth(),1);
+    const yearStart=new Date(todayDate.getFullYear(),0,1);
+
+    function startForPeriod(){
+      if(period==='Today')return todayDate;
+      if(period==='Last 7 Days'){const d=new Date(todayDate);d.setDate(d.getDate()-6);return d}
+      if(period==='This Month')return monthStart;
+      if(period==='This Year')return yearStart;
+      return new Date('2000-01-01T00:00:00');
+    }
+    function txDate(row){
+      const value=row.transaction_date||row.created_at;
+      const d=new Date(value);
+      return Number.isNaN(d.getTime())?new Date(0):d;
+    }
+    function amount(row){return Number(row.amount||0)}
+    function money(value){return `₹${Number(value||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`}
+    function patientLabel(id){
+      const p=patients.find(x=>x.id===id);
+      return p?`${formalName(p)} · ${p.patient_id||'—'}`:'Unknown patient';
+    }
+    function downloadCSV(filename,heads,data){
+      const quote=value=>`"${String(value??'').replace(/"/g,'""')}"`;
+      const csv=[heads.map(quote).join(','),...data.map(row=>row.map(quote).join(','))].join('\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=filename;a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),500);
+    }
+    function printReport(){window.print()}
+
+    async function load(){
+      setBusy(true);
+      const result=await client.from('billing_transactions')
+        .select('*,patients(full_name,patient_id,room_no,bed_no)')
+        .order('transaction_date',{ascending:false})
+        .limit(5000);
+      if(result.error){setMessage(result.error.message);setRows([])}
+      else{setMessage('');setRows(result.data||[])}
+      setBusy(false);
+    }
+    React.useEffect(()=>{
+      load();
+      const ch=client.channel('accounts-reports-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'billing_transactions'},load)
+        .subscribe();
+      return()=>client.removeChannel(ch);
+    },[]);
+
+    const start=startForPeriod();
+    const periodRows=rows.filter(r=>txDate(r)>=start&&txDate(r)<=new Date());
+    const filtered=periodRows.filter(r=>!patientId||r.patient_id===patientId);
+    const allPatientRows=rows.filter(r=>!patientId||r.patient_id===patientId);
+
+    const isCharge=r=>r.transaction_type==='Charge';
+    const isPayment=r=>['Payment','Advance'].includes(r.transaction_type);
+    const isDiscount=r=>r.transaction_type==='Discount';
+    const isRefund=r=>r.transaction_type==='Refund';
+
+    const charges=filtered.filter(isCharge).reduce((s,r)=>s+amount(r),0);
+    const collections=filtered.filter(isPayment).reduce((s,r)=>s+amount(r),0);
+    const discounts=filtered.filter(isDiscount).reduce((s,r)=>s+amount(r),0);
+    const refunds=filtered.filter(isRefund).reduce((s,r)=>s+amount(r),0);
+    const netRevenue=charges-discounts-refunds;
+
+    const allCharges=allPatientRows.filter(isCharge).reduce((s,r)=>s+amount(r),0);
+    const allCredits=allPatientRows.filter(r=>isPayment(r)||isDiscount(r)).reduce((s,r)=>s+amount(r),0);
+    const allRefunds=allPatientRows.filter(isRefund).reduce((s,r)=>s+amount(r),0);
+    const outstanding=Math.max(0,allCharges-allCredits+allRefunds);
+    const advance=Math.max(0,allCredits-allCharges-allRefunds);
+
+    const todayCollections=rows.filter(r=>isPayment(r)&&formatDateInput(txDate(r))===todayISO).reduce((s,r)=>s+amount(r),0);
+    const monthCollections=rows.filter(r=>isPayment(r)&&txDate(r)>=monthStart).reduce((s,r)=>s+amount(r),0);
+
+    const paymentModes=['Cash','UPI','Card','Bank transfer','Cheque','Other'];
+    const byMode=paymentModes.map(mode=>({
+      label:mode,
+      value:filtered.filter(r=>isPayment(r)&&String(r.payment_mode||'Other').toLowerCase()===mode.toLowerCase()).reduce((s,r)=>s+amount(r),0)
+    }));
+
+    const categoryMap={};
+    filtered.filter(isCharge).forEach(r=>{
+      const key=r.category||'Other';
+      categoryMap[key]=(categoryMap[key]||0)+amount(r);
+    });
+    const byCategory=Object.entries(categoryMap).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+
+    const patientBalanceMap={};
+    rows.forEach(r=>{
+      if(!r.patient_id)return;
+      if(!patientBalanceMap[r.patient_id])patientBalanceMap[r.patient_id]={patient_id:r.patient_id,charges:0,credits:0,refunds:0};
+      const item=patientBalanceMap[r.patient_id];
+      if(isCharge(r))item.charges+=amount(r);
+      else if(isPayment(r)||isDiscount(r))item.credits+=amount(r);
+      else if(isRefund(r))item.refunds+=amount(r);
+    });
+    const patientBalances=Object.values(patientBalanceMap).map(x=>({
+      ...x,
+      balance:Math.max(0,x.charges-x.credits+x.refunds),
+      advance:Math.max(0,x.credits-x.charges-x.refunds)
+    })).sort((a,b)=>b.balance-a.balance);
+
+    // FIFO outstanding ageing per patient.
+    const ageing={'0–7 Days':0,'8–15 Days':0,'16–30 Days':0,'Above 30 Days':0};
+    Object.keys(patientBalanceMap).forEach(pid=>{
+      const pRows=rows.filter(r=>r.patient_id===pid);
+      let credits=pRows.filter(r=>isPayment(r)||isDiscount(r)).reduce((s,r)=>s+amount(r),0);
+      const chargesOldest=pRows.filter(isCharge).sort((a,b)=>txDate(a)-txDate(b));
+      chargesOldest.forEach(charge=>{
+        let remaining=amount(charge);
+        const applied=Math.min(credits,remaining);
+        remaining-=applied;credits-=applied;
+        if(remaining<=0)return;
+        const age=Math.max(0,Math.floor((todayDate-txDate(charge))/86400000));
+        const bucket=age<=7?'0–7 Days':age<=15?'8–15 Days':age<=30?'16–30 Days':'Above 30 Days';
+        ageing[bucket]+=remaining;
+      });
+    });
+
+    const monthly=[];
+    for(let i=5;i>=0;i--){
+      const d=new Date(todayDate.getFullYear(),todayDate.getMonth()-i,1);
+      const next=new Date(d.getFullYear(),d.getMonth()+1,1);
+      monthly.push({
+        label:d.toLocaleDateString('en-IN',{month:'short'}),
+        value:rows.filter(r=>isPayment(r)&&txDate(r)>=d&&txDate(r)<next).reduce((s,r)=>s+amount(r),0)
+      });
+    }
+    const maxCategory=Math.max(1,...byCategory.map(x=>x.value));
+    const maxMonthly=Math.max(1,...monthly.map(x=>x.value));
+
+    function exportCurrent(){
+      if(report==='Outstanding Ageing'){
+        downloadCSV('accounts-outstanding-ageing.csv',['Age Bucket','Outstanding Amount'],Object.entries(ageing));
+      }else if(report==='Revenue by Service'){
+        downloadCSV('accounts-revenue-by-service.csv',['Service / Category','Revenue'],byCategory.map(x=>[x.label,x.value]));
+      }else if(report==='Payment Modes'){
+        downloadCSV('accounts-payment-modes.csv',['Payment Mode','Collection'],byMode.map(x=>[x.label,x.value]));
+      }else if(report==='Patient Balances'){
+        downloadCSV('accounts-patient-balances.csv',['Patient','Charges','Payments / Discounts','Refunds','Outstanding','Advance'],patientBalances.map(x=>[patientLabel(x.patient_id),x.charges,x.credits,x.refunds,x.balance,x.advance]));
+      }else{
+        downloadCSV('accounts-transactions.csv',['Date','Patient','Type','Category','Amount','Mode','Description'],filtered.map(r=>[fmt(r.transaction_date),patientLabel(r.patient_id),r.transaction_type,r.category,amount(r),r.payment_mode||'',r.description||'']));
+      }
+    }
+
+    const reportButtons=['Financial Summary','Revenue by Service','Outstanding Ageing','Payment Modes','Patient Balances','Transaction Register'];
+
+    return h(React.Fragment,null,
+      h('div',{className:'accounts-report-header'},
+        h('div',null,
+          h('small',null,'ACCOUNTS & BILLING'),
+          h('h3',null,'Financial Reports & Analytics'),
+          h('p',null,'Collections, revenue, outstanding balances, ageing and patient-wise financial position.')
+        ),
+        h('div',{className:'accounts-report-actions'},
+          h('button',{className:'btn btn-secondary',onClick:exportCurrent},'Export CSV'),
+          h('button',{className:'btn btn-primary',onClick:printReport},'Print / Save PDF')
+        )
+      ),
+      h(Section,{title:'Report Controls',subtitle:'Choose a period, patient and report view'},
+        h('div',{className:'accounts-report-filters'},
+          miniSelect('Period',period,['Today','Last 7 Days','This Month','This Year','All Time'],setPeriod),
+          patientSelect(patients,patientId,setPatientId),
+          miniSelect('Report',report,reportButtons,setReport)
+        )
+      ),
+      message&&h('div',{className:'message error'},message),
+      busy?h('div',{className:'loading-card'},'Loading accounts data…'):h(React.Fragment,null,
+        h('div',{className:'grid accounts-report-stats'},
+          h('div',{className:'card stat finance-green'},h('span',null,"Today's Collection"),h('strong',null,money(todayCollections))),
+          h('div',{className:'card stat finance-green'},h('span',null,'This Month Collection'),h('strong',null,money(monthCollections))),
+          h('div',{className:'card stat finance-red'},h('span',null,'Outstanding Amount'),h('strong',null,money(outstanding))),
+          h('div',{className:'card stat finance-blue'},h('span',null,'Advance Balance'),h('strong',null,money(advance))),
+          h('div',{className:'card stat'},h('span',null,'Charges in Selected Period'),h('strong',null,money(charges))),
+          h('div',{className:'card stat finance-green'},h('span',null,'Collections in Selected Period'),h('strong',null,money(collections))),
+          h('div',{className:'card stat finance-orange'},h('span',null,'Discounts'),h('strong',null,money(discounts))),
+          h('div',{className:'card stat finance-red'},h('span',null,'Refunds'),h('strong',null,money(refunds))),
+          h('div',{className:'card stat finance-blue'},h('span',null,'Net Revenue'),h('strong',null,money(netRevenue)))
+        ),
+
+        report==='Financial Summary'&&h(React.Fragment,null,
+          h('div',{className:'accounts-report-two-column'},
+            h(Section,{title:'Monthly Collection Trend',subtitle:'Payments and advances received during the last six months'},
+              h('div',{className:'finance-bar-chart'},
+                monthly.map(x=>h('div',{className:'finance-bar-item',key:x.label},
+                  h('div',{className:'finance-bar-value'},money(x.value)),
+                  h('div',{className:'finance-bar-track'},h('div',{className:'finance-bar-fill',style:{height:`${Math.max(5,(x.value/maxMonthly)*145)}px`}})),
+                  h('strong',null,x.label)
+                ))
+              )
+            ),
+            h(Section,{title:'Payment Mode Summary',subtitle:'Collections in the selected period'},
+              h('div',{className:'finance-summary-list'},
+                byMode.map(x=>h('div',{key:x.label},h('span',null,x.label),h('strong',null,money(x.value))))
+              )
+            )
+          ),
+          h(LogTable,{
+            title:'Top Outstanding Patients',
+            subtitle:'Patients requiring collection follow-up',
+            heads:['Patient','Total Charges','Payments / Discounts','Refunds','Outstanding','Advance','Action'],
+            rows:patientBalances.slice(0,10).map(x=>[
+              patientLabel(x.patient_id),money(x.charges),money(x.credits),money(x.refunds),
+              money(x.balance),money(x.advance),
+              h('button',{className:'btn btn-secondary',onClick:()=>onNavigate?.('Billing & Payments')},'Open Ledger')
+            ])
+          })
+        ),
+
+        report==='Revenue by Service'&&h(Section,{title:'Revenue by Service / Category',subtitle:'Charge value generated in the selected period'},
+          h('div',{className:'horizontal-finance-bars'},
+            (byCategory.length?byCategory:[{label:'No charges recorded',value:0}]).map(x=>h('div',{className:'horizontal-finance-row',key:x.label},
+              h('span',null,x.label),
+              h('div',{className:'horizontal-finance-track'},h('div',{className:'horizontal-finance-fill',style:{width:`${(x.value/maxCategory)*100}%`}})),
+              h('strong',null,money(x.value))
+            ))
+          )
+        ),
+
+        report==='Outstanding Ageing'&&h(React.Fragment,null,
+          h('div',{className:'grid ageing-report-grid'},
+            Object.entries(ageing).map(([label,value])=>h('div',{className:`card stat ${label==='Above 30 Days'?'finance-red':'finance-orange'}`,key:label},
+              h('span',null,label),h('strong',null,money(value))
+            ))
+          ),
+          h(LogTable,{
+            title:'Outstanding Patient Balances',
+            heads:['Patient','Outstanding','Advance','Total Charges','Payments / Discounts'],
+            rows:patientBalances.filter(x=>x.balance>0).map(x=>[patientLabel(x.patient_id),money(x.balance),money(x.advance),money(x.charges),money(x.credits)])
+          })
+        ),
+
+        report==='Payment Modes'&&h(React.Fragment,null,
+          h('div',{className:'grid payment-mode-grid'},
+            byMode.map(x=>h('div',{className:'card stat finance-green',key:x.label},h('span',null,x.label),h('strong',null,money(x.value))))
+          ),
+          h(LogTable,{
+            title:'Collections Register',
+            heads:['Date','Patient','Type','Amount','Mode','Reference'],
+            rows:filtered.filter(isPayment).map(r=>[fmt(r.transaction_date),patientLabel(r.patient_id),r.transaction_type,money(amount(r)),r.payment_mode||'—',r.description||'—'])
+          })
+        ),
+
+        report==='Patient Balances'&&h(LogTable,{
+          title:'Patient Financial Position',
+          heads:['Patient','Charges','Payments / Discounts','Refunds','Outstanding','Advance'],
+          rows:patientBalances.map(x=>[patientLabel(x.patient_id),money(x.charges),money(x.credits),money(x.refunds),money(x.balance),money(x.advance)])
+        }),
+
+        report==='Transaction Register'&&h(LogTable,{
+          title:'Financial Transaction Register',
+          subtitle:`${period}${patientId?' · Selected patient':''}`,
+          heads:['Date','Patient','Type','Category','Amount','Mode','Description','Source'],
+          rows:filtered.map(r=>[
+            fmt(r.transaction_date),patientLabel(r.patient_id),r.transaction_type,r.category||'—',
+            money(amount(r)),r.payment_mode||'—',r.description||'—',r.auto_generated?'System':'Manual'
+          ])
+        })
+      )
+    );
+  }
+
   function RecoveryTimeline({profile}){
     const [patients]=usePatients(),[rows,setRows]=React.useState([]),[patient,setPatient]=React.useState(''),[event,setEvent]=React.useState('Walking with support'),[note,setNote]=React.useState('');async function load(){const {data}=await client.from('recovery_events').select('*,patients(full_name)').order('event_at',{ascending:false}).limit(100);setRows(data||[])}React.useEffect(()=>{load()},[]);async function save(e){e.preventDefault();const {error}=await client.from('recovery_events').insert({patient_id:patient,event_type:event,note,recorded_by:profile.id});if(error)return alert(error.message);setNote('');load()}
     return h(React.Fragment,null,h(Section,{title:'Recovery Progress Timeline',subtitle:'Track improvement from hospital discharge to return home'},h('form',{className:'modal-grid',onSubmit:save},patientSelect(patients,patient,setPatient),miniSelect('Milestone',event,['Admitted after hospital discharge','Pain reduced','Walking with support','Independent walking','Feeding improved','Restroom independence','Medicine reduced','Wound improved','Physiotherapy goal achieved','Ready for discharge','Other'],setEvent),miniInput('Progress note',note,setNote,true),h('button',{className:'btn btn-primary'},'Add milestone'))),h(LogTable,{title:'Recovery Events',heads:['Patient','Milestone','Note','Date'],rows:rows.map(r=>[r.patients?.full_name,r.event_type,r.note,fmt(r.event_at)])}))

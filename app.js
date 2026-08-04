@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.2.5';
-  const APP_BUILD_DATE = '05-Aug-2026 01:20 IST';
+  const APP_VERSION = '2.2.6';
+  const APP_BUILD_DATE = '05-Aug-2026 01:28 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3223,7 +3223,7 @@ Caring with Compassion. Living with Dignity.`;
       }),
       show&&h('div',{className:'modal-backdrop'},
         h('form',{className:'card modal',style:{width:'min(1100px,96vw)',maxHeight:'92vh',overflow:'auto'},onSubmit:save},
-          h('div',{className:'panel-head'},h('div',null,h('h3',null,editing?'Update Discharge Request':'Initiate Patient Discharge'),h('small',null,'Record the exact clinical instruction or voluntary request.')),h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')),
+          h('div',{className:'panel-head'},h('div',null,h('h3',null,editing?'Update Discharge Request':'Initiate Patient Discharge'),h('small',null,'Record only the essential instruction or voluntary request. Final handover details will be completed later by Nursing after Accounts clearance.')),h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')),
           h('div',{className:'modal-grid'},
             h('div',{className:'field'},h('label',null,'Patient'),h('select',{required:true,value:form.patient_id,disabled:!!editing,onChange:e=>selectPatient(e.target.value)},h('option',{value:''},'Select active patient'),patients.filter(p=>p.is_active!==false).map(p=>h('option',{key:p.id,value:p.id},patientLabel(p.id))))),
             miniSelect('Initiation Basis',form.initiation_basis,['Consultant / Doctor Instruction','Voluntary Discharge'],changeInitiationBasis),
@@ -3245,16 +3245,12 @@ Caring with Compassion. Living with Dignity.`;
             miniSelect('Destination',form.destination,['Home','Hospital','Rehabilitation Centre','Another Assisted Living Facility','Relative Residence','Other'],v=>setForm({...form,destination:v})),
             miniInput('Destination Details',form.destination_details,v=>setForm({...form,destination_details:v})),
             miniSelect('Condition at Discharge',form.condition_at_discharge,['Stable','Improved','Requires Continued Monitoring','Transferred for Higher Care','Critical','Other'],v=>setForm({...form,condition_at_discharge:v})),
-            miniInput('Receiving Relative / Attendant',form.relative_name,v=>setForm({...form,relative_name:v})),
-            miniInput('Relative Contact',form.relative_contact,v=>setForm({...form,relative_contact:v})),
-            miniSelect('Transport Arrangement',form.transport_arrangement,['Family Transport','Ambulance','Facility Vehicle','Taxi','Other'],v=>setForm({...form,transport_arrangement:v})),
-            h('div',{className:'field span-2'},h('label',null,'Nursing Handover Checklist'),h('div',{className:'check-grid'},
-              [['medicines_handed_over','Medicines handed over'],['discharge_summary_handed_over','Discharge summary handed over'],['reports_handed_over','Reports/documents handed over'],['valuables_handed_over','Personal belongings/valuables handed over']].map(([key,label])=>h('label',{className:'check-card',key},h('input',{type:'checkbox',checked:!!form[key],onChange:e=>setForm({...form,[key]:e.target.checked})}),h('span',null,label)))
-            )),
-            miniSelect('Clinical Clearance',form.clinical_clearance_status,['Pending','Cleared'],v=>setForm({...form,clinical_clearance_status:v})),
-            miniSelect('Room / Property Clearance',form.room_clearance_status,['Pending','Cleared'],v=>setForm({...form,room_clearance_status:v})),
-            h('div',{className:'field span-2'},h('label',null,'Final Instructions'),h('textarea',{rows:3,value:form.final_instructions,onChange:e=>setForm({...form,final_instructions:e.target.value})})),
-            h('div',{className:'field span-2'},h('label',null,'Remarks'),h('textarea',{rows:2,value:form.remarks,onChange:e=>setForm({...form,remarks:e.target.value})}))
+            h('div',{className:'field span-2'},h('label',null,'Initiation Remarks'),h('textarea',{
+              rows:3,
+              value:form.remarks,
+              onChange:e=>setForm({...form,remarks:e.target.value}),
+              placeholder:'Brief reason for initiating discharge or any important note for Management review.'
+            }))
           ),
           h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShow(false)},'Cancel'),h('button',{className:'btn btn-primary',disabled:busy},busy?'Saving…':editing?'Update Request':'Submit for Management Approval'))
         )

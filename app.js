@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.1.9';
-  const APP_BUILD_DATE = '05-Aug-2026 01:45 IST';
+  const APP_VERSION = '2.2.0';
+  const APP_BUILD_DATE = '05-Aug-2026 02:05 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3012,12 +3012,21 @@ Caring with Compassion. Living with Dignity.`;
             isAccountsClearance
               ?'Accounts does not initiate or clinically approve discharge. Open Payments first, complete the financial settlement, then return here to enter closure remarks and close the discharge.'
               :isNurse
-                ?'Initiate only under Consultant/Doctor instruction or a clearly recorded voluntary request.'
+                ?(
+                rows.some(row=>row.accounts_status==='Cleared'&&row.status!=='Completed')
+                  ?'Accounts clearance is complete. Open Final Discharge Clearance and complete the nursing handover before releasing the patient, room and bed.'
+                  :'Initiate only under Consultant/Doctor instruction or a clearly recorded voluntary request.'
+              )
                 :canApprove
                   ?'Approve or reject after clinical review.'
                   :'Review discharge status.'
           ),
-          canInitiate&&h('button',{className:'btn btn-primary',onClick:openNew},'Initiate Discharge')
+          canInitiate&&!(
+            isNurse&&rows.some(row=>
+              row.accounts_status==='Cleared'&&
+              row.status!=='Completed'
+            )
+          )&&h('button',{className:'btn btn-primary',onClick:openNew},'Initiate Discharge')
         )
       ),
       h(LogTable,{title:isAccountsClearance?`Pending Financial Clearance (${tableRows.length})`:`Discharge Workflow Register (${tableRows.length})`,

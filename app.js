@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.0.2';
-  const APP_BUILD_DATE = '04-Aug-2026 19:45 IST';
+  const APP_VERSION = '2.0.3';
+  const APP_BUILD_DATE = '04-Aug-2026 20:05 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -178,6 +178,43 @@
 
   const returnAfterSuccessfulAction = (returnPage,onNavigate,delay=650) =>
     finishSuccessfulAction({returnPage,onNavigate,delay});
+
+
+  const closeTopActionPopup = () => {
+    const popups=[...document.querySelectorAll('.modal-backdrop')]
+      .filter(node=>{
+        const style=window.getComputedStyle(node);
+        return style.display!=='none'&&style.visibility!=='hidden';
+      });
+    const popup=popups.at(-1);
+    if(!popup)return false;
+
+    const closeButton=
+      popup.querySelector('button.close')||
+      [...popup.querySelectorAll('button')].find(button=>
+        ['close','cancel','done','back'].includes(
+          String(button.textContent||'').trim().toLowerCase()
+        )
+      );
+
+    if(closeButton){
+      closeButton.click();
+      return true;
+    }
+
+    popup.dispatchEvent(new KeyboardEvent('keydown',{
+      key:'Escape',
+      code:'Escape',
+      bubbles:true
+    }));
+    return true;
+  };
+
+  const isSuccessfulEntryElement = node => {
+    if(!(node instanceof Element))return false;
+    if(node.matches('.samara-toast.success,.message.success,.toast.success,[data-toast-type="success"]'))return true;
+    return Boolean(node.querySelector('.samara-toast.success,.message.success,.toast.success,[data-toast-type="success"]'));
+  };
 
 
   const localDateTimeValue = (date=new Date()) => {
@@ -493,6 +530,32 @@ Caring with Compassion. Living with Dignity.`;
         try{sessionStorage.setItem('samara_previous_page',previousPageRef.current)}catch(_error){}
       }
     },[page]);
+    React.useEffect(()=>{
+      const root=document.getElementById('root');
+      if(!root)return;
+
+      let closing=false;
+      const observer=new MutationObserver(mutations=>{
+        if(closing)return;
+        const successDetected=mutations.some(mutation=>
+          [...mutation.addedNodes].some(node=>isSuccessfulEntryElement(node))
+        );
+        if(!successDetected)return;
+
+        const hasPopup=document.querySelector('.modal-backdrop');
+        if(!hasPopup)return;
+
+        closing=true;
+        setTimeout(()=>{
+          closeTopActionPopup();
+          closing=false;
+        },650);
+      });
+
+      observer.observe(root,{childList:true,subtree:true});
+      return()=>observer.disconnect();
+    },[]);
+
     React.useEffect(()=>{
       const root=document.getElementById('root');
       if(!root)return;

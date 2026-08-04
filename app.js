@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.0.1';
-  const APP_BUILD_DATE = '04-Aug-2026 19:20 IST';
+  const APP_VERSION = '2.0.2';
+  const APP_BUILD_DATE = '04-Aug-2026 19:45 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -2588,7 +2588,9 @@ function RoomsBeds({profile}){
     const empty={
       room_no:'100',bed_no:'A',room_type:'Twin Sharing',status:'Available',
       room_daily_rate:'2000',nursing_daily_rate:'800',special_nurse_daily_rate:'0',
-      floor:'',wing:'',notes:''
+      floor:'',wing:'',notes:'',
+      reserved_for_name:'',reserved_for_contact:'',reserved_by_name:'',reserved_by_contact:'',
+      expected_admission_date:'',reservation_notes:''
     };
     const [rows,setRows]=React.useState([]);
     const [patients,setPatients]=React.useState([]);
@@ -2596,6 +2598,8 @@ function RoomsBeds({profile}){
     const [loading,setLoading]=React.useState(true);
     const [show,setShow]=React.useState(false);
     const [showTransfer,setShowTransfer]=React.useState(false);
+    const [showReservation,setShowReservation]=React.useState(false);
+    const [reservationRow,setReservationRow]=React.useState(null);
     const [form,setForm]=React.useState(empty);
     const [transfer,setTransfer]=React.useState({patient_id:'',to_room_bed_id:'',reason:'',effective_at:new Date().toISOString().slice(0,16)});
     const [editing,setEditing]=React.useState(null);
@@ -2651,7 +2655,13 @@ function RoomsBeds({profile}){
       return {room:'2000',nursing:'800'};
     }
     function openNew(){
-      setEditing(null);setForm(empty);setMsg('');setShow(true);
+      setEditing(null);
+      setForm({
+        ...empty,
+        reserved_by_name:formalName(profile)||profile?.full_name||'',
+        reserved_by_contact:profile?.mobile||profile?.phone||profile?.contact_number||''
+      });
+      setMsg('');setShow(true);
     }
     function openEdit(row){
       setEditing(row);
@@ -2661,13 +2671,23 @@ function RoomsBeds({profile}){
         room_daily_rate:String(row.room_daily_rate??row.daily_rate??''),
         nursing_daily_rate:String(row.nursing_daily_rate??''),
         special_nurse_daily_rate:String(row.special_nurse_daily_rate??''),
-        floor:row.floor||'',wing:row.wing||'',notes:row.notes||''
+        floor:row.floor||'',wing:row.wing||'',notes:row.notes||'',
+        reserved_for_name:row.reserved_for_name||'',
+        reserved_for_contact:row.reserved_for_contact||'',
+        reserved_by_name:row.reserved_by_name||formalName(profile)||profile?.full_name||'',
+        reserved_by_contact:row.reserved_by_contact||profile?.mobile||profile?.phone||profile?.contact_number||'',
+        expected_admission_date:row.expected_admission_date||'',
+        reservation_notes:row.reservation_notes||''
       });
       setShow(true);
     }
     function changeRoomType(value){
       const tariff=defaultTariff(value);
       setForm(current=>({...current,room_type:value,room_daily_rate:tariff.room,nursing_daily_rate:tariff.nursing}));
+    }
+    function openReservationView(row){
+      setReservationRow(row);
+      setShowReservation(true);
     }
 
     async function saveRoom(e){
@@ -2685,6 +2705,13 @@ function RoomsBeds({profile}){
           daily_rate:Number(form.room_daily_rate||0),
           status:editing&&patientFor(editing)?'Occupied':form.status,
           floor:form.floor||null,wing:form.wing||null,notes:form.notes||null,
+          reserved_for_name:form.status==='Reserved'?String(form.reserved_for_name||'').trim():null,
+          reserved_for_contact:form.status==='Reserved'?String(form.reserved_for_contact||'').trim():null,
+          reserved_by_name:form.status==='Reserved'?String(form.reserved_by_name||'').trim():null,
+          reserved_by_contact:form.status==='Reserved'?String(form.reserved_by_contact||'').trim():null,
+          expected_admission_date:form.status==='Reserved'?(form.expected_admission_date||null):null,
+          reservation_notes:form.status==='Reserved'?String(form.reservation_notes||'').trim()||null:null,
+          reserved_at:form.status==='Reserved'?(editing?.reserved_at||new Date().toISOString()):null,
           updated_at:new Date().toISOString()
         };
         if(!payload.room_no||!payload.bed_no)throw new Error('Room number and bed code are required.');
@@ -2695,6 +2722,12 @@ function RoomsBeds({profile}){
         );
         if(duplicate)throw new Error(`Room ${payload.room_no} / Bed ${payload.bed_no} already exists.`);
         if(payload.room_daily_rate<0||payload.nursing_daily_rate<0||payload.special_nurse_daily_rate<0)throw new Error('Tariff amounts cannot be negative.');
+        if(payload.status==='Reserved'){
+          if(!payload.reserved_for_name)throw new Error('Reserved for name is required.');
+          if(!payload.reserved_for_contact)throw new Error('Reserved person contact number is required.');
+          if(!payload.reserved_by_name)throw new Error('Reserved by name is required.');
+          if(!payload.expected_admission_date)throw new Error('Expected admission date is required.');
+        }
         let result;
         if(editing?.id)result=await client.from('room_beds').update(payload).eq('id',editing.id);
         else result=await client.from('room_beds').insert(payload);
@@ -2769,12 +2802,16 @@ function RoomsBeds({profile}){
                 h('td',null,`₹${Number(row.nursing_daily_rate||0).toLocaleString('en-IN')}`),
                 h('td',null,`₹${Number(row.special_nurse_daily_rate||0).toLocaleString('en-IN')}`),
                 h('td',null,h('span',{className:`room-status room-status-${String(status).toLowerCase()}`},status)),
-                h('td',null,p?h('div',null,h('strong',null,formalName(p)),h('small',null,p.patient_id||'—')):'—'),
+                h('td',null,
+                  p?h('div',null,h('strong',null,formalName(p)),h('small',null,p.patient_id||'—')):
+                  status==='Reserved'?h('div',null,h('strong',null,row.reserved_for_name||'Reservation details pending'),h('small',null,row.expected_admission_date?`Expected: ${formatDateIN(row.expected_admission_date)}`:'Expected date not entered')):'—'
+                ),
                 h('td',null,canManage?h('div',{className:'employee-actions'},
+                  status==='Reserved'&&h('button',{className:'btn btn-secondary',onClick:()=>openReservationView(row)},'View'),
                   h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Edit / Tariff'),
                   p&&h('button',{className:'btn btn-primary',onClick:()=>openTransfer(row)},'Shift Room'),
                   h('button',{className:'btn btn-danger',disabled:!!p,onClick:()=>removeRoom(row)},'Delete')
-                ):h('span',{className:'small-note'},'View only'))
+                ):status==='Reserved'?h('button',{className:'btn btn-secondary',onClick:()=>openReservationView(row)},'View'):h('span',{className:'small-note'},'View only'))
               )
             }),
             rows.length===0&&h('tr',null,h('td',{colSpan:10,className:'empty'},'No rooms configured.'))
@@ -2814,9 +2851,34 @@ function RoomsBeds({profile}){
           miniInput('Floor',form.floor,v=>setForm({...form,floor:v})),
           miniInput('Wing',form.wing,v=>setForm({...form,wing:v})),
           h('div',{className:'field'},h('label',null,'Status'),h('select',{value:form.status,onChange:e=>setForm({...form,status:e.target.value}),disabled:editing&&!!patientFor(editing)},['Available','Reserved','Maintenance','Occupied'].map(x=>h('option',{key:x,value:x},x)))),
+          form.status==='Reserved'&&h(React.Fragment,null,
+            miniInput('Reserved For — Name',form.reserved_for_name,v=>setForm({...form,reserved_for_name:v}),true),
+            miniInput('Reserved For — Contact Number',form.reserved_for_contact,v=>setForm({...form,reserved_for_contact:v}),true),
+            miniInput('Reserved By — Name',form.reserved_by_name,v=>setForm({...form,reserved_by_name:v}),true),
+            miniInput('Reserved By — Contact Number',form.reserved_by_contact,v=>setForm({...form,reserved_by_contact:v})),
+            h('div',{className:'field'},h('label',null,'Expected Date of Admission'),h('input',{type:'date',value:form.expected_admission_date,onChange:e=>setForm({...form,expected_admission_date:e.target.value}),min:todayISOIndia(),required:true})),
+            h('div',{className:'field span-2'},h('label',null,'Reservation Notes'),h('textarea',{rows:3,value:form.reservation_notes,onChange:e=>setForm({...form,reservation_notes:e.target.value}),placeholder:'Source of request, advance received, special requirements, follow-up instructions, etc.'}))
+          ),
           h('div',{className:'field span-2'},h('label',null,'Notes'),h('textarea',{rows:3,value:form.notes,onChange:e=>setForm({...form,notes:e.target.value})}))
         ),
         h('button',{className:'btn btn-primary full',disabled:busy},busy?'Saving…':'Save Room & Tariff')
+      )),
+
+      showReservation&&reservationRow&&h('div',{className:'modal-backdrop'},h('div',{className:'card modal'},
+        h('div',{className:'panel-head'},
+          h('div',null,h('h3',null,`Reserved Room ${reservationRow.room_no}-${reservationRow.bed_no}`),h('small',null,reservationRow.room_type||'Room reservation details')),
+          h('button',{type:'button',className:'close',onClick:()=>{setShowReservation(false);setReservationRow(null)}},'×')
+        ),
+        h('div',{className:'modal-grid reservation-details-grid'},
+          h('div',{className:'reservation-detail'},h('span',null,'Reserved For'),h('strong',null,reservationRow.reserved_for_name||'—')),
+          h('div',{className:'reservation-detail'},h('span',null,'Contact Number'),h('strong',null,reservationRow.reserved_for_contact||'—')),
+          h('div',{className:'reservation-detail'},h('span',null,'Reserved By'),h('strong',null,reservationRow.reserved_by_name||'—')),
+          h('div',{className:'reservation-detail'},h('span',null,'Reserved By Contact'),h('strong',null,reservationRow.reserved_by_contact||'—')),
+          h('div',{className:'reservation-detail'},h('span',null,'Expected Admission Date'),h('strong',null,reservationRow.expected_admission_date?formatDateIN(reservationRow.expected_admission_date):'—')),
+          h('div',{className:'reservation-detail'},h('span',null,'Reserved On'),h('strong',null,reservationRow.reserved_at?fmt(reservationRow.reserved_at):'—')),
+          h('div',{className:'reservation-detail span-2'},h('span',null,'Reservation Notes'),h('strong',null,reservationRow.reservation_notes||'—'))
+        ),
+        h('button',{type:'button',className:'btn btn-secondary full',onClick:()=>{setShowReservation(false);setReservationRow(null)}},'Close')
       )),
 
       showTransfer&&h('div',{className:'modal-backdrop'},h('form',{className:'card modal',onSubmit:transferPatient},

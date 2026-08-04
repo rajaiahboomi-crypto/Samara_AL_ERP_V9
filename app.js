@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const APP_VERSION = '2.0.4';
-  const APP_BUILD_DATE = '04-Aug-2026 22:57 IST';
+  const APP_VERSION = '2.0.5';
+  const APP_BUILD_DATE = '04-Aug-2026 23:03 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -226,46 +226,112 @@
       .toast.success,
       [data-toast-type="success"] {
         position: fixed !important;
-        top: 28px !important;
+        top: 46px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         z-index: 30000 !important;
-        min-width: min(520px, calc(100vw - 32px)) !important;
-        max-width: 720px !important;
-        padding: 15px 18px !important;
-        border: 1px solid #087443 !important;
+        display: grid !important;
+        grid-template-columns: 42px minmax(0,1fr) 28px !important;
+        align-items: center !important;
+        gap: 12px !important;
+        min-width: min(525px, calc(100vw - 28px)) !important;
+        max-width: 680px !important;
+        padding: 14px 16px !important;
+        border: 0 !important;
         border-radius: 13px !important;
         background: #11884f !important;
         color: #ffffff !important;
-        box-shadow: 0 14px 34px rgba(4, 78, 46, .28) !important;
+        box-shadow: 0 14px 34px rgba(4,78,46,.30) !important;
         font-weight: 700 !important;
+      }
+
+      .samara-toast.success .samara-toast-icon,
+      .toast.success .samara-toast-icon,
+      [data-toast-type="success"] .samara-toast-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 50% !important;
+        background: rgba(255,255,255,.18) !important;
+        color: #ffffff !important;
+        font-size: 24px !important;
+        font-weight: 900 !important;
+      }
+
+      .samara-toast.success > div,
+      .toast.success > div,
+      [data-toast-type="success"] > div {
+        min-width: 0 !important;
+        display: grid !important;
+        gap: 3px !important;
       }
 
       .samara-toast.success strong,
-      .samara-toast.success span,
-      .samara-toast.success button,
       .toast.success strong,
+      [data-toast-type="success"] strong {
+        color: #ffffff !important;
+        font-size: 16px !important;
+        line-height: 1.25 !important;
+        font-weight: 800 !important;
+      }
+
+      .samara-toast.success span,
       .toast.success span,
-      .toast.success button,
-      [data-toast-type="success"] strong,
-      [data-toast-type="success"] span,
-      [data-toast-type="success"] button {
+      [data-toast-type="success"] span {
         color: #ffffff !important;
       }
 
+      .samara-toast.success > div > span,
+      .toast.success > div > span,
+      [data-toast-type="success"] > div > span {
+        font-size: 13px !important;
+        line-height: 1.35 !important;
+        font-weight: 600 !important;
+        opacity: .96 !important;
+      }
+
       .samara-toast.success button,
       .toast.success button,
       [data-toast-type="success"] button {
-        background: transparent !important;
+        width: 28px !important;
+        height: 28px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
         border: 0 !important;
-        font-size: 20px !important;
+        border-radius: 50% !important;
+        background: transparent !important;
+        color: #ffffff !important;
+        font-size: 21px !important;
+        font-weight: 800 !important;
+        cursor: pointer !important;
+      }
+
+      .samara-toast.success button:hover,
+      .toast.success button:hover,
+      [data-toast-type="success"] button:hover {
+        background: rgba(255,255,255,.13) !important;
       }
 
       .message.success {
-        border: 1px solid #087443 !important;
-        background: #e7f8ee !important;
+        border: 1px solid #8dd8b1 !important;
+        background: #eaf9f1 !important;
         color: #075c36 !important;
         font-weight: 700 !important;
+      }
+
+      @media (max-width: 650px) {
+        .samara-toast.success,
+        .toast.success,
+        [data-toast-type="success"] {
+          top: 18px !important;
+          grid-template-columns: 38px minmax(0,1fr) 26px !important;
+          min-width: calc(100vw - 22px) !important;
+          padding: 12px 13px !important;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -1348,7 +1414,7 @@ Caring with Compassion. Living with Dignity.`;
         if(roleResult.role!==requestedRole)throw new Error(`Selected role ${requestedRole} was not saved correctly.`);
         await uploadEmployeePhoto(detailsTarget.id,photoFiles);
         await uploadEmployeeFiles(detailsTarget.id,[{type:'ID Card',files:idFiles},{type:'Qualification Certificate',files:qualificationFiles},{type:'Experience Certificate',files:experienceFiles},{type:'Other Certificate',files:otherFiles},{type:'Camera Capture',files:cameraFiles}]);
-        const successText='Employee updated successfully.';
+        const successText='Employee information and documents updated successfully.';
         setDetailsMsg(successText);showEmployeeToast('success',successText);setIdFiles([]);setQualificationFiles([]);setExperienceFiles([]);setOtherFiles([]);setCameraFiles([]);setPhotoFiles([]);await load();
         const {data}=await client.from('employee_documents').select('*').eq('employee_id',detailsTarget.id).order('created_at',{ascending:false});setDetailsDocs(data||[]);
         const resolved=await resolveEmployeePhoto(detailsTarget,900);

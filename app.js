@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.6';
-  const APP_BUILD_DATE = '05-Aug-2026 11:32 IST';
+  const APP_VERSION = '2.3.7';
+  const APP_BUILD_DATE = '05-Aug-2026 11:45 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3310,25 +3310,62 @@ Caring with Compassion. Living with Dignity.`;
 
       setBusy(true);
       try{
-        const {error}=await client.from('patient_discharges')
+        const deletion=await client.from('patient_discharges')
           .delete()
           .eq('id',row.id)
-          .eq('management_status','Pending')
-          .eq('accounts_status','Pending');
+          .select('id');
 
-        if(error)throw error;
+        if(deletion.error)throw deletion.error;
+        const deletedCount=(deletion.data||[]).length;
+
+        if(deletedCount===0){
+          const archive=await client.from('patient_discharges')
+            .update({
+              status:'Cancelled',
+              management_remarks:[
+                row.management_remarks||'',
+                'Duplicate discharge archived because a completed discharge already exists.'
+              ].filter(Boolean).join(' | '),
+              updated_at:new Date().toISOString()
+            })
+            .eq('id',row.id)
+            .select('id,status')
+            .single();
+
+          if(archive.error)throw new Error(
+            `The duplicate could not be deleted or archived: ${archive.error.message}`
+          );
+        }
+
+        const verification=await client.from('patient_discharges')
+          .select('id,status')
+          .eq('id',row.id)
+          .maybeSingle();
+
+        if(verification.error)throw verification.error;
+        if(verification.data && String(verification.data.status||'').trim().toLowerCase()!=='cancelled'){
+          throw new Error('The database did not confirm removal of the duplicate request.');
+        }
 
         notify(
           'success',
-          'Duplicate discharge removed',
-          'The invalid pending duplicate was removed. The completed discharge and released room/bed remain unchanged.'
+          deletedCount>0?'Duplicate discharge removed':'Duplicate discharge archived',
+          deletedCount>0
+            ?'The invalid pending duplicate was permanently removed.'
+            :'The duplicate was archived and removed from active discharge views.'
         );
+
         await load();
+
         writeAuditEvent(
-          'Duplicate Discharge Removed',
+          deletedCount>0?'Duplicate Discharge Removed':'Duplicate Discharge Archived',
           'Discharge',
           row.id,
-          {patient_id:row.patient_id,reason:'Completed discharge already existed'},
+          {
+            patient_id:row.patient_id,
+            reason:'Completed discharge already existed',
+            method:deletedCount>0?'Deleted':'Archived as Cancelled'
+          },
           'Success'
         );
       }catch(error){
@@ -3680,7 +3717,10 @@ Caring with Compassion. Living with Dignity.`;
       );
     }
 
-    const tableRows=rows.map(row=>[
+    const visibleRows=rows.filter(row=>!['cancelled','canceled'].includes(
+      String(row.status||'').trim().toLowerCase()
+    ));
+    const tableRows=visibleRows.map(row=>[
       patientLabel(row.patient_id),
       row.initiation_basis||'—',
       row.initiation_basis==='Voluntary Discharge'

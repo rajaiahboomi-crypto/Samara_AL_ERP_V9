@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.7.6';
-  const APP_BUILD_DATE = '05-Aug-2026 06:15 PM IST';
+  const APP_VERSION = '2.8.0';
+  const APP_BUILD_DATE = '05-Aug-2026 06:45 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -4807,6 +4807,9 @@ Caring with Compassion. Living with Dignity.`;
     const [editTarget,setEditTarget]=React.useState(null),[editForm,setEditForm]=React.useState(null),[editBusy,setEditBusy]=React.useState(false),[editMsg,setEditMsg]=React.useState('');
     const [patientToast,setPatientToast]=React.useState(null);
     const patientToastTimer=React.useRef(null);
+    const [duplicateReview,setDuplicateReview]=React.useState(null);
+    const [duplicateReviewBusy,setDuplicateReviewBusy]=React.useState(false);
+    const [patientConsentBusyId,setPatientConsentBusyId]=React.useState(null);
     function showPatientToast(type,text){
       clearTimeout(patientToastTimer.current);
       setPatientToast({type,text});
@@ -5008,7 +5011,372 @@ Caring with Compassion. Living with Dignity.`;
       const emergencyName=row.attendant_name||'—';const emergencyPhone=row.attendant_phone||row.mobile||'—';
       win.document.write(`<!doctype html><html><head><title>Patient ID Card</title><style>body{font-family:Arial;margin:0;padding:24px;background:#eef6f4}.card{width:390px;min-height:650px;margin:auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 35px #0002;border:2px solid #086b58}.head{background:#086b58;color:white;text-align:center;padding:20px}.head h1{margin:0;font-size:24px}.head p{margin:6px 0 0}.photo{width:125px;height:145px;border:4px solid white;border-radius:16px;object-fit:cover;background:#ddd;margin:14px auto 10px;display:block;box-shadow:0 4px 15px #0003}.body{padding:10px 26px 24px;text-align:center}.name{font-size:25px;font-weight:bold;color:#063f36}.category{font-size:16px;color:#086b58;margin:4px 0 12px}.grid{text-align:left;line-height:1.55;font-size:15px}.row{padding:4px 0;border-bottom:1px solid #eef2f1}.label{font-weight:bold;color:#444}.emergency{margin-top:12px;padding:10px;background:#fff4e5;border:1px solid #f2c87d;border-radius:10px}.barcode{margin-top:14px;padding:9px;border-top:1px dashed #aaa;font-family:monospace}.print{display:block;margin:20px auto;padding:12px 24px}@media print{.print{display:none}body{background:white;padding:0}}</style></head><body><div class="card"><div class="head"><h1>SAMARA HEALTH CARE LLP</h1><p>Assisted Living Patient Identity & Emergency Card</p></div><div class="body">${url?`<img class="photo" src="${url}">`:`<div class="photo" style="display:flex;align-items:center;justify-content:center;font-size:48px">SC</div>`}<div class="name">${escapeHtml(formalName(row))}</div><div class="category">${escapeHtml(row.patient_category||'Patient')}</div><div class="grid"><div class="row"><span class="label">Patient ID:</span> ${escapeHtml(row.patient_id||'—')}</div><div class="row"><span class="label">Main Diagnosis:</span> ${escapeHtml(row.diagnosis||'—')}</div><div class="row"><span class="label">Referred / Treating Doctor:</span> ${escapeHtml(doctor)}</div><div class="row"><span class="label">Doctor Mobile:</span> ${escapeHtml(row.doctor_phone||'—')}</div><div class="row"><span class="label">Room / Bed:</span> ${escapeHtml(`${row.room_no||'—'} / ${row.bed_no||'—'}`)}</div><div class="row"><span class="label">Gender / Age:</span> ${escapeHtml(`${row.gender||'—'} / ${row.age||'—'}`)}</div><div class="row"><span class="label">Patient Mobile:</span> ${escapeHtml(row.mobile||'—')}</div><div class="row"><span class="label">Allergies:</span> ${escapeHtml(row.allergies||'None recorded')}</div><div class="emergency"><div><span class="label">Emergency Contact:</span> ${escapeHtml(emergencyName)}</div><div><span class="label">Emergency Mobile:</span> ${escapeHtml(emergencyPhone)}</div></div></div><div class="barcode">${escapeHtml(row.patient_id||row.id)}</div></div></div><button class="print" onclick="window.print()">Print Patient ID Card</button></body></html>`);win.document.close();
     }
-    function duplicateCount(row){const name=String(row.full_name||'').trim().toLowerCase();const mobile=String(row.mobile||row.attendant_phone||'').replace(/\D/g,'');return rows.filter(x=>x.id!==row.id&&String(x.full_name||'').trim().toLowerCase()===name&&(!mobile||String(x.mobile||x.attendant_phone||'').replace(/\D/g,'')===mobile)).length}
+    function duplicateMatches(row){
+      const name=String(row.full_name||'').trim().toLowerCase().replace(/\s+/g,' ');
+      const mobile=String(row.mobile||row.attendant_phone||'').replace(/\D/g,'').slice(-10);
+      return rows.filter(item=>{
+        const itemName=String(item.full_name||'').trim().toLowerCase().replace(/\s+/g,' ');
+        const itemMobile=String(item.mobile||item.attendant_phone||'').replace(/\D/g,'').slice(-10);
+        const sameName=name&&itemName===name;
+        const sameMobile=mobile&&itemMobile===mobile;
+        return sameName&&(sameMobile||!mobile||!itemMobile);
+      });
+    }
+
+    async function openDuplicateReview(row){
+      setDuplicateReviewBusy(true);
+      try{
+        const matches=duplicateMatches(row);
+        const reviewed=await Promise.all(matches.map(async patient=>{
+          const [
+            billing,
+            medicines,
+            care,
+            vitals,
+            incidents,
+            documents,
+            consentDocs
+          ]=await Promise.all([
+            client.from('billing_transactions').select('id',{count:'exact',head:true}).eq('patient_id',patient.id),
+            client.from('medication_orders').select('id',{count:'exact',head:true}).eq('patient_id',patient.id),
+            client.from('care_orders').select('id',{count:'exact',head:true}).eq('patient_id',patient.id),
+            client.from('vital_signs').select('id',{count:'exact',head:true}).eq('patient_id',patient.id),
+            client.from('incidents').select('id',{count:'exact',head:true}).eq('patient_id',patient.id),
+            client.from('patient_documents').select('id',{count:'exact',head:true}).eq('patient_id',patient.id),
+            client.from('patient_documents')
+              .select('id,document_type,document_name,file_name,storage_path,created_at')
+              .eq('patient_id',patient.id)
+              .eq('document_type','Signed Admission Consent Form')
+              .order('created_at',{ascending:false})
+              .limit(1)
+          ]);
+          const activityCount=
+            Number(billing.count||0)+
+            Number(medicines.count||0)+
+            Number(care.count||0)+
+            Number(vitals.count||0)+
+            Number(incidents.count||0);
+          return {
+            ...patient,
+            counts:{
+              billing:Number(billing.count||0),
+              medicines:Number(medicines.count||0),
+              care:Number(care.count||0),
+              vitals:Number(vitals.count||0),
+              incidents:Number(incidents.count||0),
+              documents:Number(documents.count||0)
+            },
+            activityCount,
+            signedConsent:consentDocs.data?.[0]||null
+          };
+        }));
+        reviewed.sort((a,b)=>{
+          const consentA=a.admission_consent_status==='Completed'?1:0;
+          const consentB=b.admission_consent_status==='Completed'?1:0;
+          if(consentA!==consentB)return consentB-consentA;
+          if(a.activityCount!==b.activityCount)return b.activityCount-a.activityCount;
+          return new Date(a.created_at||0)-new Date(b.created_at||0);
+        });
+        setDuplicateReview({
+          anchorPatientId:row.id,
+          records:reviewed,
+          recommendedKeepId:reviewed[0]?.id||null
+        });
+      }catch(error){
+        showPatientToast('error',error.message||'Unable to review duplicate patient records.');
+      }finally{
+        setDuplicateReviewBusy(false);
+      }
+    }
+
+    async function deleteReviewedDuplicate(deleteRecord){
+      if(!duplicateReview?.records?.length)return;
+      const keepRecord=duplicateReview.records.find(record=>record.id!==deleteRecord.id)
+        ||duplicateReview.records[0];
+
+      if(deleteRecord.activityCount>0){
+        showPatientToast(
+          'error',
+          'This record contains clinical or financial activity and cannot be directly deleted. Retain it and correct the details, or arrange a controlled data merge.'
+        );
+        return;
+      }
+
+      const confirmed=window.confirm(
+        `Delete duplicate patient ${formalName(deleteRecord)} (${deleteRecord.patient_code||deleteRecord.patient_id})?\n\n`+
+        `Keep: ${formalName(keepRecord)} (${keepRecord.patient_code||keepRecord.patient_id})\n\n`+
+        'This action cannot be undone.'
+      );
+      if(!confirmed)return;
+
+      setDuplicateReviewBusy(true);
+      try{
+        const sameRoom=
+          keepRecord?.room_no&&keepRecord?.bed_no&&
+          String(keepRecord.room_no)===String(deleteRecord.room_no)&&
+          String(keepRecord.bed_no)===String(deleteRecord.bed_no);
+
+        if(sameRoom){
+          const room=roomBeds.find(bed=>
+            String(bed.room_no)===String(deleteRecord.room_no)&&
+            String(bed.bed_no||bed.bed_code||'').toUpperCase()===String(deleteRecord.bed_no||'').toUpperCase()
+          );
+          if(room){
+            const {error:roomError}=await client.from('room_beds').update({
+              patient_id:keepRecord.id,
+              status:'Occupied',
+              updated_at:new Date().toISOString()
+            }).eq('id',room.id);
+            if(roomError)throw roomError;
+          }
+        }else{
+          const occupiedRooms=roomBeds.filter(bed=>
+            String(bed.patient_id||'')===String(deleteRecord.id)
+          );
+          for(const room of occupiedRooms){
+            const {error:roomError}=await client.from('room_beds').update({
+              patient_id:null,
+              status:'Available',
+              updated_at:new Date().toISOString()
+            }).eq('id',room.id);
+            if(roomError)throw roomError;
+          }
+        }
+
+        const {error:docError}=await client.from('patient_documents').delete().eq('patient_id',deleteRecord.id);
+        if(docError)throw docError;
+
+        const {error:deleteError}=await client.from('patients').delete().eq('id',deleteRecord.id);
+        if(deleteError)throw deleteError;
+
+        await writeAuditEvent(
+          'Duplicate Patient Deleted',
+          'Patients',
+          deleteRecord.id,
+          {
+            deleted_patient_code:deleteRecord.patient_code||deleteRecord.patient_id,
+            retained_patient_id:keepRecord.id,
+            retained_patient_code:keepRecord.patient_code||keepRecord.patient_id,
+            reviewed_by:profile?.id||null
+          },
+          'Success'
+        );
+
+        showPatientToast(
+          'success',
+          `Duplicate ${deleteRecord.patient_code||deleteRecord.patient_id} deleted. ${keepRecord.patient_code||keepRecord.patient_id} was retained.`
+        );
+        setDuplicateReview(null);
+        await load();
+      }catch(error){
+        showPatientToast('error',error.message||'Unable to delete the duplicate patient record.');
+      }finally{
+        setDuplicateReviewBusy(false);
+      }
+    }
+
+    async function ensurePatientQrGenerator(){
+      if(window.SamaraQRCode)return window.SamaraQRCode;
+      await new Promise((resolve,reject)=>{
+        const existing=[...document.scripts].find(script=>
+          script.src&&script.src.endsWith('/vendor/qrcode.bundle.js')
+        );
+        if(existing){
+          if(window.SamaraQRCode)return resolve();
+          existing.addEventListener('load',resolve,{once:true});
+          existing.addEventListener('error',()=>reject(new Error('Offline QR generator could not be loaded.')),{once:true});
+          return;
+        }
+        const script=document.createElement('script');
+        script.src='./vendor/qrcode.bundle.js';
+        script.async=true;
+        script.onload=resolve;
+        script.onerror=()=>reject(new Error('Offline QR generator could not be loaded.'));
+        document.head.appendChild(script);
+      });
+      if(!window.SamaraQRCode)throw new Error('Offline QR generator is unavailable.');
+      return window.SamaraQRCode;
+    }
+
+    function patientConsentFilename(row){
+      const name=String(formalName(row)||row.full_name||'Patient')
+        .trim().replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+      const code=String(row.patient_code||row.patient_id||'Patient_ID')
+        .replace(/[^a-zA-Z0-9-]+/g,'_');
+      const date=formatDateIN(row.admission_date||todayISOIndia()).replace(/[^0-9-]/g,'');
+      return `${name}_${code}_${date}`;
+    }
+
+    async function printPatientConsent(row){
+      setPatientConsentBusyId(row.id);
+      try{
+        const [
+          medicinesResult,
+          careResult,
+          roomResult,
+          packageResult,
+          signedResult
+        ]=await Promise.all([
+          client.from('medication_orders').select('*').eq('patient_id',row.id).order('created_at'),
+          client.from('care_orders').select('*').eq('patient_id',row.id).order('created_at'),
+          client.from('room_beds').select('*')
+            .eq('room_no',row.room_no||'')
+            .eq('bed_no',row.bed_no||'')
+            .limit(1)
+            .maybeSingle(),
+          row.package_id
+            ?client.from('care_packages').select('*').eq('id',row.package_id).maybeSingle()
+            :Promise.resolve({data:null,error:null}),
+          client.from('patient_documents')
+            .select('*')
+            .eq('patient_id',row.id)
+            .eq('document_type','Signed Admission Consent Form')
+            .order('created_at',{ascending:false})
+            .limit(1)
+        ]);
+
+        if(signedResult.data?.[0]?.storage_path){
+          const {data,error}=await client.storage
+            .from('patient-documents')
+            .createSignedUrl(signedResult.data[0].storage_path,300);
+          if(error)throw error;
+          const frame=document.createElement('iframe');
+          frame.style.position='fixed';
+          frame.style.right='0';
+          frame.style.bottom='0';
+          frame.style.width='1px';
+          frame.style.height='1px';
+          frame.style.border='0';
+          frame.style.opacity='0';
+          frame.src=data.signedUrl;
+          document.body.appendChild(frame);
+          frame.onload=()=>{
+            try{
+              frame.contentWindow.focus();
+              frame.contentWindow.print();
+            }catch(_error){
+              window.open(data.signedUrl,'_blank','noopener');
+            }
+            setTimeout(()=>frame.remove(),5000);
+          };
+          showPatientToast('success','Signed Admission Consent opened for printing.');
+          return;
+        }
+
+        const qrGenerator=await ensurePatientQrGenerator();
+        const patientCode=row.patient_code||row.patient_id||'PATIENT';
+        const reference=`SAMARA-${patientCode}-${String(row.admission_date||'').replace(/-/g,'')}`;
+        const qrDataUrl=qrGenerator.toDataURL([
+          'SAMARA CARE ADMISSION CONSENT',
+          `Reference: ${reference}`,
+          `Patient ID: ${patientCode}`,
+          `Resident: ${formalName(row)||row.full_name||''}`,
+          `Admission Date: ${row.admission_date||''}`,
+          `Room/Bed: ${row.room_no||''}/${row.bed_no||''}`
+        ].join('\\n'),{size:180,margin:3,errorCorrectionLevel:'M'});
+
+        const medicines=currentUpcomingMedicineOrders(medicinesResult.data||[]);
+        const care=careResult.data||[];
+        const room=roomResult.data||{};
+        const pkg=packageResult.data||{};
+        const money=value=>`₹${Number(value||0).toLocaleString('en-IN')}`;
+        const packageBilling=Boolean(row.package_id||row.package_fee||row.billing_package&&row.billing_package!=='No Package / Daily Billing');
+
+        const feeRows=packageBilling
+          ?[
+              ['Billing Method','Fixed Care Package'],
+              ['Package',pkg.package_name||row.billing_package||'—'],
+              ['Duration',pkg.duration_value?`${pkg.duration_value} ${pkg.duration_unit}`:'—'],
+              ['Accommodation',row.package_room_class||room.room_type||'—'],
+              ['Package Period',row.package_start_date&&row.package_end_date
+                ?`${formatDateIN(row.package_start_date)} to ${formatDateIN(row.package_end_date)}`
+                :'—'],
+              ['Fixed Package Fee',money(row.package_fee||0)],
+              ['Package Includes',pkg.included_services||'As configured in the package master']
+            ]
+          :[
+              ['Billing Method','Daily Billing'],
+              ['Room / Bed',`${row.room_no||'—'}-${row.bed_no||'—'} · ${room.room_type||'—'}`],
+              ['Room Rent per Day',money(room.room_daily_rate??room.daily_rate??0)],
+              ['Routine Nursing per Day',money(room.nursing_daily_rate||0)],
+              ['Additional Charges','Medicines, doctor visits, investigations, physiotherapy, transport, external hospital expenses and other approved services are billed separately']
+            ];
+
+        const medRows=medicines.length
+          ?medicines.map((medicine,index)=>`<tr>
+              <td>${index+1}</td>
+              <td><strong>${escapeHtml(medicine.medicine_name||'')}</strong></td>
+              <td>${escapeHtml(medicine.strength||'')}</td>
+              <td>${escapeHtml(medicine.frequency||'')}</td>
+              <td>${escapeHtml(medicine.route||'')}</td>
+              <td>${escapeHtml((medicine.scheduled_times||[]).map(medicationTimeLabel).join(', '))}</td>
+              <td>${escapeHtml(medicine.food_instruction||'')}</td>
+            </tr>`).join('')
+          :'<tr><td colspan="7">No current medicine recorded.</td></tr>';
+
+        const careRows=care.length
+          ?care.map((item,index)=>`<tr>
+              <td>${index+1}</td>
+              <td><strong>${escapeHtml(item.care_type||'')}</strong></td>
+              <td>${escapeHtml(item.shift||'')}</td>
+              <td>${escapeHtml(item.frequency||'')}</td>
+              <td>${escapeHtml(item.instruction||'—')}</td>
+            </tr>`).join('')
+          :'<tr><td colspan="5">No master care-plan task recorded.</td></tr>';
+
+        const filename=patientConsentFilename(row);
+        const html=`<!doctype html><html><head><meta charset="utf-8">
+          <title>${escapeHtml(filename)}</title>
+          <style>
+            @page{size:A4;margin:12mm}*{box-sizing:border-box}
+            body{font-family:Arial,sans-serif;color:#17302a;font-size:10px;line-height:1.4;margin:0}
+            .head{display:grid;grid-template-columns:70px 1fr 92px;gap:14px;align-items:center;border-bottom:3px solid #086a57;padding-bottom:10px}
+            .logo{width:62px;height:62px;border-radius:15px;background:#086a57;color:#fff;display:grid;place-items:center;font-size:25px;font-weight:900}
+            h1{font-size:22px;margin:0;text-align:center;color:#064f42}h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #8fa9a2;padding-bottom:3px}
+            .subtitle{text-align:center;font-weight:800}.qr img{width:86px;height:86px}
+            .info{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;border:1px solid #829b94;border-radius:7px;padding:9px;margin:11px 0}
+            table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px}th,td{border:1px solid #829b94;padding:4px;text-align:left;vertical-align:top}th{background:#e9f3f0}
+            p{text-align:justify;margin:5px 0}.sign{display:grid;grid-template-columns:1fr 1fr;gap:18px 25px;margin-top:25px}.line{border-top:1px solid #222;padding-top:4px;margin-top:28px;font-weight:700}
+          </style></head><body>
+          <div class="head"><div class="logo">SC</div><div><h1>SAMARA CARE</h1><div class="subtitle">ASSISTED LIVING</div><div class="subtitle">RESIDENT ADMISSION, CARE CONSENT AND ACKNOWLEDGEMENT</div></div><div class="qr"><img src="${qrDataUrl}"></div></div>
+          <div class="info">
+            <div><b>Resident:</b> ${escapeHtml(formalName(row))}</div><div><b>Patient ID:</b> ${escapeHtml(patientCode)}</div>
+            <div><b>Admission Date:</b> ${escapeHtml(formatDateIN(row.admission_date))}</div><div><b>Room / Bed:</b> ${escapeHtml(`${row.room_no||'—'} / ${row.bed_no||'—'}`)}</div>
+            <div><b>Mobile:</b> ${escapeHtml(row.mobile||'—')}</div><div><b>Attendant:</b> ${escapeHtml(`${row.attendant_name||'—'} · ${row.attendant_phone||'—'}`)}</div>
+            <div><b>Admission Source:</b> ${escapeHtml(row.admission_type||'—')}</div><div><b>Condition:</b> ${escapeHtml(row.diagnosis||'—')}</div>
+          </div>
+          <h2>Current Medicines</h2><table><thead><tr><th>No.</th><th>Medicine</th><th>Strength</th><th>Frequency</th><th>Route</th><th>Time</th><th>Food</th></tr></thead><tbody>${medRows}</tbody></table>
+          <h2>Master Care Plan</h2><table><thead><tr><th>No.</th><th>Care Task</th><th>Shift</th><th>Frequency</th><th>Instruction</th></tr></thead><tbody>${careRows}</tbody></table>
+          <h2>Agreed Fee Structure at Admission</h2><table><tbody>${feeRows.map(([label,value])=>`<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`).join('')}</tbody></table>
+          <h2>Consent and Acknowledgement</h2>
+          <p>The Resident or authorised representative confirms voluntary admission, disclosure of relevant medical and care information, consent for assisted-living services and medication support according to recorded prescriptions, emergency transfer where reasonably necessary, maintenance of care and billing records, and acknowledgement of the applicable fee arrangement and separately chargeable services. This consent does not waive any right or remedy available under applicable law.</p>
+          <div class="sign">${['Resident / Thumb Impression','Relative / Authorised Representative','Admission Nurse / Officer','Admin / Manager','Witness'].map(label=>`<div><div class="line">${label}</div><div>Name: __________________________</div><div>Date & Time: ____________________</div></div>`).join('')}</div>
+          </body></html>`;
+
+        const frame=document.createElement('iframe');
+        frame.style.position='fixed';
+        frame.style.right='0';
+        frame.style.bottom='0';
+        frame.style.width='1px';
+        frame.style.height='1px';
+        frame.style.border='0';
+        frame.style.opacity='0';
+        document.body.appendChild(frame);
+        const doc=frame.contentDocument||frame.contentWindow.document;
+        doc.open();doc.write(html);doc.close();
+        await new Promise(resolve=>setTimeout(resolve,400));
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+        setTimeout(()=>frame.remove(),5000);
+        showPatientToast('success','Admission Consent opened for printing or Save as PDF.');
+      }catch(error){
+        showPatientToast('error',error.message||'Unable to prepare the Admission Consent.');
+      }finally{
+        setPatientConsentBusyId(null);
+      }
+    }
+
+    function duplicateCount(row){return Math.max(0,duplicateMatches(row).length-1)}
     function billingSummary(list){return (list||[]).reduce((a,x)=>{const n=Number(x.amount||0);if(x.transaction_type==='Charge')a.charges+=n;else if(x.transaction_type==='Payment')a.payments+=n;else if(x.transaction_type==='Discount')a.discounts+=n;else if(x.transaction_type==='Refund')a.refunds+=n;return a},{charges:0,payments:0,discounts:0,refunds:0})}
     function tabButton(name,count){return h('button',{type:'button',className:`patient-tab ${tab===name?'active':''}`,onClick:()=>setTab(name)},name,count!=null?h('span',{className:'tab-count'},count):null)}
     function sectionEmpty(text){return h('p',{className:'small-note'},text)}
@@ -5041,7 +5409,15 @@ Caring with Compassion. Living with Dignity.`;
             value:districtFilter,onChange:e=>setDistrictFilter(e.target.value)
           },districtOptions.map(x=>h('option',{key:x,value:x},x))))
         ),
-        duplicateRows.length?h('div',{className:'message warning'},`${duplicateRows.length} record(s) may be duplicates. Review matching names/mobile numbers before entering new care data.`):null,
+        duplicateRows.length?h('div',{className:'message warning',style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',flexWrap:'wrap'}},
+          h('span',null,`${duplicateRows.length} record(s) may be duplicates. Review matching names/mobile numbers before entering new care data.`),
+          h('button',{
+            type:'button',
+            className:'btn btn-warning',
+            disabled:duplicateReviewBusy,
+            onClick:()=>openDuplicateReview(duplicateRows[0])
+          },duplicateReviewBusy?'Reviewing…':'Review & Delete')
+        ):null,
         h('div',{className:'table-wrap'},
           h('table',{className:'table'},
             h('thead',null,h('tr',null,['Photo','Patient ID','Patient','District / Town','Admission Type','Category','Room/Bed','Status','Action'].map(x=>h('th',{key:x},x)))),
@@ -5057,11 +5433,88 @@ Caring with Compassion. Living with Dignity.`;
                 h('td',null,h('span',{className:`badge ${r.is_active===false?'off':''}`},r.is_active===false?'Inactive':'Active')),
                 h('td',null,h('div',{className:'employee-actions'},
                   h('button',{className:'btn btn-secondary',onClick:()=>openPatient(r)},clinicalView?'View Patient File':'Open Patient File'),
+                  canEdit&&duplicateCount(r)?h('button',{
+                    className:'btn btn-warning',
+                    disabled:duplicateReviewBusy,
+                    onClick:()=>openDuplicateReview(r)
+                  },'Review & Delete'):null,
                   canEdit?h('button',{className:'btn btn-secondary',onClick:()=>openEditPatient(r)},'Edit'):null,
+                  h('button',{
+                    className:'btn btn-primary',
+                    disabled:patientConsentBusyId===r.id,
+                    onClick:()=>printPatientConsent(r)
+                  },patientConsentBusyId===r.id?'Preparing…':'Print Consent'),
                   canEdit?h('button',{className:'btn btn-secondary',onClick:()=>printPatientIdCard(r)},'Print ID Card'):null
                 ))
               )),
               visibleRows.length===0&&h('tr',null,h('td',{colSpan:9,className:'empty'},'No patients match the selected search or district'))
+            )
+          )
+        )
+      ),
+      duplicateReview&&h('div',{className:'modal-backdrop'},
+        h('div',{className:'card modal',style:{width:'min(1080px,97vw)',maxHeight:'92vh',overflow:'auto'}},
+          h('div',{className:'panel-head'},
+            h('div',null,
+              h('h3',null,'Review Possible Duplicate Patients'),
+              h('small',null,'Compare the records carefully. Delete only the incorrect duplicate with no clinical or financial activity.')
+            ),
+            h('button',{type:'button',className:'close',onClick:()=>setDuplicateReview(null)},'×')
+          ),
+          h('div',{className:'message warning'},
+            'The record marked “Recommended Keep” has the stronger history, completed consent, or earlier registration. Records containing clinical or financial activity are protected from direct deletion.'
+          ),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:'12px'}},
+            duplicateReview.records.map(record=>
+              h('div',{
+                className:'section-card',
+                key:record.id,
+                style:{
+                  border:record.id===duplicateReview.recommendedKeepId?'2px solid #0b6d59':'1px solid #d9e5e1',
+                  background:record.id===duplicateReview.recommendedKeepId?'#f1faf7':'#fff'
+                }
+              },
+                h('div',{className:'panel-head'},
+                  h('div',null,
+                    h('h4',null,formalName(record)),
+                    h('small',null,record.patient_code||record.patient_id||'—')
+                  ),
+                  record.id===duplicateReview.recommendedKeepId
+                    ?h('span',{className:'badge'},'Recommended Keep')
+                    :null
+                ),
+                h('p',null,`Created: ${record.created_at?fmt(record.created_at):'—'}`),
+                h('p',null,`Status: ${record.is_active===false?'Inactive':'Active'} · Room ${record.room_no||'—'}-${record.bed_no||'—'}`),
+                h('p',null,`Mobile: ${record.mobile||'—'} · Attendant: ${record.attendant_phone||'—'}`),
+                h('p',null,`Consent: ${record.admission_consent_status||'Not recorded'}`),
+                h('div',{className:'accounts-status-list'},
+                  h('div',{className:'accounts-status-item'},h('span',null,'Billing transactions'),h('strong',null,record.counts.billing)),
+                  h('div',{className:'accounts-status-item'},h('span',null,'Medicine orders'),h('strong',null,record.counts.medicines)),
+                  h('div',{className:'accounts-status-item'},h('span',null,'Care orders'),h('strong',null,record.counts.care)),
+                  h('div',{className:'accounts-status-item'},h('span',null,'Vitals / incidents'),h('strong',null,record.counts.vitals+record.counts.incidents)),
+                  h('div',{className:'accounts-status-item'},h('span',null,'Documents'),h('strong',null,record.counts.documents))
+                ),
+                h('div',{className:'actions'},
+                  h('button',{
+                    type:'button',
+                    className:'btn btn-secondary',
+                    onClick:()=>openPatient(record)
+                  },'Open Patient File'),
+                  h('button',{
+                    type:'button',
+                    className:'btn btn-primary',
+                    disabled:patientConsentBusyId===record.id,
+                    onClick:()=>printPatientConsent(record)
+                  },patientConsentBusyId===record.id?'Preparing…':'Print Consent'),
+                  canEdit&&record.id!==duplicateReview.recommendedKeepId?h('button',{
+                    type:'button',
+                    className:'btn btn-danger',
+                    disabled:duplicateReviewBusy||record.activityCount>0,
+                    title:record.activityCount>0?'Clinical or financial activity exists; direct deletion is blocked.':'Delete this duplicate record',
+                    onClick:()=>deleteReviewedDuplicate(record)
+                  },record.activityCount>0?'Protected Record':'Delete Duplicate'):null
+                )
+              )
             )
           )
         )

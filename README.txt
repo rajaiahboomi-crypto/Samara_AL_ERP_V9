@@ -1,4 +1,4 @@
-SAMARA CARE ERP v2.7.6
+SAMARA CARE ERP v2.8.0
 
 UPLOAD / REPLACE:
 1. app.js
@@ -6,8 +6,11 @@ UPLOAD / REPLACE:
 
 NO SQL REQUIRED.
 
-CHANGES:
-- After successful signed-consent upload, Admission closes and returns to the role dashboard.
-- Consent includes a detailed admission fee structure.
-- Print/Save document title follows: Patient_Name_Patient_ID_DD-MM-YYYY
-- Uploaded signed consent is renamed with the same Patient Name, ID and Date format.
+NEW:
+- Possible duplicate rows show Review & Delete.
+- Duplicate review compares consent status, room, documents, billing and clinical history.
+- Empty incorrect duplicates can be deleted after confirmation.
+- Records with clinical or financial history are protected from direct deletion.
+- Every Patient Master row includes Print Consent.
+- If a signed consent exists, it is opened for printing.
+- Otherwise, a fresh consent is reconstructed from current patient, medicines, care plan and fee structure.

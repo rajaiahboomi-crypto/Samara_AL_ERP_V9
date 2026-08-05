@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.4.2';
-  const APP_BUILD_DATE = '05-Aug-2026 01:05 PM IST';
+  const APP_VERSION = '2.4.3';
+  const APP_BUILD_DATE = '05-Aug-2026 01:20 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -975,14 +975,36 @@ Caring with Compassion. Living with Dignity.`;
       .samara-field-error-text{display:block;margin-top:5px;color:#b42318;font-size:12px;font-weight:700}
       .field-setting-grid{display:grid;gap:10px}
       .field-setting-row{
-        display:grid;grid-template-columns:minmax(220px,1fr) 130px 110px;
-        gap:12px;align-items:center;padding:11px 13px;border:1px solid #dce8e4;
-        border-radius:12px;background:#fff
+        display:grid;grid-template-columns:minmax(240px,1fr) 165px 170px;
+        gap:14px;align-items:center;padding:14px 16px;border:1px solid #dce8e4;
+        border-radius:14px;background:#fff;transition:.18s ease
       }
-      .field-setting-row small{display:block;margin-top:3px;color:#697873}
-      .field-setting-status{font-size:12px;font-weight:800}
+      .field-setting-row:hover{border-color:#9fcfc2;box-shadow:0 8px 18px rgba(9,82,67,.08)}
+      .field-setting-row small{display:block;margin-top:4px;color:#697873}
+      .field-setting-status{
+        display:inline-flex;align-items:center;justify-content:center;gap:7px;
+        min-height:34px;padding:7px 11px;border-radius:999px;
+        font-size:12px;font-weight:900
+      }
+      .field-setting-status.mandatory{background:#ffeded;color:#b42318}
+      .field-setting-status.optional{background:#e8f7ed;color:#067333}
+      .field-setting-status.locked{background:#eef2f1;color:#4f625d}
+      .field-toggle-button{
+        min-height:42px;border:0;border-radius:12px;padding:9px 14px;
+        font:inherit;font-weight:900;cursor:pointer;transition:.18s ease
+      }
+      .field-toggle-button.make-required{background:#0b6d59;color:#fff}
+      .field-toggle-button.make-optional{background:#fff4df;color:#9a5c00;border:1px solid #f4c66b}
+      .field-toggle-button.locked{background:#edf3f1;color:#78908a;cursor:not-allowed}
+      .field-toggle-button:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 7px 15px rgba(9,82,67,.12)}
+      .field-setting-saving{opacity:.68;pointer-events:none}
+      .field-settings-autosave{
+        display:flex;align-items:center;gap:8px;margin-top:8px;
+        color:#dff7ef;font-size:12px;font-weight:800
+      }
       @media(max-width:720px){
         .field-setting-row{grid-template-columns:1fr}
+        .field-setting-status,.field-toggle-button{width:100%}
       }
     `;
     document.head.appendChild(style);
@@ -1101,6 +1123,12 @@ Caring with Compassion. Living with Dignity.`;
     const [search,setSearch]=React.useState('');
     const [message,setMessage]=React.useState('');
     const [busyKey,setBusyKey]=React.useState('');
+    const messageTimerRef=React.useRef(null);
+    const showSettingMessage=(text,isError=false)=>{
+      setMessage(`${isError?'ERROR:':''}${text}`);
+      if(messageTimerRef.current)clearTimeout(messageTimerRef.current);
+      messageTimerRef.current=setTimeout(()=>setMessage(''),3200);
+    };
 
     React.useEffect(()=>{ensureFormRequirementStyle()},[]);
 
@@ -1133,8 +1161,11 @@ Caring with Compassion. Living with Dignity.`;
       const key=formFieldKey(moduleName,label);
       const locked=SYSTEM_LOCKED_REQUIRED.has(key);
       if(locked)return;
-      setBusyKey(key);
-      const payload={
+
+      const previousRows=rows;
+      const existing=previousRows.find(row=>formFieldKey(row.module_name,row.field_label)===key);
+      const optimistic={
+        ...(existing||{}),
         module_name:moduleName,
         field_label:normaliseFieldLabel(label),
         is_required:Boolean(nextRequired),
@@ -1142,15 +1173,27 @@ Caring with Compassion. Living with Dignity.`;
         updated_by:profile.id,
         updated_at:new Date().toISOString()
       };
+
+      setBusyKey(key);
+      setRows(current=>[
+        ...current.filter(row=>formFieldKey(row.module_name,row.field_label)!==key),
+        optimistic
+      ]);
+
       const {error}=await client.from('form_field_settings')
-        .upsert(payload,{onConflict:'module_name,field_label'});
+        .upsert(optimistic,{onConflict:'module_name,field_label'});
+
       setBusyKey('');
       if(error){
-        setMessage(error.message);
+        setRows(previousRows);
+        showSettingMessage(error.message||'Unable to update the field requirement.',true);
         return;
       }
-      setMessage(`${label} is now ${nextRequired?'mandatory':'optional'} in ${moduleName}.`);
-      await load();
+
+      showSettingMessage(
+        `${label} marked as ${nextRequired?'Mandatory':'Optional'}. Saved automatically.`
+      );
+
       writeAuditEvent(
         'Form Field Requirement Changed',
         'Form Field Settings',
@@ -1177,8 +1220,8 @@ Caring with Compassion. Living with Dignity.`;
       const {error}=await client.from('form_field_settings')
         .upsert(payload,{onConflict:'module_name,field_label'});
       setBusyKey('');
-      if(error){setMessage(error.message);return}
-      setMessage(`Recommended defaults restored for ${moduleName}.`);
+      if(error){showSettingMessage(error.message||'Unable to restore defaults.',true);return}
+      showSettingMessage(`Recommended defaults restored for ${moduleName}. Saved automatically.`);
       await load();
     }
 
@@ -1187,7 +1230,8 @@ Caring with Compassion. Living with Dignity.`;
         h('div',null,
           h('small',null,'ADMINISTRATOR CONTROL'),
           h('h3',null,'Form Field Settings'),
-          h('p',null,'Decide which fields are mandatory or optional throughout Samara Care ERP.')
+          h('p',null,'Decide which fields are mandatory or optional throughout Samara Care ERP.'),
+          h('div',{className:'field-settings-autosave'},h('span',null,'●'),h('span',null,'Every change is saved automatically — no Save button required'))
         ),
         h('div',{className:'accounts-actions'},
           h('button',{className:'btn btn-secondary',disabled:busyKey==='restore',onClick:restoreDefaults},
@@ -1195,7 +1239,9 @@ Caring with Compassion. Living with Dignity.`;
           )
         )
       ),
-      message&&h('div',{className:message.includes('now')||message.includes('restored')?'message success':'message error'},message),
+      message&&h('div',{className:message.startsWith('ERROR:')?'message error':'message success'},
+        message.replace(/^ERROR:/,'')
+      ),
       h(Section,{title:'Select Module',subtitle:'System-critical fields remain locked as mandatory'},
         h('div',{className:'accounts-report-filters'},
           h('div',{className:'field'},h('label',null,'Module'),h('select',{
@@ -1213,18 +1259,26 @@ Caring with Compassion. Living with Dignity.`;
           const locked=SYSTEM_LOCKED_REQUIRED.has(key);
           const saved=savedMap.get(key);
           const required=locked||Boolean(saved?.is_required);
-          return h('div',{className:'field-setting-row',key},
+          return h('div',{
+            className:`field-setting-row ${busyKey===key?'field-setting-saving':''}`,
+            key
+          },
             h('div',null,
               h('strong',null,label,required&&h('span',{className:'samara-required-star'},'*')),
-              h('small',null,locked?'System-critical field':'Administrator configurable')
+              h('small',null,locked?'System-critical field — cannot be changed':'Administrator configurable — one-click auto-save')
             ),
-            h('span',{className:'field-setting-status'},required?'Mandatory':'Optional'),
+            h('span',{
+              className:`field-setting-status ${locked?'locked':required?'mandatory':'optional'}`
+            },
+              h('span',null,locked?'🔒':required?'●':'●'),
+              h('span',null,locked?'System Mandatory':required?'Mandatory':'Optional')
+            ),
             h('button',{
               type:'button',
-              className:required?'btn btn-secondary':'btn btn-primary',
+              className:`field-toggle-button ${locked?'locked':required?'make-optional':'make-required'}`,
               disabled:locked||busyKey===key,
               onClick:()=>setRequired(label,!required)
-            },locked?'Locked':busyKey===key?'Saving…':required?'Make Optional':'Make Mandatory')
+            },locked?'Locked':busyKey===key?'Saving automatically…':required?'Make Optional':'Make Mandatory')
           );
         })
       )

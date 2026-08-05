@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.10';
-  const APP_BUILD_DATE = '05-Aug-2026 12:24 IST';
+  const APP_VERSION = '2.4.0';
+  const APP_BUILD_DATE = '05-Aug-2026 12:40 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -2132,6 +2132,10 @@ Caring with Compassion. Living with Dignity.`;
     const [form,setForm]=React.useState(initial),[meds,setMeds]=React.useState([blankMedicine()]),[care,setCare]=React.useState([blankCare()]),[busy,setBusy]=React.useState(false),[msg,setMsg]=React.useState('');
     const [photoFiles,setPhotoFiles]=React.useState([]),[idFiles,setIdFiles]=React.useState([]),[dischargeFiles,setDischargeFiles]=React.useState([]),[prescriptionFiles,setPrescriptionFiles]=React.useState([]),[reportFiles,setReportFiles]=React.useState([]),[cameraConfig,setCameraConfig]=React.useState(null),[patientPhotoPreview,setPatientPhotoPreview]=React.useState('');
     const [roomBeds,setRoomBeds]=React.useState([]);
+    const [previousPatients,setPreviousPatients]=React.useState([]);
+    const [returningPatient,setReturningPatient]=React.useState(null);
+    const [patientSearch,setPatientSearch]=React.useState('');
+    const [matchList,setMatchList]=React.useState([]);
     React.useEffect(()=>{
       let active=true;
       async function loadRoomBeds(){
@@ -2166,6 +2170,95 @@ Caring with Compassion. Living with Dignity.`;
         .subscribe();
       return()=>{active=false;client.removeChannel(channel)};
     },[]);
+    React.useEffect(()=>{
+      let alive=true;
+      async function loadPreviousPatients(){
+        const {data,error}=await client.from('patients')
+          .select('id,patient_id,title,full_name,age,gender,mobile,address,attendant_name,attendant_phone,allergies,diagnosis,treating_doctor,doctor_phone,hospital_name,photo_storage_path,is_active,admission_date,discharge_date,patient_category,billing_package,diet_plan,feeding_instruction,special_instructions')
+          .order('full_name',{ascending:true});
+        if(!alive)return;
+        if(error){
+          console.warn('Unable to load previous patients for re-admission detection:',error.message);
+          setPreviousPatients([]);
+        }else setPreviousPatients(data||[]);
+      }
+      loadPreviousPatients();
+      const channel=client.channel('admission-returning-patient-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'patients'},loadPreviousPatients)
+        .subscribe();
+      return()=>{alive=false;client.removeChannel(channel)};
+    },[]);
+
+    const normalizePhone=value=>String(value||'').replace(/\D/g,'').slice(-10);
+    const normalizeText=value=>String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
+    function findReturningPatients(value){
+      const raw=String(value||'').trim();
+      if(raw.length<3){setMatchList([]);return []}
+      const phone=normalizePhone(raw);
+      const text=normalizeText(raw);
+      const matches=previousPatients.filter(patient=>{
+        const patientPhone=normalizePhone(patient.mobile||patient.attendant_phone);
+        const patientCode=normalizeText(patient.patient_id);
+        const patientName=normalizeText(formalName(patient)||patient.full_name);
+        return (phone.length>=7&&patientPhone===phone)||
+          (patientCode&&patientCode===text)||
+          (text.length>=4&&patientName.includes(text));
+      }).slice(0,5);
+      setMatchList(matches);
+      return matches;
+    }
+    function autoDetectReturningPatient(){
+      const candidates=[
+        ...findReturningPatients(form.mobile),
+        ...findReturningPatients(form.full_name)
+      ];
+      const unique=[...new Map(candidates.map(item=>[item.id,item])).values()];
+      if(unique.length===1&&!returningPatient){
+        setMatchList(unique);
+        setMsg('Previous Samara Care patient found. Please confirm re-admission instead of creating a duplicate patient.');
+      }
+    }
+    function useReturningPatient(patient){
+      if(patient.is_active!==false){
+        setMsg(`${formalName(patient)||patient.full_name} is already an active patient. A second admission cannot be created.`);
+        return;
+      }
+      setReturningPatient(patient);
+      setMatchList([]);
+      setPatientSearch('');
+      setForm(current=>({
+        ...current,
+        title:patient.title||'',
+        full_name:patient.full_name||'',
+        age:patient.age||'',
+        gender:patient.gender||'Male',
+        mobile:patient.mobile||'',
+        address:patient.address||'',
+        attendant_name:patient.attendant_name||'',
+        attendant_phone:patient.attendant_phone||'',
+        allergies:patient.allergies||'',
+        treating_doctor:patient.treating_doctor||'',
+        doctor_phone:patient.doctor_phone||'',
+        hospital_name:patient.hospital_name||'',
+        diet_plan:patient.diet_plan||'Normal diet',
+        feeding_instruction:patient.feeding_instruction||'',
+        billing_package:patient.billing_package||'Standard Assisted Care',
+        special_instructions:patient.special_instructions||'',
+        diagnosis:'',
+        room_no:'',
+        bed_no:'',
+        admission_date:today
+      }));
+      setMsg(`Re-admission detected: ${formalName(patient)||patient.full_name} · ${patient.patient_id}. Permanent details were filled automatically. Enter only the current stay details.`);
+    }
+    function clearReturningPatient(){
+      setReturningPatient(null);
+      setMatchList([]);
+      setPatientSearch('');
+      setForm(initial);
+      setMsg('');
+    }
+
     const careTemplates=['Bathing assistance','Restroom/toileting assistance','Oral hygiene','Dressing assistance','Feeding assistance','Walking/mobility assistance','Diaper change','Position change / bedsore prevention','Fluid intake monitoring','Sleep assistance'];
     const riskItems=[['fall_risk','Fall risk'],['pressure_sore_risk','Pressure sore risk'],['aspiration_risk','Aspiration risk'],['wandering_risk','Wandering / confusion risk'],['infection_risk','Infection-control precautions'],['seizure_history','Seizure history']];
     const needsHospital=form.admission_type==='Hospital Discharge'||form.admission_type==='Hospital Transfer';
@@ -2204,22 +2297,65 @@ Caring with Compassion. Living with Dignity.`;
       const selectedBed=roomBeds.find(r=>String(r.room_no)===String(form.room_no)&&String(r.bed_no||r.bed_code||'').toUpperCase()===String(form.bed_no||'').toUpperCase());
       if(!selectedBed||selectedBed.status!=='Available'||selectedBed.patient_id){setMsg('The selected room/bed is no longer available. Please choose another available bed.');setBusy(false);return}
       if(isFutureDateIndia(form.admission_date)){setMsg(`Admission date cannot be later than today (${formatDateIN(todayISOIndia())}). Please correct the date.`);setBusy(false);return}
-      if(!photoFiles.length){setMsg('Capture or upload the patient photograph before admission.');setBusy(false);return}
-      if(!idFiles.length){setMsg('Upload at least one patient identity document.');setBusy(false);return}
+      if(!returningPatient&&!photoFiles.length){setMsg('Capture or upload the patient photograph before admission.');setBusy(false);return}
+      if(!returningPatient&&!idFiles.length){setMsg('Upload at least one patient identity document.');setBusy(false);return}
       if(needsHospital&&!dischargeFiles.length){setMsg('Upload the hospital discharge summary or transfer note.');setBusy(false);return}
       if((needsHospital||needsReferral)&&!prescriptionFiles.length){setMsg('Upload the current prescription.');setBusy(false);return}
       if(!meds.length||meds.some(m=>!m.medicine_name||!m.strength||!m.times)){setMsg('Enter every current medicine, strength and administration time.');setBusy(false);return}
       if(form.special_nurse_required&&!form.special_nurse_name){setMsg('Assign or enter the special nurse name.');setBusy(false);return}
       const {data:{user}}=await client.auth.getUser();
-      const {data:patientCode,error:patientCodeError}=await client.rpc('next_patient_code');
-      if(patientCodeError){setMsg(patientCodeError.message);setBusy(false);return}
-      const payload={...form,patient_id:patientCode,age:Number(form.age)||null,created_by:user.id,is_active:true,admission_status:'Active',prescription_verified:true,prescription_verified_by:user.id,prescription_verified_at:new Date().toISOString()};
+      let patient=null;
+      let patientCode=returningPatient?.patient_id||null;
+      const payload={...form,age:Number(form.age)||null,is_active:true,admission_status:'Active',prescription_verified:true,prescription_verified_by:user.id,prescription_verified_at:new Date().toISOString()};
       ['physio_required','therapy_type','physiotherapist_name','physio_frequency','physio_time','physio_precautions'].forEach(k=>delete payload[k]);
-      const {data:patient,error}=await client.from('patients').insert(payload).select().single();if(error){setMsg(error.message);setBusy(false);return}
-      const {error:roomAssignError}=await client.rpc('assign_patient_room',{p_patient_id:patient.id,p_room_bed_id:selectedBed.id,p_reason:'Initial admission room allotment'});
-      if(roomAssignError){await client.from('patients').delete().eq('id',patient.id);setMsg(roomAssignError.message||'Unable to allot the selected room.');setBusy(false);return}
+
+      if(returningPatient){
+        const {error:roomAssignError}=await client.rpc('assign_patient_room',{
+          p_patient_id:returningPatient.id,
+          p_room_bed_id:selectedBed.id,
+          p_reason:'Re-admission room allotment'
+        });
+        if(roomAssignError){setMsg(roomAssignError.message||'Unable to allot the selected room for re-admission.');setBusy(false);return}
+
+        const {data:updated,error:updateError}=await client.from('patients')
+          .update({...payload,patient_id:returningPatient.patient_id,created_by:returningPatient.created_by||user.id})
+          .eq('id',returningPatient.id)
+          .select()
+          .single();
+        if(updateError){
+          setMsg(updateError.message);
+          setBusy(false);
+          return;
+        }
+        patient=updated;
+
+        await client.from('medication_orders').update({is_active:false}).eq('patient_id',patient.id);
+        await client.from('care_orders').update({is_active:false}).eq('patient_id',patient.id);
+        await client.from('physiotherapy_plans').update({is_active:false}).eq('patient_id',patient.id);
+      }else{
+        const codeResult=await client.rpc('next_patient_code');
+        if(codeResult.error){setMsg(codeResult.error.message);setBusy(false);return}
+        patientCode=codeResult.data;
+        const {data:created,error:createError}=await client.from('patients')
+          .insert({...payload,patient_id:patientCode,created_by:user.id})
+          .select()
+          .single();
+        if(createError){setMsg(createError.message);setBusy(false);return}
+        patient=created;
+        const {error:roomAssignError}=await client.rpc('assign_patient_room',{
+          p_patient_id:patient.id,
+          p_room_bed_id:selectedBed.id,
+          p_reason:'Initial admission room allotment'
+        });
+        if(roomAssignError){
+          await client.from('patients').delete().eq('id',patient.id);
+          setMsg(roomAssignError.message||'Unable to allot the selected room.');
+          setBusy(false);
+          return;
+        }
+      }
       try{
-        await uploadPatientFile(patient.id,photoFiles[0],'Patient Photo',true);
+        if(photoFiles[0])await uploadPatientFile(patient.id,photoFiles[0],'Patient Photo',true);
         for(const f of idFiles)await uploadPatientFile(patient.id,f,'Identity Proof');
         for(const f of dischargeFiles)await uploadPatientFile(patient.id,f,needsHospital?'Discharge / Transfer Summary':'Medical History');
         for(const f of prescriptionFiles)await uploadPatientFile(patient.id,f,'Current Prescription');
@@ -2228,19 +2364,100 @@ Caring with Compassion. Living with Dignity.`;
         await client.from('medication_orders').insert(medRows);
         const careRows=care.filter(c=>c.care_type).map(c=>({...c,patient_id:patient.id,entered_by:user.id}));if(careRows.length)await client.from('care_orders').insert(careRows);
         if(form.physio_required&&form.therapy_type)await client.from('physiotherapy_plans').insert({patient_id:patient.id,advised_by:form.treating_doctor||form.referring_doctor,therapy_type:form.therapy_type,physiotherapist_name:form.physiotherapist_name||null,frequency:form.physio_frequency,preferred_time:form.physio_time,precautions:form.physio_precautions,start_date:form.admission_date,entered_by:user.id});
-        await client.from('audit_log').insert({user_id:user.id,action:'PATIENT_ADMISSION_COMPLETED',entity:'patients',entity_id:patient.id,details:{admission_type:form.admission_type,category:form.patient_category}});
-        setMsg('Admission completed. Patient photo, documents, medicines and care plan are active.');setForm(initial);setMeds([blankMedicine()]);setCare([blankCare()]);setPhotoFiles([]);setIdFiles([]);setDischargeFiles([]);setPrescriptionFiles([]);setReportFiles([]);if(patientPhotoPreview)URL.revokeObjectURL(patientPhotoPreview);setPatientPhotoPreview('');
-      }catch(err){setMsg('Patient created, but document or care setup failed: '+err.message)}
+        await client.from('audit_log').insert({
+          user_id:user.id,
+          action:returningPatient?'PATIENT_READMISSION_COMPLETED':'PATIENT_ADMISSION_COMPLETED',
+          entity:'patients',
+          entity_id:patient.id,
+          details:{
+            admission_type:form.admission_type,
+            category:form.patient_category,
+            patient_id:patient.patient_id,
+            readmission:!!returningPatient,
+            previous_admission_date:returningPatient?.admission_date||null
+          }
+        });
+        setMsg(returningPatient
+          ?`Re-admission completed for ${formalName(patient)||patient.full_name}. Existing Patient ID ${patient.patient_id} has been retained.`
+          :'Admission completed. Patient photo, documents, medicines and care plan are active.'
+        );
+        setForm(initial);setReturningPatient(null);setMatchList([]);setPatientSearch('');
+        setMeds([blankMedicine()]);setCare([blankCare()]);setPhotoFiles([]);setIdFiles([]);setDischargeFiles([]);setPrescriptionFiles([]);setReportFiles([]);if(patientPhotoPreview)URL.revokeObjectURL(patientPhotoPreview);setPatientPhotoPreview('');
+      }catch(err){setMsg(`${returningPatient?'Patient re-activated':'Patient created'}, but document or care setup failed: ${err.message}`)}
       setBusy(false);
     }
     return h('form',{className:'card panel',onSubmit:submit},
       h('div',{className:'panel-head'},h('div',null,h('h3',null,'Unified Patient Admission'),h('small',null,'Hospital discharge, direct admission, doctor referral or transfer'))),
-      msg&&h('div',{className:`message ${msg.startsWith('Admission')?'success':'error'}`},msg),
+      msg&&h('div',{className:`message ${msg.includes('completed')?'success':'error'}`},msg),
+      h('div',{className:'section-card'},
+        h('div',{className:'section-title'},
+          h('div',null,
+            h('h4',null,'Returning Patient Check'),
+            h('small',null,'The system automatically checks Patient ID, mobile number and patient name to prevent duplicate registration.')
+          ),
+          returningPatient&&h('button',{type:'button',className:'btn btn-secondary',onClick:clearReturningPatient},'Cancel Re-admission')
+        ),
+        h('div',{className:'form-grid'},
+          h('div',{className:'field span-2'},
+            h('label',null,'Patient ID / Mobile Number / Patient Name'),
+            h('div',{style:{display:'flex',gap:'8px'}},
+              h('input',{
+                value:patientSearch,
+                onChange:e=>{setPatientSearch(e.target.value);findReturningPatients(e.target.value)},
+                placeholder:'Example: PAT-0005, 9176735577 or Radha'
+              }),
+              h('button',{type:'button',className:'btn btn-secondary',onClick:()=>findReturningPatients(patientSearch)},'Check')
+            )
+          )
+        ),
+        matchList.length>0&&h('div',{className:'accounts-workflow-grid'},
+          matchList.map(patient=>h('button',{
+            type:'button',
+            key:patient.id,
+            className:'accounts-workflow-card reports',
+            onClick:()=>useReturningPatient(patient)
+          },
+            h('div',{className:'accounts-workflow-top'},
+              h('span',{className:'accounts-workflow-icon'},'↩'),
+              h('span',{className:'accounts-workflow-value'},patient.is_active===false?'Previous':'Active')
+            ),
+            h('div',{className:'accounts-workflow-body'},
+              h('strong',null,formalName(patient)||patient.full_name),
+              h('small',null,`${patient.patient_id||'No ID'} · ${patient.mobile||patient.attendant_phone||'No mobile'} · Last admission ${formatDateIN(patient.admission_date)}`)
+            ),
+            h('span',{className:'accounts-workflow-open'},h('span',null,patient.is_active===false?'Re-admit Existing Patient':'Already Active'),h('span',null,'→'))
+          ))
+        ),
+        returningPatient&&h('div',{className:'message success'},
+          h('strong',null,'Re-admission mode active'),
+          h('div',{style:{marginTop:'5px'}},`${formalName(returningPatient)||returningPatient.full_name} · ${returningPatient.patient_id}. Permanent personal details and existing documents will be retained.`)
+        )
+      ),
       h('div',{className:'section-card'},h('h4',null,'1. Admission route and patient identity'),h('div',{className:'form-grid'},
         selectField('Admission type','admission_type',form,setForm,['Hospital Discharge','Direct Admission','Doctor Referral','Hospital Transfer']),
         selectField('Patient category','patient_category',form,setForm,['Short Stay','Respite Care','Post-Surgery','Rehabilitation','Stroke Recovery','Dementia Care','Parkinsonism','Palliative Care','Long-Term Assisted Living','Observation','Elderly Care']),
-        selectField('Title / Salutation','title',form,setForm,PATIENT_TITLES),field('Patient name','full_name',form,setForm,true),field('Age','age',form,setForm,false,'number'),selectField('Gender','gender',form,setForm,['Male','Female','Other']),field('Mobile','mobile',form,setForm,false,'tel'),textareaField('Address','address',form,setForm,'span-2'),field('Family / attendant name','attendant_name',form,setForm,true),field('Attendant phone','attendant_phone',form,setForm,true,'tel')
-      ),h('div',{className:'upload-grid'},patientCaptureInput('Patient Photo',photoFiles,setPhotoFiles,'image/*',true),patientCaptureInput('Identity Proof',idFiles,setIdFiles,'image/*,.pdf',false))),
+        selectField('Title / Salutation','title',form,setForm,PATIENT_TITLES),
+        h('div',{className:'field'},h('label',null,'Patient name'),h('input',{
+          required:true,value:form.full_name,
+          onChange:e=>setForm({...form,full_name:e.target.value}),
+          onBlur:autoDetectReturningPatient,
+          readOnly:!!returningPatient
+        })),
+        field('Age','age',form,setForm,false,'number'),
+        selectField('Gender','gender',form,setForm,['Male','Female','Other']),
+        h('div',{className:'field'},h('label',null,'Mobile'),h('input',{
+          type:'tel',value:form.mobile,
+          onChange:e=>setForm({...form,mobile:e.target.value}),
+          onBlur:autoDetectReturningPatient,
+          readOnly:!!returningPatient
+        })),
+        textareaField('Address','address',form,setForm,'span-2'),
+        field('Family / attendant name','attendant_name',form,setForm,true),
+        field('Attendant phone','attendant_phone',form,setForm,true,'tel')
+      ),h('div',{className:'upload-grid'},
+        patientCaptureInput(returningPatient?'New Patient Photo (only if changed)':'Patient Photo',photoFiles,setPhotoFiles,'image/*',true),
+        patientCaptureInput(returningPatient?'New Identity Proof (only if changed)':'Identity Proof',idFiles,setIdFiles,'image/*,.pdf',false)
+      )),
       h('div',{className:'section-card'},h('h4',null,'2. Medical source and records'),h('div',{className:'form-grid'},
         needsHospital&&field('Hospital / previous centre','hospital_name',form,setForm,true),needsHospital&&field('Discharge / transfer date','discharge_date',form,setForm,true,'date'),
         needsReferral&&field('Referring doctor','referring_doctor',form,setForm,true),needsReferral&&field('Clinic / referral source','referring_source',form,setForm,false),
@@ -2250,7 +2467,11 @@ Caring with Compassion. Living with Dignity.`;
       h('div',{className:'section-card'},h('h4',null,'4. Master care plan'),h('div',{className:'check-grid'},careTemplates.map(name=>h('label',{className:'check-card',key:name},h('input',{type:'checkbox',checked:care.some(x=>x.care_type===name),onChange:e=>e.target.checked?addCareTemplate(name):setCare(care.filter(x=>x.care_type!==name))}),h('span',null,name)))),care.map((c,i)=>h('div',{className:'repeat-row care',key:c.care_type+i},miniInput('Care task',c.care_type,v=>updateRow(setCare,care,i,'care_type',v),true),miniSelect('Shift',c.shift,['Day Shift (7 AM–7 PM)','Night Shift (7 PM–7 AM)','Both shifts'],v=>updateRow(setCare,care,i,'shift',v)),miniSelect('Frequency',c.frequency,['Daily','Each shift','Twice daily','As required'],v=>updateRow(setCare,care,i,'frequency',v)),miniInput('Instruction',c.instruction,v=>updateRow(setCare,care,i,'instruction',v)),h('button',{type:'button',className:'icon-btn',onClick:()=>setCare(care.filter((_,n)=>n!==i))},'Remove'))),h('div',{className:'form-grid'},selectField('Diet plan','diet_plan',form,setForm,['Normal diet','Soft diet','Liquid diet','Diabetic diet','Low-salt diet','Renal diet','High-protein diet','Tube feeding','Custom diet']),textareaField('Feeding instructions','feeding_instruction',form,setForm,'span-2'))),
       h('div',{className:'section-card'},h('h4',null,'5. Risks, special nurse and physiotherapy'),h('div',{className:'check-grid'},riskItems.map(([key,label])=>h('label',{className:'check-card',key},h('input',{type:'checkbox',checked:!!form[key],onChange:e=>setForm({...form,[key]:e.target.checked})}),h('span',null,label))),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.oxygen_required,onChange:e=>setForm({...form,oxygen_required:e.target.checked})}),h('span',null,'Oxygen required')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.dressing_required,onChange:e=>setForm({...form,dressing_required:e.target.checked})}),h('span',null,'Wound dressing required')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.special_nurse_required,onChange:e=>setForm({...form,special_nurse_required:e.target.checked})}),h('span',null,'Special / dedicated nurse')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.physio_required,onChange:e=>setForm({...form,physio_required:e.target.checked})}),h('span',null,'Physiotherapy advised'))),form.special_nurse_required&&h('div',{className:'form-grid'},field('Special nurse name','special_nurse_name',form,setForm,true),selectField('Coverage','special_nurse_shift',form,setForm,['Day Shift','Night Shift','Both shifts / 24-hour coverage']),textareaField('Special nursing instructions','special_nurse_instructions',form,setForm,'span-2')),form.physio_required&&h('div',{className:'form-grid'},field('Therapy / exercise','therapy_type',form,setForm,true),field('Physiotherapist name','physiotherapist_name',form,setForm,false),field('Frequency','physio_frequency',form,setForm,false),field('Preferred time','physio_time',form,setForm,false,'time'),textareaField('Precautions','physio_precautions',form,setForm,'span-2'))),
       h('div',{className:'section-card'},h('h4',null,'6. Package, room and activation'),h('div',{className:'form-grid'},selectField('Package','billing_package',form,setForm,['Basic Care','Standard Assisted Care','High Dependency Care','Post-operative Care','Rehabilitation Care','Palliative Care','Rehabilitation Care','Custom Package']),roomBedSelect(roomBeds,form.room_no,form.bed_no,(room_no,bed_no)=>setForm({...form,room_no,bed_no}),true),field('Admission date','admission_date',form,setForm,true,'date'))),
-      h('button',{className:'btn btn-primary full',disabled:busy},busy?'Completing admission…':'Complete Admission and Activate Care Plan'),
+      h('button',{className:'btn btn-primary full',disabled:busy},
+        busy
+          ?returningPatient?'Completing re-admission…':'Completing admission…'
+          :returningPatient?'Complete Re-admission and Activate Care Plan':'Complete Admission and Activate Care Plan'
+      ),
       cameraConfig?h(CameraCaptureModal,{config:cameraConfig,onClose:()=>setCameraConfig(null)}):null
     );
   }

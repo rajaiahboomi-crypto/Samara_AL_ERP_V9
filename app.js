@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.4.7';
-  const APP_BUILD_DATE = '05-Aug-2026 01:48 PM IST';
+  const APP_VERSION = '2.5.0';
+  const APP_BUILD_DATE = '05-Aug-2026 02:05 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -114,7 +114,7 @@
   const BED_CODE_OPTIONS = ['A','B','C','D'];
   const NAV_SECTIONS = [
     { title:'OVERVIEW', items:['Dashboard','Notifications'] },
-    { title:'ADMIN', items:['Employees','Rooms','Form Field Settings','Audit Trail','Alert Settings','System Maintenance'] },
+    { title:'ADMIN', items:['Employees','Rooms','Care Packages','Form Field Settings','Audit Trail','Alert Settings','System Maintenance'] },
     { title:'ADMISSION', items:['Enquiries','Admissions','Patients','Discharge','Documents'] },
     { title:'MANAGER', items:['Reports','Intelligent Reports','Medication Errors','Recovery Timeline'] },
     { title:'NURSING', items:['Clinical Dashboard','Clinical Alerts','Shift Tasks','Daily Care','Vital Signs','Medicines','Physiotherapy','Special Nurse','Shift Handover','Incidents'] },
@@ -1600,6 +1600,7 @@ Caring with Compassion. Living with Dignity.`;
           page==='Patients'&&h(Patients,{profile}),
           page==='Discharge'&&h(DischargeManagement,{profile}),
           page==='Rooms'&&h(RoomsBeds,{profile}),
+          page==='Care Packages'&&h(CarePackages,{profile}),
           page==='Form Field Settings'&&h(FormFieldSettings,{profile}),
           page==='Daily Care'&&h(DailyCare,{profile,onNavigate:setPage}),
           page==='Vital Signs'&&h(VitalSigns,{profile,onNavigate:setPage}),
@@ -2661,6 +2662,7 @@ Caring with Compassion. Living with Dignity.`;
     const [form,setForm]=React.useState(initial),[meds,setMeds]=React.useState([blankMedicine()]),[care,setCare]=React.useState([blankCare()]),[busy,setBusy]=React.useState(false),[msg,setMsg]=React.useState('');
     const [photoFiles,setPhotoFiles]=React.useState([]),[idFiles,setIdFiles]=React.useState([]),[dischargeFiles,setDischargeFiles]=React.useState([]),[prescriptionFiles,setPrescriptionFiles]=React.useState([]),[reportFiles,setReportFiles]=React.useState([]),[cameraConfig,setCameraConfig]=React.useState(null),[patientPhotoPreview,setPatientPhotoPreview]=React.useState('');
     const [roomBeds,setRoomBeds]=React.useState([]);
+    const [carePackages,setCarePackages]=React.useState([]);
     const [previousPatients,setPreviousPatients]=React.useState([]);
     const [returningPatient,setReturningPatient]=React.useState(null);
     const [patientSearch,setPatientSearch]=React.useState('');
@@ -2697,6 +2699,19 @@ Caring with Compassion. Living with Dignity.`;
         .on('postgres_changes',{event:'*',schema:'public',table:'room_beds'},loadRoomBeds)
         .on('postgres_changes',{event:'*',schema:'public',table:'patients'},loadRoomBeds)
         .subscribe();
+      return()=>{active=false;client.removeChannel(channel)};
+    },[]);
+    React.useEffect(()=>{
+      let active=true;
+      async function loadPackages(){
+        const {data,error}=await client.from('care_packages').select('*').eq('is_active',true).order('package_name');
+        if(!active)return;
+        if(error){console.warn('Unable to load care packages:',error.message);setCarePackages([])}
+        else setCarePackages(data||[]);
+      }
+      loadPackages();
+      const channel=client.channel('admission-care-packages-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'care_packages'},loadPackages).subscribe();
       return()=>{active=false;client.removeChannel(channel)};
     },[]);
     React.useEffect(()=>{
@@ -2835,7 +2850,11 @@ Caring with Compassion. Living with Dignity.`;
       const {data:{user}}=await client.auth.getUser();
       let patient=null;
       let patientCode=returningPatient?.patient_id||null;
-      const payload={...form,age:Number(form.age)||null,is_active:true,admission_status:'Active',prescription_verified:true,prescription_verified_by:user.id,prescription_verified_at:new Date().toISOString()};
+      const payload={...form,age:Number(form.age)||null,is_active:true,admission_status:'Active',
+        prescription_verified:true,prescription_verified_by:user.id,prescription_verified_at:new Date().toISOString(),
+        package_id:selectedPackage?.id||null,package_start_date:selectedPackage?form.admission_date:null,
+        package_end_date:selectedPackage?packageEndDate():null,package_fee:selectedPackage?selectedPackageFee():null,
+        package_room_class:selectedPackage?packageRoomClass():null};
       ['physio_required','therapy_type','physiotherapist_name','physio_frequency','physio_time','physio_precautions'].forEach(k=>delete payload[k]);
 
       if(returningPatient){
@@ -2889,6 +2908,17 @@ Caring with Compassion. Living with Dignity.`;
         for(const f of dischargeFiles)await uploadPatientFile(patient.id,f,needsHospital?'Discharge / Transfer Summary':'Medical History');
         for(const f of prescriptionFiles)await uploadPatientFile(patient.id,f,'Current Prescription');
         for(const f of reportFiles)await uploadPatientFile(patient.id,f,'Medical / Test Report');
+        if(selectedPackage&&selectedPackageFee()>0){
+          const {error:packageChargeError}=await client.from('billing_transactions').insert({
+            patient_id:patient.id,transaction_type:'Charge',category:'Assisted Living Package',
+            amount:selectedPackageFee(),payment_mode:'Not applicable',
+            description:[selectedPackage.package_name,`${selectedPackage.duration_value} ${selectedPackage.duration_unit}`,
+              `${packageRoomClass()} accommodation`,`Coverage: ${form.admission_date} to ${packageEndDate()}`,
+              selectedPackage.included_services||''].filter(Boolean).join(' | '),
+            transaction_date:new Date().toISOString(),entered_by:user.id
+          });
+          if(packageChargeError)throw packageChargeError;
+        }
         const medRows=meds.map(m=>{const start=m.start_date||new Date().toISOString().slice(0,10);const durationDays=m.duration==='Custom'?Number(m.custom_duration_days||0):({'Single Dose':0,'1 Day':1,'3 Days':3,'5 Days':5,'7 Days':7,'10 Days':10,'14 Days':14,'21 Days':21,'30 Days':30}[m.duration]??null);let endDate=null;if(durationDays!==null){const d=new Date(`${start}T00:00:00`);d.setDate(d.getDate()+Math.max(durationDays-1,0));endDate=d.toISOString().slice(0,10)}return {patient_id:patient.id,medicine_name:m.medicine_name,strength:m.strength,dose:m.strength,route:m.route,food_instruction:m.food_instruction,special_instruction:m.special_instruction,scheduled_times:m.times.split(',').map(x=>x.trim()).filter(Boolean),frequency:m.frequency,duration:m.duration,duration_days:m.duration==='Custom'?Number(m.custom_duration_days||0):durationDays,start_date:start,end_date:endDate,entered_by:user.id,verified_by:user.id}});
         await client.from('medication_orders').insert(medRows);
         const careRows=care.filter(c=>c.care_type).map(c=>({...c,patient_id:patient.id,entered_by:user.id}));if(careRows.length)await client.from('care_orders').insert(careRows);
@@ -2995,7 +3025,23 @@ Caring with Compassion. Living with Dignity.`;
       h('div',{className:'section-card'},h('div',{className:'section-title'},h('h4',null,'3. Current medicines and prescription verification'),h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setMeds([...meds,blankMedicine()])},'Add medicine')),meds.map((m,i)=>h('div',{className:'repeat-row medicine-order-row',key:i},miniInput('Medicine',m.medicine_name,v=>updateRow(setMeds,meds,i,'medicine_name',v),true),miniInput('Strength',m.strength,v=>updateRow(setMeds,meds,i,'strength',v),true),miniSelect('Frequency',m.frequency,['Once Daily (OD)','Twice Daily (BD)','Three Times Daily (TDS)','Four Times Daily (QID)','HS','STAT','SOS / PRN','Weekly','Monthly'],v=>{const next=meds.map((row,n)=>n===i?{...row,frequency:v,times:(MEDICATION_FREQUENCY_TIMES[v]||String(row.times||'').split(',').map(normalizeMedicationTime).filter(Boolean)).join(', ')}:row);setMeds(next)}),miniSelect('Route',m.route,['Oral','IV','IM'],v=>updateRow(setMeds,meds,i,'route',v)),h(MedicationTimeSelector,{label:'Time',value:m.times,onChange:v=>updateRow(setMeds,meds,i,'times',v),required:true}),miniSelect('Food',m.food_instruction,['Before food','After food','With food','No restriction'],v=>updateRow(setMeds,meds,i,'food_instruction',v)),miniSelect('Duration',m.duration,['Single Dose','1 Day','3 Days','5 Days','7 Days','10 Days','14 Days','21 Days','30 Days','Until Doctor Review','Long Term','Custom'],v=>updateRow(setMeds,meds,i,'duration',v)),m.duration==='Custom'&&miniInput('Custom days',m.custom_duration_days,v=>updateRow(setMeds,meds,i,'custom_duration_days',v),true,'number'),miniInput('Start date',m.start_date,v=>updateRow(setMeds,meds,i,'start_date',v),true,'date'),miniInput('Special instruction',m.special_instruction,v=>updateRow(setMeds,meds,i,'special_instruction',v)),h('button',{type:'button',className:'icon-btn',onClick:()=>setMeds(meds.filter((_,n)=>n!==i)),disabled:meds.length===1},'Remove')))),
       h('div',{className:'section-card'},h('h4',null,'4. Master care plan'),h('div',{className:'check-grid'},careTemplates.map(name=>h('label',{className:'check-card',key:name},h('input',{type:'checkbox',checked:care.some(x=>x.care_type===name),onChange:e=>e.target.checked?addCareTemplate(name):setCare(care.filter(x=>x.care_type!==name))}),h('span',null,name)))),care.map((c,i)=>h('div',{className:'repeat-row care',key:c.care_type+i},miniInput('Care task',c.care_type,v=>updateRow(setCare,care,i,'care_type',v),true),miniSelect('Shift',c.shift,['Day Shift (7 AM–7 PM)','Night Shift (7 PM–7 AM)','Both shifts'],v=>updateRow(setCare,care,i,'shift',v)),miniSelect('Frequency',c.frequency,['Daily','Each shift','Twice daily','As required'],v=>updateRow(setCare,care,i,'frequency',v)),miniInput('Instruction',c.instruction,v=>updateRow(setCare,care,i,'instruction',v)),h('button',{type:'button',className:'icon-btn',onClick:()=>setCare(care.filter((_,n)=>n!==i))},'Remove'))),h('div',{className:'form-grid'},selectField('Diet plan','diet_plan',form,setForm,['Normal diet','Soft diet','Liquid diet','Diabetic diet','Low-salt diet','Renal diet','High-protein diet','Tube feeding','Custom diet']),textareaField('Feeding instructions','feeding_instruction',form,setForm,'span-2'))),
       h('div',{className:'section-card'},h('h4',null,'5. Risks, special nurse and physiotherapy'),h('div',{className:'check-grid'},riskItems.map(([key,label])=>h('label',{className:'check-card',key},h('input',{type:'checkbox',checked:!!form[key],onChange:e=>setForm({...form,[key]:e.target.checked})}),h('span',null,label))),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.oxygen_required,onChange:e=>setForm({...form,oxygen_required:e.target.checked})}),h('span',null,'Oxygen required')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.dressing_required,onChange:e=>setForm({...form,dressing_required:e.target.checked})}),h('span',null,'Wound dressing required')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.special_nurse_required,onChange:e=>setForm({...form,special_nurse_required:e.target.checked})}),h('span',null,'Special / dedicated nurse')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.physio_required,onChange:e=>setForm({...form,physio_required:e.target.checked})}),h('span',null,'Physiotherapy advised'))),form.special_nurse_required&&h('div',{className:'form-grid'},field('Special nurse name','special_nurse_name',form,setForm,true),selectField('Coverage','special_nurse_shift',form,setForm,['Day Shift','Night Shift','Both shifts / 24-hour coverage']),textareaField('Special nursing instructions','special_nurse_instructions',form,setForm,'span-2')),form.physio_required&&h('div',{className:'form-grid'},field('Therapy / exercise','therapy_type',form,setForm,true),field('Physiotherapist name','physiotherapist_name',form,setForm,false),field('Frequency','physio_frequency',form,setForm,false),field('Preferred time','physio_time',form,setForm,false,'time'),textareaField('Precautions','physio_precautions',form,setForm,'span-2'))),
-      h('div',{className:'section-card'},h('h4',null,'6. Package, room and activation'),h('div',{className:'form-grid'},selectField('Package','billing_package',form,setForm,['Basic Care','Standard Assisted Care','High Dependency Care','Post-operative Care','Rehabilitation Care','Palliative Care','Rehabilitation Care','Custom Package']),roomBedSelect(roomBeds,form.room_no,form.bed_no,(room_no,bed_no)=>setForm({...form,room_no,bed_no}),true),field('Admission date','admission_date',form,setForm,true,'date'))),
+      h('div',{className:'section-card'},h('h4',null,'6. Package, room and activation'),
+        h('div',{className:'form-grid'},
+          h('div',{className:'field'},h('label',null,'Care Package'),h('select',{required:true,value:form.billing_package,onChange:e=>setForm({...form,billing_package:e.target.value})},
+            h('option',{value:''},'Select care package'),
+            carePackages.map(pkg=>h('option',{key:pkg.id,value:pkg.package_name},`${pkg.package_name} · ${pkg.duration_value} ${pkg.duration_unit}`)))),
+          roomBedSelect(roomBeds,form.room_no,form.bed_no,(room_no,bed_no)=>setForm({...form,room_no,bed_no}),true),
+          field('Admission date','admission_date',form,setForm,true,'date')),
+        selectedPackage&&h('div',{className:'accounts-dashboard-grid',style:{marginTop:'10px'}},
+          h('div',{className:'accounts-panel'},h('h3',null,selectedPackage.package_name),
+            h('p',null,`${selectedPackage.duration_value} ${selectedPackage.duration_unit}`),
+            h('div',{className:'accounts-status-list'},String(selectedPackage.included_services||'').split('\n').filter(Boolean).map((item,index)=>
+              h('div',{className:'accounts-status-item',key:index},h('span',null,item),h('strong',null,'Included'))))),
+          h('div',{className:'accounts-panel'},h('h3',null,'Package Fee'),
+            h('p',null,form.room_no?`${packageRoomClass()} accommodation selected`:'Select room/bed to calculate applicable fee'),
+            h('div',{className:'payment-summary-card summary-green'},h('span',null,'Fixed Package Fee'),
+              h('strong',null,`₹${selectedPackageFee().toLocaleString('en-IN')}`),
+              h('small',null,packageEndDate()?`Valid up to ${formatDateIN(packageEndDate())}`:''))))),
       h('button',{className:'btn btn-primary full',disabled:busy},
         busy
           ?returningPatient?'Completing re-admission…':'Completing admission…'
@@ -4097,6 +4143,29 @@ Caring with Compassion. Living with Dignity.`;
       }));
     }
 
+    const selectedPackage=carePackages.find(pkg=>pkg.package_name===form.billing_package)||null;
+    const selectedPackageBed=roomBeds.find(r=>String(r.room_no)===String(form.room_no)&&String(r.bed_no||r.bed_code||'').toUpperCase()===String(form.bed_no||'').toUpperCase())||null;
+    const packageRoomClass=()=>{
+      const type=String(selectedPackageBed?.room_type||'').toLowerCase();
+      if(type.includes('private')||type.includes('single')||type.includes('deluxe')||type.includes('isolation'))return 'Private';
+      if(type.includes('twin')||type.includes('double'))return 'Twin';
+      return 'General';
+    };
+    const selectedPackageFee=()=>{
+      if(!selectedPackage)return 0;
+      if(packageRoomClass()==='Private')return Number(selectedPackage.private_fee||0);
+      if(packageRoomClass()==='Twin')return Number(selectedPackage.twin_fee||0);
+      return Number(selectedPackage.general_fee||0);
+    };
+    const packageEndDate=()=>{
+      if(!selectedPackage||!form.admission_date)return null;
+      const date=new Date(`${form.admission_date}T00:00:00`);
+      if(selectedPackage.duration_unit==='Weeks')date.setDate(date.getDate()+Number(selectedPackage.duration_value)*7-1);
+      else if(selectedPackage.duration_unit==='Months'){date.setMonth(date.getMonth()+Number(selectedPackage.duration_value));date.setDate(date.getDate()-1)}
+      else date.setDate(date.getDate()+Number(selectedPackage.duration_value)-1);
+      return date.toISOString().slice(0,10);
+    };
+
     async function save(e){
       e.preventDefault();
       if(!canInitiate||busy)return;
@@ -5056,6 +5125,104 @@ Caring with Compassion. Living with Dignity.`;
       toast&&h('div',{className:`samara-toast ${toast.type}`},h('span',{className:'samara-toast-icon'},toast.type==='success'?'✓':'!'),h('div',null,h('strong',null,toast.title),h('span',null,toast.text)),h('button',{onClick:()=>setToast(null)},'×'))
     );
   }
+
+
+function CarePackages({profile}){
+  const blank={id:null,package_name:'',duration_value:15,duration_unit:'Days',
+    included_services:'Room accommodation\nRoutine nursing care\nDaily care assistance\nMedication administration\nFood and diet support',
+    private_fee:'',twin_fee:'',general_fee:'',is_active:true};
+  const [rows,setRows]=React.useState([]),[form,setForm]=React.useState(blank),
+    [show,setShow]=React.useState(false),[busy,setBusy]=React.useState(false),[message,setMessage]=React.useState('');
+
+  async function load(){
+    const {data,error}=await client.from('care_packages').select('*')
+      .order('is_active',{ascending:false}).order('package_name');
+    if(error){setMessage(error.message);return}
+    setRows(data||[]);
+  }
+  React.useEffect(()=>{load()},[]);
+
+  if(profile?.role!=='Admin')return h(Section,{title:'Care Packages'},
+    h('div',{className:'message error'},'Administrator access is required.'));
+
+  const money=value=>`₹${Number(value||0).toLocaleString('en-IN')}`;
+  function openNew(){setForm(blank);setShow(true);setMessage('')}
+  function openEdit(row){setForm({...blank,...row});setShow(true);setMessage('')}
+
+  async function save(e){
+    e.preventDefault();
+    if(!form.package_name.trim()){setMessage('Package name is required.');return}
+    if(Number(form.duration_value)<=0){setMessage('Enter a valid package duration.');return}
+    setBusy(true);
+    const payload={
+      package_name:form.package_name.trim(),
+      duration_value:Number(form.duration_value),
+      duration_unit:form.duration_unit,
+      included_services:form.included_services.trim(),
+      private_fee:Number(form.private_fee||0),
+      twin_fee:Number(form.twin_fee||0),
+      general_fee:Number(form.general_fee||0),
+      is_active:Boolean(form.is_active),
+      updated_by:profile.id,
+      updated_at:new Date().toISOString()
+    };
+    const result=form.id
+      ?await client.from('care_packages').update(payload).eq('id',form.id).select().single()
+      :await client.from('care_packages').insert({...payload,created_by:profile.id}).select().single();
+    setBusy(false);
+    if(result.error){setMessage(result.error.message);return}
+    setShow(false);setMessage(`${form.id?'Package updated':'New package created'} successfully.`);
+    await load();
+    writeAuditEvent(form.id?'Care Package Updated':'Care Package Created','Care Packages',result.data.id,payload,'Success');
+  }
+
+  async function toggle(row){
+    const {error}=await client.from('care_packages')
+      .update({is_active:!row.is_active,updated_by:profile.id,updated_at:new Date().toISOString()})
+      .eq('id',row.id);
+    if(error){setMessage(error.message);return}
+    setMessage(`Package ${row.is_active?'deactivated':'activated'} successfully.`);
+    await load();
+  }
+
+  return h(React.Fragment,null,
+    h('div',{className:'accounts-hero'},
+      h('div',null,h('small',null,'ADMINISTRATOR CONTROL'),h('h3',null,'Assisted Living Care Packages'),
+        h('p',null,'Create fixed-duration packages with separate fees for Private, Twin Sharing and General accommodation.')),
+      h('div',{className:'accounts-actions'},h('button',{className:'btn btn-primary',onClick:openNew},'+ Create Package'))),
+    message&&h('div',{className:message.includes('successfully')?'message success':'message error'},message),
+    h('div',{className:'accounts-workflow-grid'},rows.map(row=>h('div',{className:'accounts-workflow-card reports',key:row.id},
+      h('div',{className:'accounts-workflow-top'},h('span',{className:'accounts-workflow-icon'},'📦'),
+        h('span',{className:'accounts-workflow-value'},row.is_active?'Active':'Inactive')),
+      h('div',{className:'accounts-workflow-body'},h('strong',null,row.package_name),
+        h('small',null,`${row.duration_value} ${row.duration_unit}`),
+        h('small',null,row.included_services||'No inclusions entered')),
+      h('div',{style:{width:'100%',display:'grid',gap:'6px',marginTop:'12px'}},
+        h('div',{className:'accounts-status-item'},h('span',null,'Private / Single'),h('strong',null,money(row.private_fee))),
+        h('div',{className:'accounts-status-item'},h('span',null,'Twin Sharing'),h('strong',null,money(row.twin_fee))),
+        h('div',{className:'accounts-status-item'},h('span',null,'General'),h('strong',null,money(row.general_fee)))),
+      h('div',{className:'actions',style:{width:'100%'}},
+        h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Edit'),
+        h('button',{className:row.is_active?'btn btn-danger':'btn btn-primary',onClick:()=>toggle(row)},row.is_active?'Deactivate':'Activate'))))),
+    show&&h('div',{className:'modal-backdrop'},h('form',{className:'card modal',onSubmit:save,style:{width:'min(900px,96vw)'}},
+      h('div',{className:'panel-head'},h('div',null,h('h3',null,form.id?'Edit Care Package':'Create Care Package'),
+        h('small',null,'The fixed fee includes accommodation for the selected room type during the package period.')),
+        h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')),
+      h('div',{className:'modal-grid'},
+        miniInput('Package Name',form.package_name,v=>setForm({...form,package_name:v}),true),
+        miniInput('Duration',form.duration_value,v=>setForm({...form,duration_value:v}),true,'number'),
+        miniSelect('Duration Unit',form.duration_unit,['Days','Weeks','Months'],v=>setForm({...form,duration_unit:v})),
+        h('div',{className:'field span-2'},h('label',null,'What the Package Includes'),
+          h('textarea',{required:true,rows:6,value:form.included_services,onChange:e=>setForm({...form,included_services:e.target.value}),placeholder:'Enter one inclusion per line'})),
+        miniInput('Private / Single Room Fee',form.private_fee,v=>setForm({...form,private_fee:v}),true,'number'),
+        miniInput('Twin Sharing Fee',form.twin_fee,v=>setForm({...form,twin_fee:v}),true,'number'),
+        miniInput('General Room Fee',form.general_fee,v=>setForm({...form,general_fee:v}),true,'number'),
+        h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.is_active,onChange:e=>setForm({...form,is_active:e.target.checked})}),
+          h('span',null,'Package available for new admissions'))),
+      h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShow(false)},'Cancel'),
+        h('button',{className:'btn btn-primary',disabled:busy},busy?'Saving…':form.id?'Update Package':'Create Package'))))
+  );
+}
 
 function RoomsBeds({profile}){
     const canManage=['Admin','Manager'].includes(profile?.role);

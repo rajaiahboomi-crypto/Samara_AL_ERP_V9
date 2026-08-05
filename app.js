@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.4.5';
-  const APP_BUILD_DATE = '05-Aug-2026 01:52 PM IST';
+  const APP_VERSION = '2.4.6';
+  const APP_BUILD_DATE = '05-Aug-2026 01:40 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -8340,15 +8340,39 @@ function ShiftHandover({profile,onNavigate}){
     const money=v=>v!==null&&v!==undefined&&v!==''?`₹${Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`:'—';
 
     async function load(){
-      let requestQuery=client.from('bill_charge_requests').select('*').order('created_at',{ascending:false}).limit(1000);
-      if(profile?.role==='Nurse')requestQuery=requestQuery.eq('raised_by',profile.id);
+      const authResult=await client.auth.getUser();
+      const authUserId=authResult.data?.user?.id||null;
+
       const [a,b]=await Promise.all([
-        requestQuery,
-        client.from('diagnostic_services').select('*').order('ordered_at',{ascending:false}).limit(500)
+        client.from('bill_charge_requests')
+          .select('*')
+          .order('created_at',{ascending:false})
+          .limit(1000),
+        client.from('diagnostic_services')
+          .select('*')
+          .order('ordered_at',{ascending:false})
+          .limit(500)
       ]);
+
       if(a.error)notify('error',a.error.message);
-      setRows(a.data||[]);
-      setDiagnostics(b.data||[]);
+
+      const allRequests=a.data||[];
+      const visibleRequests=profile?.role==='Nurse'
+        ?allRequests.filter(row=>
+            row.raised_by===authUserId||
+            row.raised_by===profile.id||
+            String(row.raised_by_name||'').trim().toLowerCase()===
+              String(formalName(profile)||profile?.full_name||profile?.username||'').trim().toLowerCase()
+          )
+        :allRequests;
+
+      setRows(visibleRequests);
+      const visibleRequestIds=new Set(visibleRequests.map(row=>row.id));
+      setDiagnostics(
+        profile?.role==='Nurse'
+          ?(b.data||[]).filter(row=>visibleRequestIds.has(row.charge_request_id))
+          :(b.data||[])
+      );
     }
     React.useEffect(()=>{
       load();
@@ -8416,8 +8440,14 @@ function ShiftHandover({profile,onNavigate}){
           transport_type:form.transport_type||null,paid_by_samara:form.paid_by_samara,
           remarks:form.remarks||null,raised_by:user?.id||profile.id,raised_by_name:formalName(profile)||profile?.full_name||profile?.username||'Nursing staff',raised_at:new Date().toISOString(),returned_to_nurse_at:null,updated_at:new Date().toISOString()
         };
-        const saved=await client.from('bill_charge_requests').insert(payload).select('id').single();
+        const saved=await client.from('bill_charge_requests').insert(payload).select('*').single();
         if(saved.error)throw saved.error;
+
+        setRows(current=>[
+          saved.data,
+          ...current.filter(row=>row.id!==saved.data.id)
+        ]);
+
         if(files.length)await uploadFiles(saved.data.id);
         if(['Laboratory Services','Diagnostic / Imaging'].includes(form.category)){
           const diag=await client.from('diagnostic_services').insert({

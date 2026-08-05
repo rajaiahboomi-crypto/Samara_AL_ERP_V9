@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.8';
-  const APP_BUILD_DATE = '05-Aug-2026 11:58 IST';
+  const APP_VERSION = '2.3.9';
+  const APP_BUILD_DATE = '05-Aug-2026 12:08 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -682,6 +682,30 @@ Caring with Compassion. Living with Dignity.`;
     const [form,setForm]=React.useState(engine.settings);
     const [toast,setToast]=React.useState(null);
     React.useEffect(()=>setForm(engine.settings),[engine.settings]);
+    function changeDoctorName(value){
+      const matched=entryMemory.doctors.find(item=>
+        String(item.name||'').toLowerCase()===String(value||'').trim().toLowerCase()
+      );
+      setForm(current=>({
+        ...current,
+        instructed_by_name:value,
+        instructed_by_contact:matched?.contact||current.instructed_by_contact
+      }));
+    }
+
+    function changeDestination(value){
+      const patient=patientFor(form.patient_id);
+      const remembered=entryMemory.destinations.find(item=>item.type===value)?.details||'';
+      const suggested=value==='Hospital'
+        ?patient.hospital_name||remembered
+        :remembered;
+      setForm(current=>({
+        ...current,
+        destination:value,
+        destination_details:value==='Home'?'':suggested
+      }));
+    }
+
     async function save(e){
       e.preventDefault();
       const {data:{user}}=await client.auth.getUser();
@@ -3138,6 +3162,62 @@ Caring with Compassion. Living with Dignity.`;
       final_instructions:'',remarks:'',management_status:'Pending',accounts_status:'Pending',status:'Initiated'
     };
     const [form,setForm]=React.useState(initial);
+    const memoryKey='samara_discharge_entry_memory_v1';
+    const loadEntryMemory=()=>{
+      try{
+        const parsed=JSON.parse(localStorage.getItem(memoryKey)||'{}');
+        return {
+          doctors:Array.isArray(parsed.doctors)?parsed.doctors:[],
+          destinations:Array.isArray(parsed.destinations)?parsed.destinations:[],
+          advice:Array.isArray(parsed.advice)?parsed.advice:[]
+        };
+      }catch{
+        return {doctors:[],destinations:[],advice:[]};
+      }
+    };
+    const [entryMemory,setEntryMemory]=React.useState(loadEntryMemory);
+    const saveEntryMemory=next=>{
+      setEntryMemory(next);
+      try{localStorage.setItem(memoryKey,JSON.stringify(next))}catch{}
+    };
+    const rememberRecent=(list,value,max=12)=>{
+      const text=String(value||'').trim();
+      if(!text)return list||[];
+      return [text,...(list||[]).filter(item=>String(item).toLowerCase()!==text.toLowerCase())].slice(0,max);
+    };
+    const rememberDoctor=(list,name,contact)=>{
+      const doctorName=String(name||'').trim();
+      if(!doctorName)return list||[];
+      const doctorContact=String(contact||'').trim();
+      return [
+        {name:doctorName,contact:doctorContact},
+        ...(list||[]).filter(item=>String(item?.name||'').toLowerCase()!==doctorName.toLowerCase())
+      ].slice(0,15);
+    };
+    const rememberDestination=(list,type,details)=>{
+      const destinationType=String(type||'').trim();
+      const destinationDetails=String(details||'').trim();
+      if(!destinationDetails)return list||[];
+      return [
+        {type:destinationType,details:destinationDetails},
+        ...(list||[]).filter(item=>
+          !(String(item?.type||'').toLowerCase()===destinationType.toLowerCase()&&
+            String(item?.details||'').toLowerCase()===destinationDetails.toLowerCase())
+        )
+      ].slice(0,20);
+    };
+    const destinationNeedsDetails=value=>!['Home'].includes(String(value||'').trim());
+    const destinationLabel=value=>({
+      "Relative's Home":'Relative Name / Place',
+      'Hospital':'Hospital Name / Place',
+      'Rehabilitation Centre':'Centre Name / Place',
+      'Another Assisted Living Facility':'Facility Name / Place',
+      'Hospice / Palliative Care':'Facility Name / Place',
+      'Other':'Destination Details'
+    }[value]||'Destination Details');
+    const destinationSuggestions=entryMemory.destinations
+      .filter(item=>!form.destination||item.type===form.destination)
+      .map(item=>item.details);
 
     const notify=(type,title,text)=>{setToast({type,title,text});setTimeout(()=>setToast(null),5000)};
     const patientFor=id=>patients.find(p=>p.id===id)||{};
@@ -3165,7 +3245,7 @@ Caring with Compassion. Living with Dignity.`;
     async function load(){
       const [d,p]=await Promise.all([
         client.from('patient_discharges').select('*').order('created_at',{ascending:false}),
-        client.from('patients').select('id,title,full_name,patient_id,mobile,room_no,bed_no,is_active,attendant_name,attendant_phone,treating_doctor,doctor_phone').order('full_name')
+        client.from('patients').select('id,title,full_name,patient_id,mobile,room_no,bed_no,is_active,attendant_name,attendant_phone,treating_doctor,doctor_phone,hospital_name').order('full_name')
       ]);
       if(d.error){
         setMessage(d.error.message);
@@ -3243,6 +3323,7 @@ Caring with Compassion. Living with Dignity.`;
         relative_contact:p.attendant_phone||'',
         instructed_by_name:p.treating_doctor||'',
         instructed_by_contact:p.doctor_phone||'',
+        destination_details:current.destination==='Hospital'?(p.hospital_name||current.destination_details||''):current.destination_details,
         ...voluntary
       }));
     }
@@ -3272,6 +3353,10 @@ Caring with Compassion. Living with Dignity.`;
       if(!form.patient_id){notify('error','Discharge not initiated','Select the patient.');return}
       if(form.initiation_basis==='Consultant / Doctor Instruction'&&!form.instructed_by_name.trim()){notify('error','Discharge not initiated','Consultant / Doctor name is mandatory.');return}
       if(form.initiation_basis==='Voluntary Discharge'&&!form.voluntary_requester_name.trim()){notify('error','Discharge not initiated','Voluntary requester name is mandatory.');return}
+      if(destinationNeedsDetails(form.destination)&&!String(form.destination_details||'').trim()){
+        notify('error','Discharge not initiated',`${destinationLabel(form.destination)} is required.`);
+        return;
+      }
       const isReturnedRequest=Boolean(
         editing&&(
           String(editing.management_status||'').trim().toLowerCase()==='rejected'||
@@ -3328,6 +3413,14 @@ Caring with Compassion. Living with Dignity.`;
         :await client.from('patient_discharges').insert(payload).select('id').single();
       setBusy(false);
       if(result.error){notify('error','Discharge not saved',result.error.message);return}
+      const nextMemory={
+        doctors:form.initiation_basis==='Consultant / Doctor Instruction'
+          ?rememberDoctor(entryMemory.doctors,form.instructed_by_name,form.instructed_by_contact)
+          :entryMemory.doctors,
+        destinations:rememberDestination(entryMemory.destinations,form.destination,form.destination_details),
+        advice:rememberRecent(entryMemory.advice,form.doctor_discharge_advice,10)
+      };
+      saveEntryMemory(nextMemory);
       notify(
         'success',
         isReturnedRequest?'Discharge re-initiated successfully':editing?'Discharge request updated successfully':'Discharge initiated successfully',
@@ -3886,9 +3979,50 @@ Caring with Compassion. Living with Dignity.`;
             h('div',{className:'field'},h('label',null,'Patient'),h('select',{required:true,value:form.patient_id,disabled:!!editing,onChange:e=>selectPatient(e.target.value)},h('option',{value:''},'Select active patient'),patients.filter(p=>p.is_active!==false).map(p=>h('option',{key:p.id,value:p.id},patientLabel(p.id))))),
             miniSelect('Initiation Basis',form.initiation_basis,['Consultant / Doctor Instruction','Voluntary Discharge'],changeInitiationBasis),
             form.initiation_basis==='Consultant / Doctor Instruction'&&h(React.Fragment,null,
-              miniInput('Consultant / Doctor Name',form.instructed_by_name,v=>setForm({...form,instructed_by_name:v}),true),
-              miniInput('Consultant / Doctor Contact',form.instructed_by_contact,v=>setForm({...form,instructed_by_contact:v})),
-              h('div',{className:'field span-2'},h('label',null,'Doctor Discharge Advice'),h('textarea',{required:true,rows:3,value:form.doctor_discharge_advice,onChange:e=>setForm({...form,doctor_discharge_advice:e.target.value})}))
+              h('div',{className:'field'},
+                h('label',null,'Consultant / Doctor Name'),
+                h('input',{
+                  required:true,
+                  list:'remembered-discharge-doctors',
+                  value:form.instructed_by_name,
+                  onChange:e=>changeDoctorName(e.target.value),
+                  placeholder:'Select or type doctor name'
+                }),
+                h('datalist',{id:'remembered-discharge-doctors'},
+                  entryMemory.doctors.map((item,index)=>h('option',{key:`doctor-${index}`,value:item.name},item.contact||''))
+                )
+              ),
+              h('div',{className:'field'},
+                h('label',null,'Consultant / Doctor Contact'),
+                h('input',{
+                  list:'remembered-discharge-doctor-contacts',
+                  value:form.instructed_by_contact,
+                  onChange:e=>setForm({...form,instructed_by_contact:e.target.value}),
+                  placeholder:'Auto-filled when remembered'
+                }),
+                h('datalist',{id:'remembered-discharge-doctor-contacts'},
+                  entryMemory.doctors.filter(item=>item.contact).map((item,index)=>h('option',{key:`contact-${index}`,value:item.contact},item.name))
+                )
+              ),
+              h('div',{className:'field span-2'},
+                h('label',null,'Doctor Discharge Advice'),
+                h('textarea',{
+                  required:true,
+                  rows:3,
+                  value:form.doctor_discharge_advice,
+                  onChange:e=>setForm({...form,doctor_discharge_advice:e.target.value}),
+                  placeholder:'Type advice or use a recent entry below'
+                }),
+                entryMemory.advice.length>0&&h('div',{className:'actions',style:{justifyContent:'flex-start',marginTop:'8px'}},
+                  entryMemory.advice.slice(0,4).map((text,index)=>h('button',{
+                    key:`advice-${index}`,
+                    type:'button',
+                    className:'btn btn-secondary',
+                    style:{padding:'7px 10px',fontSize:'12px'},
+                    onClick:()=>setForm({...form,doctor_discharge_advice:text})
+                  },text.length>42?`${text.slice(0,42)}…`:text))
+                )
+              )
             ),
             form.initiation_basis==='Voluntary Discharge'&&h(React.Fragment,null,
               miniSelect('Voluntary Request From',form.voluntary_requested_by,['Patient','Relative / Attendant','Guardian / Authorised Person'],changeVoluntaryRequester),
@@ -3900,8 +4034,31 @@ Caring with Compassion. Living with Dignity.`;
             miniSelect('Discharge Type',form.discharge_type,['Planned Discharge','Transfer to Hospital','Discharge Against Medical Advice','Home Care Transfer','Death / Expiry','Other'],v=>setForm({...form,discharge_type:v})),
             miniInput('Discharge Date',form.proposed_discharge_date,v=>setForm({...form,proposed_discharge_date:v}),true,'date'),
             miniInput('Discharge Time',form.proposed_discharge_time,v=>setForm({...form,proposed_discharge_time:v}),true,'time'),
-            miniSelect('Destination',form.destination,['Home','Hospital','Rehabilitation Centre','Another Assisted Living Facility','Relative Residence','Other'],v=>setForm({...form,destination:v})),
-            miniInput('Destination Details',form.destination_details,v=>setForm({...form,destination_details:v})),
+            miniSelect('Destination',form.destination,[
+              'Home',
+              "Relative's Home",
+              'Hospital',
+              'Rehabilitation Centre',
+              'Another Assisted Living Facility',
+              'Hospice / Palliative Care',
+              'Other'
+            ],changeDestination),
+            destinationNeedsDetails(form.destination)&&h('div',{className:'field'},
+              h('label',null,destinationLabel(form.destination)),
+              h('input',{
+                list:'remembered-discharge-destinations',
+                value:form.destination_details,
+                onChange:e=>setForm({...form,destination_details:e.target.value}),
+                placeholder:form.destination==='Hospital'
+                  ?'Hospital name and place'
+                  :form.destination==="Relative's Home"
+                    ?'Relative name and place'
+                    :'Select a remembered entry or type once'
+              }),
+              h('datalist',{id:'remembered-discharge-destinations'},
+                destinationSuggestions.map((value,index)=>h('option',{key:`destination-${index}`,value}))
+              )
+            ),
             miniSelect('Condition at Discharge',form.condition_at_discharge,['Stable','Improved','Requires Continued Monitoring','Transferred for Higher Care','Critical','Other'],v=>setForm({...form,condition_at_discharge:v})),
             editing&&(
               String(editing.management_status||'').trim().toLowerCase()==='rejected'||

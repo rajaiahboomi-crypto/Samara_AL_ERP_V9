@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.7.4';
-  const APP_BUILD_DATE = '05-Aug-2026 05:35 PM IST';
+  const APP_VERSION = '2.7.5';
+  const APP_BUILD_DATE = '05-Aug-2026 05:55 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3410,26 +3410,30 @@ Caring with Compassion. Living with Dignity.`;
         .replace(/"/g,'&quot;');
     }
 
-    async function loadConsentScript(src,globalName){
-      if(globalName&&window[globalName])return window[globalName];
-      const existing=[...document.scripts].find(script=>script.src===src);
+    async function ensureOfflineQrGenerator(){
+      if(window.SamaraQRCode)return window.SamaraQRCode;
+      const src='./vendor/qrcode.bundle.js';
+      const existing=[...document.scripts].find(script=>
+        script.src&&script.src.endsWith('/vendor/qrcode.bundle.js')
+      );
       if(existing){
         await new Promise((resolve,reject)=>{
-          if(globalName&&window[globalName])return resolve();
+          if(window.SamaraQRCode)return resolve();
           existing.addEventListener('load',resolve,{once:true});
-          existing.addEventListener('error',reject,{once:true});
+          existing.addEventListener('error',()=>reject(new Error('Offline QR generator could not be loaded.')),{once:true});
         });
-        return globalName?window[globalName]:true;
+        if(window.SamaraQRCode)return window.SamaraQRCode;
       }
       await new Promise((resolve,reject)=>{
         const script=document.createElement('script');
         script.src=src;
         script.async=true;
         script.onload=resolve;
-        script.onerror=()=>reject(new Error(`Unable to load ${src}`));
+        script.onerror=()=>reject(new Error('Offline QR generator could not be loaded from vendor/qrcode.bundle.js.'));
         document.head.appendChild(script);
       });
-      return globalName?window[globalName]:true;
+      if(!window.SamaraQRCode)throw new Error('Offline QR generator is unavailable.');
+      return window.SamaraQRCode;
     }
 
     async function urlToDataUrl(url){
@@ -3454,14 +3458,7 @@ Caring with Compassion. Living with Dignity.`;
       setConsentPdfBusy(true);
       setMsg('');
       try{
-        await loadConsentScript(
-          'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js',
-          'QRCode'
-        );
-        await loadConsentScript(
-          'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js',
-          'html2pdf'
-        );
+        const qrGenerator=await ensureOfflineQrGenerator();
 
         const patient=record.patient||{};
         const admission=record.form||{};
@@ -3478,9 +3475,9 @@ Caring with Compassion. Living with Dignity.`;
           `Room/Bed: ${admission.room_no||''}/${admission.bed_no||''}`
         ].join('\n');
 
-        const qrDataUrl=await window.QRCode.toDataURL(qrPayload,{
-          width:180,
-          margin:1,
+        const qrDataUrl=qrGenerator.toDataURL(qrPayload,{
+          size:190,
+          margin:3,
           errorCorrectionLevel:'M'
         });
 
@@ -3529,139 +3526,170 @@ Caring with Compassion. Living with Dignity.`;
           ['Physiotherapy advised',admission.physio_required]
         ].filter(([,value])=>value).map(([label])=>label).join(', ')||'None specifically recorded';
 
-        const documentContainer=document.createElement('div');
-        documentContainer.style.position='fixed';
-        documentContainer.style.left='-100000px';
-        documentContainer.style.top='0';
-        documentContainer.style.width='794px';
-        documentContainer.style.background='#fff';
-        documentContainer.innerHTML=`
-          <div style="font-family:Arial,sans-serif;color:#17302a;font-size:11px;line-height:1.42;padding:28px 32px;background:#fff">
-            <div style="display:grid;grid-template-columns:80px 1fr 96px;gap:16px;align-items:center;border-bottom:3px solid #086a57;padding-bottom:12px;margin-bottom:14px">
-              <div style="width:66px;height:66px;border-radius:16px;background:#086a57;color:#fff;display:grid;place-items:center;font-size:27px;font-weight:900">SC</div>
-              <div style="text-align:center">
-                <div style="font-size:23px;font-weight:900;letter-spacing:.3px;color:#064f42">SAMARA CARE</div>
-                <div style="font-size:13px;font-weight:700;margin-top:2px">ASSISTED LIVING</div>
-                <div style="font-size:17px;font-weight:900;margin-top:8px">RESIDENT ADMISSION, CARE CONSENT AND ACKNOWLEDGEMENT</div>
-              </div>
-              <div style="text-align:center">
-                <img src="${qrDataUrl}" style="width:88px;height:88px;display:block;margin:auto">
-                <div style="font-size:7.5px;margin-top:3px;color:#536a64">Admission reference</div>
-              </div>
-            </div>
+        const consentHtml=`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Admission Consent - ${consentEscape(patientCode)}</title>
+<style>
+  @page{size:A4;margin:12mm}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,sans-serif;color:#17302a;font-size:10.5px;line-height:1.4;background:#fff}
+  .page{width:100%;background:#fff}
+  .header{display:grid;grid-template-columns:72px 1fr 94px;gap:14px;align-items:center;border-bottom:3px solid #086a57;padding-bottom:10px;margin-bottom:12px}
+  .logo{width:64px;height:64px;border-radius:15px;background:#086a57;color:#fff;display:grid;place-items:center;font-size:26px;font-weight:900}
+  .brand{text-align:center}.brand-name{font-size:22px;font-weight:900;color:#064f42}.brand-sub{font-size:12px;font-weight:700}.document-title{font-size:16px;font-weight:900;margin-top:6px}
+  .qr{text-align:center}.qr img{width:88px;height:88px}.qr small{display:block;font-size:7px;color:#536a64}
+  .identity{display:grid;grid-template-columns:${photoDataUrl?'1fr 100px':'1fr'};gap:12px;margin-bottom:10px}
+  .identity-grid{border:1px solid #829b94;border-radius:7px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:5px 16px}
+  .photo{border:1px solid #829b94;border-radius:7px;padding:4px;height:120px;display:grid;place-items:center;overflow:hidden}.photo img{max-width:100%;max-height:110px;object-fit:cover}
+  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #8fa9a2;padding-bottom:3px}
+  h3{font-size:11px;margin:8px 0 4px}
+  p{margin:5px 0;text-align:justify}
+  table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px;page-break-inside:auto}
+  tr{page-break-inside:avoid;page-break-after:auto}
+  th,td{border:1px solid #829b94;padding:4px;text-align:left;vertical-align:top}
+  th{background:#e9f3f0}
+  .signatures{display:grid;grid-template-columns:1fr 1fr;gap:16px 25px;margin-top:22px;page-break-inside:avoid}
+  .signature{min-height:72px}.line{border-top:1px solid #222;padding-top:4px;margin-top:27px;font-weight:700}
+  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #b7c8c3;font-size:7.5px;color:#526660}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="logo">SC</div>
+    <div class="brand">
+      <div class="brand-name">SAMARA CARE</div>
+      <div class="brand-sub">ASSISTED LIVING</div>
+      <div class="document-title">RESIDENT ADMISSION, CARE CONSENT AND ACKNOWLEDGEMENT</div>
+    </div>
+    <div class="qr">
+      <img src="${qrDataUrl}" alt="Admission verification QR code">
+      <small>Admission verification</small>
+    </div>
+  </div>
 
-            <div style="display:grid;grid-template-columns:${photoDataUrl?'1fr 102px':'1fr'};gap:14px;margin-bottom:12px">
-              <div style="border:1px solid #829b94;border-radius:7px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px">
-                <div><b>Resident:</b> ${consentEscape(formalName(patient)||patient.full_name)}</div>
-                <div><b>Patient ID:</b> ${consentEscape(patientCode)}</div>
-                <div><b>Consent Reference:</b> ${consentEscape(consentReference)}</div>
-                <div><b>Admission Date:</b> ${consentEscape(formatDateIN(admission.admission_date))}</div>
-                <div><b>Age / Gender:</b> ${consentEscape(admission.age)} / ${consentEscape(admission.gender)}</div>
-                <div><b>Mobile:</b> ${consentEscape(admission.mobile)}</div>
-                <div><b>Room / Bed:</b> ${consentEscape(admission.room_no)} / ${consentEscape(admission.bed_no)}</div>
-                <div><b>Admission Source:</b> ${consentEscape(admission.admission_type)}</div>
-                <div><b>Family / Attendant:</b> ${consentEscape(admission.attendant_name)}</div>
-                <div><b>Attendant Contact:</b> ${consentEscape(admission.attendant_phone)}</div>
-                <div><b>Billing:</b> ${consentEscape(admission.billing_package)}</div>
-                <div><b>Condition:</b> ${consentEscape(admission.diagnosis)}</div>
-              </div>
-              ${photoDataUrl?`<div style="border:1px solid #829b94;border-radius:7px;padding:5px;height:122px;display:grid;place-items:center;overflow:hidden"><img src="${photoDataUrl}" style="max-width:100%;max-height:112px;object-fit:cover"></div>`:''}
-            </div>
+  <div class="identity">
+    <div class="identity-grid">
+      <div><b>Resident:</b> ${consentEscape(formalName(patient)||patient.full_name)}</div>
+      <div><b>Patient ID:</b> ${consentEscape(patientCode)}</div>
+      <div><b>Consent Reference:</b> ${consentEscape(consentReference)}</div>
+      <div><b>Admission Date:</b> ${consentEscape(formatDateIN(admission.admission_date))}</div>
+      <div><b>Age / Gender:</b> ${consentEscape(admission.age)} / ${consentEscape(admission.gender)}</div>
+      <div><b>Mobile:</b> ${consentEscape(admission.mobile)}</div>
+      <div><b>Room / Bed:</b> ${consentEscape(admission.room_no)} / ${consentEscape(admission.bed_no)}</div>
+      <div><b>Admission Source:</b> ${consentEscape(admission.admission_type)}</div>
+      <div><b>Family / Attendant:</b> ${consentEscape(admission.attendant_name)}</div>
+      <div><b>Attendant Contact:</b> ${consentEscape(admission.attendant_phone)}</div>
+      <div><b>Billing:</b> ${consentEscape(admission.billing_package)}</div>
+      <div><b>Condition:</b> ${consentEscape(admission.diagnosis)}</div>
+    </div>
+    ${photoDataUrl?`<div class="photo"><img src="${photoDataUrl}" alt="Resident photograph"></div>`:''}
+  </div>
 
-            <div style="font-size:14px;font-weight:900;border-bottom:1px solid #8fa9a2;padding-bottom:4px;margin-top:13px">1. Voluntary Admission and Authority</div>
-            <p style="margin:6px 0;text-align:justify">The Resident confirms that admission is voluntary. Where the Resident is unable to understand or sign, the authorised relative or representative confirms that the admission is made in the Resident’s best interests and that the basis of authority has been disclosed. Samara Care may request supporting authority documents.</p>
+  <h2>1. Voluntary Admission and Authority</h2>
+  <p>The Resident confirms that admission is voluntary. Where the Resident is unable to understand or sign, the authorised relative or representative confirms that the admission is made in the Resident’s best interests and that the basis of authority has been disclosed. Samara Care may request supporting authority documents.</p>
 
-            <div style="font-size:14px;font-weight:900;border-bottom:1px solid #8fa9a2;padding-bottom:4px;margin-top:13px">2. Nature and Scope of Assisted-Living Services</div>
-            <p style="margin:6px 0;text-align:justify">Samara Care is an assisted-living and supportive-care facility and is not represented as a full-service hospital. Services may include accommodation, assistance with activities of daily living, medication support according to recorded prescriptions, nutrition support, nursing observation, physiotherapy where arranged, and coordination with external doctors, laboratories, ambulances and hospitals. Clinical emergencies or needs beyond the facility’s capability may require transfer to an appropriate hospital.</p>
+  <h2>2. Nature and Scope of Assisted-Living Services</h2>
+  <p>Samara Care is an assisted-living and supportive-care facility and is not represented as a full-service hospital. Services may include accommodation, assistance with activities of daily living, medication support according to recorded prescriptions, nutrition support, nursing observation, physiotherapy where arranged, and coordination with external doctors, laboratories, ambulances and hospitals. Clinical emergencies or needs beyond the facility’s capability may require transfer to an appropriate hospital.</p>
 
-            <div style="font-size:14px;font-weight:900;border-bottom:1px solid #8fa9a2;padding-bottom:4px;margin-top:13px">3. Medical Information, Medication and Emergency Authorisation</div>
-            <p style="margin:6px 0;text-align:justify">The Resident or Representative confirms that known illnesses, allergies, medicines, behavioural concerns, mobility risks and special instructions have been disclosed accurately. Consent is given to administer or assist with medicines according to the recorded prescription and to contact the treating doctor. In an emergency, Samara Care is authorised to arrange first aid, ambulance transport and hospital evaluation where reasonably necessary. External medical, ambulance, investigation and hospital expenses remain chargeable as applicable.</p>
+  <h2>3. Medical Information, Medication and Emergency Authorisation</h2>
+  <p>The Resident or Representative confirms that known illnesses, allergies, medicines, behavioural concerns, mobility risks and special instructions have been disclosed accurately. Consent is given to administer or assist with medicines according to the recorded prescription and to contact the treating doctor. In an emergency, Samara Care is authorised to arrange first aid, ambulance transport and hospital evaluation where reasonably necessary. External medical, ambulance, investigation and hospital expenses remain chargeable as applicable.</p>
 
-            <div style="font-size:12px;font-weight:900;margin:10px 0 4px">Current Medicines Recorded at Admission</div>
-            <table style="width:100%;border-collapse:collapse;font-size:8.8px">
-              <thead><tr style="background:#e9f3f0">
-                <th style="border:1px solid #829b94;padding:4px">No.</th>
-                <th style="border:1px solid #829b94;padding:4px">Medicine</th>
-                <th style="border:1px solid #829b94;padding:4px">Strength</th>
-                <th style="border:1px solid #829b94;padding:4px">Frequency</th>
-                <th style="border:1px solid #829b94;padding:4px">Route</th>
-                <th style="border:1px solid #829b94;padding:4px">Time</th>
-                <th style="border:1px solid #829b94;padding:4px">Food</th>
-                <th style="border:1px solid #829b94;padding:4px">Duration</th>
-              </tr></thead>
-              <tbody>${medicinesHtml}</tbody>
-            </table>
+  <h3>Current Medicines Recorded at Admission</h3>
+  <table>
+    <thead><tr><th>No.</th><th>Medicine</th><th>Strength</th><th>Frequency</th><th>Route</th><th>Time</th><th>Food</th><th>Duration</th></tr></thead>
+    <tbody>${medicinesHtml}</tbody>
+  </table>
 
-            <div style="font-size:12px;font-weight:900;margin:10px 0 4px">Master Care Plan</div>
-            <table style="width:100%;border-collapse:collapse;font-size:9px">
-              <thead><tr style="background:#e9f3f0">
-                <th style="border:1px solid #829b94;padding:4px">No.</th>
-                <th style="border:1px solid #829b94;padding:4px">Care Task</th>
-                <th style="border:1px solid #829b94;padding:4px">Shift</th>
-                <th style="border:1px solid #829b94;padding:4px">Frequency</th>
-                <th style="border:1px solid #829b94;padding:4px">Instruction</th>
-              </tr></thead>
-              <tbody>${careHtml}</tbody>
-            </table>
+  <h3>Master Care Plan</h3>
+  <table>
+    <thead><tr><th>No.</th><th>Care Task</th><th>Shift</th><th>Frequency</th><th>Instruction</th></tr></thead>
+    <tbody>${careHtml}</tbody>
+  </table>
 
-            <p style="margin:7px 0"><b>Risks / special arrangements:</b> ${consentEscape(risks)}</p>
-            <p style="margin:7px 0"><b>Diet / feeding instructions:</b> ${consentEscape(admission.diet_plan)}; ${consentEscape(admission.feeding_instruction||'No additional instruction')}</p>
+  <p><b>Risks / special arrangements:</b> ${consentEscape(risks)}</p>
+  <p><b>Diet / feeding instructions:</b> ${consentEscape(admission.diet_plan)}; ${consentEscape(admission.feeding_instruction||'No additional instruction')}</p>
 
-            <div style="font-size:14px;font-weight:900;border-bottom:1px solid #8fa9a2;padding-bottom:4px;margin-top:13px">4. Fees, Package and Additional Charges</div>
-            <p style="margin:6px 0;text-align:justify">The Resident or Representative acknowledges the selected package or daily-billing arrangement, room category, payment obligations, deposits, discounts approved by authorised management, and separately chargeable services. Doctor visits, medicines, investigations, ambulance or transport, external hospital expenses, special nursing, physiotherapy and other non-included services may be charged separately where applicable. Detailed bills and payment records will be maintained by Samara Care.</p>
+  <h2>4. Fees, Package and Additional Charges</h2>
+  <p>The Resident or Representative acknowledges the selected package or daily-billing arrangement, room category, payment obligations, deposits, discounts approved by authorised management, and separately chargeable services. Doctor visits, medicines, investigations, ambulance or transport, external hospital expenses, special nursing, physiotherapy and other non-included services may be charged separately where applicable. Detailed bills and payment records will be maintained by Samara Care.</p>
 
-            <div style="font-size:14px;font-weight:900;border-bottom:1px solid #8fa9a2;padding-bottom:4px;margin-top:13px">5. Dignity, Privacy, Records and Communication</div>
-            <p style="margin:6px 0;text-align:justify">Samara Care will endeavour to protect the Resident’s dignity, privacy, safety and confidentiality. Consent is given to maintain electronic and physical records, use the provided contact details for care coordination and billing communication, and share necessary information with authorised staff, treating professionals, emergency services and hospitals for care purposes. Photographs or recordings for publicity require separate specific consent.</p>
+  <h2>5. Dignity, Privacy, Records and Communication</h2>
+  <p>Samara Care will endeavour to protect the Resident’s dignity, privacy, safety and confidentiality. Consent is given to maintain electronic and physical records, use the provided contact details for care coordination and billing communication, and share necessary information with authorised staff, treating professionals, emergency services and hospitals for care purposes. Photographs or recordings for publicity require separate specific consent.</p>
 
-            <div style="font-size:14px;font-weight:900;border-bottom:1px solid #8fa9a2;padding-bottom:4px;margin-top:13px">6. Personal Belongings and Conduct</div>
-            <p style="margin:6px 0;text-align:justify">Valuables should be declared and handled according to facility procedure. The Resident and visitors shall follow reasonable safety, hygiene, visiting and conduct rules. Samara Care is not responsible for undeclared valuables except to the extent required by applicable law or where loss is attributable to proven misconduct of the facility or its personnel.</p>
+  <h2>6. Personal Belongings and Conduct</h2>
+  <p>Valuables should be declared and handled according to facility procedure. The Resident and visitors shall follow reasonable safety, hygiene, visiting and conduct rules. Samara Care is not responsible for undeclared valuables except to the extent required by applicable law or where loss is attributable to proven misconduct of the facility or its personnel.</p>
 
-            <div style="font-size:14px;font-weight:900;border-bottom:1px solid #8fa9a2;padding-bottom:4px;margin-top:13px">7. Review, Change of Care and Discharge</div>
-            <p style="margin:6px 0;text-align:justify">The care plan may be reviewed and reasonably modified based on the Resident’s condition, doctor’s advice and assessed needs, with communication to the Resident or Representative. Transfer or discharge may be initiated on medical advice, voluntary request, non-payment subject to lawful procedure, serious safety concerns, or where the facility can no longer safely meet the Resident’s needs. Final nursing, accounts, belongings and document handover procedures shall be completed at discharge.</p>
+  <h2>7. Review, Change of Care and Discharge</h2>
+  <p>The care plan may be reviewed and reasonably modified based on the Resident’s condition, doctor’s advice and assessed needs, with communication to the Resident or Representative. Transfer or discharge may be initiated on medical advice, voluntary request, non-payment subject to lawful procedure, serious safety concerns, or where the facility can no longer safely meet the Resident’s needs. Final nursing, accounts, belongings and document handover procedures shall be completed at discharge.</p>
 
-            <div style="font-size:14px;font-weight:900;border-bottom:1px solid #8fa9a2;padding-bottom:4px;margin-top:13px">8. Acknowledgement</div>
-            <p style="margin:6px 0;text-align:justify">The undersigned confirm that the admission details, medicine list, care plan, package or billing arrangement and key facility procedures have been explained in a language understood by them; questions were permitted; and the information provided is true to the best of their knowledge. This consent does not waive any right or remedy available under applicable law.</p>
+  <h2>8. Acknowledgement</h2>
+  <p>The undersigned confirm that the admission details, medicine list, care plan, package or billing arrangement and key facility procedures have been explained in a language understood by them; questions were permitted; and the information provided is true to the best of their knowledge. This consent does not waive any right or remedy available under applicable law.</p>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;margin-top:26px;page-break-inside:avoid">
-              ${[
-                'Resident Signature / Thumb Impression',
-                'Relative / Authorised Representative',
-                'Admission Officer / Nurse',
-                'Admin / Manager Authorisation',
-                'Independent Witness'
-              ].map(label=>`
-                <div>
-                  <div style="border-top:1px solid #222;padding-top:5px;margin-top:28px;font-weight:700">${label}</div>
-                  <div>Name: ______________________________</div>
-                  <div>Relationship / Designation: __________________</div>
-                  <div>Date & Time: ________________________</div>
-                </div>`).join('')}
-            </div>
+  <div class="signatures">
+    ${[
+      'Resident Signature / Thumb Impression',
+      'Relative / Authorised Representative',
+      'Admission Officer / Nurse',
+      'Admin / Manager Authorisation',
+      'Independent Witness'
+    ].map(label=>`
+      <div class="signature">
+        <div class="line">${label}</div>
+        <div>Name: ______________________________</div>
+        <div>Relationship / Designation: __________________</div>
+        <div>Date & Time: ________________________</div>
+      </div>`).join('')}
+  </div>
 
-            <div style="margin-top:18px;padding-top:7px;border-top:1px solid #b7c8c3;font-size:8px;color:#526660">
-              This operational consent document was generated from the Samara Care admission record. The QR code contains the admission reference particulars. Facility management should have the legal wording reviewed periodically by qualified counsel for applicable requirements.
-            </div>
-          </div>`;
+  <div class="footer">
+    This operational consent document was generated from the Samara Care admission record. The QR code contains the admission reference particulars. Facility management should have the legal wording reviewed periodically by qualified counsel for applicable requirements.
+  </div>
+</div>
+</body>
+</html>`;
 
-        document.body.appendChild(documentContainer);
-        const filename=`Admission_Consent_${String(patientCode).replace(/[^A-Za-z0-9_-]/g,'_')}.pdf`;
-        await window.html2pdf()
-          .set({
-            margin:[7,7,7,7],
-            filename,
-            image:{type:'jpeg',quality:0.98},
-            html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
-            jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-            pagebreak:{mode:['css','legacy'],avoid:['tr','.sign-block']}
-          })
-          .from(documentContainer.firstElementChild)
-          .save();
+        let frame=document.getElementById('samara-consent-print-frame');
+        if(frame)frame.remove();
+        frame=document.createElement('iframe');
+        frame.id='samara-consent-print-frame';
+        frame.title='Admission Consent Print';
+        frame.style.position='fixed';
+        frame.style.right='0';
+        frame.style.bottom='0';
+        frame.style.width='1px';
+        frame.style.height='1px';
+        frame.style.border='0';
+        frame.style.opacity='0';
+        frame.setAttribute('aria-hidden','true');
+        document.body.appendChild(frame);
 
-        documentContainer.remove();
-        setMsg('Admission Consent PDF downloaded successfully. Please print it, obtain signatures and upload the signed copy.');
+        const frameDocument=frame.contentDocument||frame.contentWindow.document;
+        frameDocument.open();
+        frameDocument.write(consentHtml);
+        frameDocument.close();
+
+        await new Promise(resolve=>setTimeout(resolve,450));
+        const images=[...frameDocument.images];
+        await Promise.all(images.map(image=>
+          image.complete
+            ?Promise.resolve()
+            :new Promise(resolve=>{
+                image.onload=resolve;
+                image.onerror=resolve;
+              })
+        ));
+
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+
+        setTimeout(()=>frame.remove(),5000);
+        setMsg('Admission Consent is ready. Use the Print dialog to print it or choose “Save as PDF”, then obtain signatures and upload the signed copy.');
       }catch(error){
-        console.error('Consent PDF generation failed:',error);
-        setMsg(`Unable to generate the Admission Consent PDF: ${error.message||error}`);
+        console.error('Consent print generation failed:',error);
+        setMsg(`Unable to prepare the Admission Consent: ${error.message||error}`);
       }finally{
         setConsentPdfBusy(false);
       }
@@ -3922,7 +3950,7 @@ Caring with Compassion. Living with Dignity.`;
         msg.includes('saved. Print')||
         msg.includes('formalities are complete')||
         msg.includes('activated under consent-upload exception')||
-        msg.includes('PDF downloaded successfully')
+        msg.includes('PDF downloaded successfully')||msg.includes('Admission Consent is ready')
       )&&h('div',{className:'message success'},msg),
       h('div',{className:'section-card'},
         h('div',{className:'section-title'},
@@ -4258,14 +4286,14 @@ Caring with Compassion. Living with Dignity.`;
             h('div',{className:'accounts-status-item',style:{padding:'14px'}},
               h('div',null,
                 h('strong',null,'Step 1'),
-                h('div',{style:{marginTop:'4px',fontWeight:800}},'Generate and print the Admission Consent PDF')
+                h('div',{style:{marginTop:'4px',fontWeight:800}},'Print or save the Admission Consent')
               ),
               h('button',{
                 type:'button',
                 className:'btn btn-primary',
                 disabled:consentPdfBusy,
                 onClick:()=>generateAdmissionConsentPdf(consentRecord)
-              },consentPdfBusy?'Generating PDF…':'🖨 Generate Admission Consent PDF')
+              },consentPdfBusy?'Preparing…':'🖨 Print / Save Admission Consent')
             ),
             h('div',{className:'accounts-status-item',style:{padding:'14px'}},
               h('div',null,

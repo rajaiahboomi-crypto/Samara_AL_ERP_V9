@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.9';
-  const APP_BUILD_DATE = '05-Aug-2026 12:08 IST';
+  const APP_VERSION = '2.3.10';
+  const APP_BUILD_DATE = '05-Aug-2026 12:24 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -682,30 +682,6 @@ Caring with Compassion. Living with Dignity.`;
     const [form,setForm]=React.useState(engine.settings);
     const [toast,setToast]=React.useState(null);
     React.useEffect(()=>setForm(engine.settings),[engine.settings]);
-    function changeDoctorName(value){
-      const matched=entryMemory.doctors.find(item=>
-        String(item.name||'').toLowerCase()===String(value||'').trim().toLowerCase()
-      );
-      setForm(current=>({
-        ...current,
-        instructed_by_name:value,
-        instructed_by_contact:matched?.contact||current.instructed_by_contact
-      }));
-    }
-
-    function changeDestination(value){
-      const patient=patientFor(form.patient_id);
-      const remembered=entryMemory.destinations.find(item=>item.type===value)?.details||'';
-      const suggested=value==='Hospital'
-        ?patient.hospital_name||remembered
-        :remembered;
-      setForm(current=>({
-        ...current,
-        destination:value,
-        destination_details:value==='Home'?'':suggested
-      }));
-    }
-
     async function save(e){
       e.preventDefault();
       const {data:{user}}=await client.auth.getUser();
@@ -3344,6 +3320,30 @@ Caring with Compassion. Living with Dignity.`;
         ...current,
         voluntary_requested_by:value,
         ...voluntaryDetails(p,value)
+      }));
+    }
+
+    function changeDoctorName(value){
+      const matched=entryMemory.doctors.find(item=>
+        String(item.name||'').toLowerCase()===String(value||'').trim().toLowerCase()
+      );
+      setForm(current=>({
+        ...current,
+        instructed_by_name:value,
+        instructed_by_contact:matched?.contact||current.instructed_by_contact
+      }));
+    }
+
+    function changeDestination(value){
+      const patient=patientFor(form.patient_id);
+      const remembered=entryMemory.destinations.find(item=>item.type===value)?.details||'';
+      const suggested=value==='Hospital'
+        ?patient.hospital_name||remembered
+        :remembered;
+      setForm(current=>({
+        ...current,
+        destination:value,
+        destination_details:value==='Home'?'':suggested
       }));
     }
 

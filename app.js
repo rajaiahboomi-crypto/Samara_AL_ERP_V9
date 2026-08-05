@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.4.3';
-  const APP_BUILD_DATE = '05-Aug-2026 01:20 PM IST';
+  const APP_VERSION = '2.4.4';
+  const APP_BUILD_DATE = '05-Aug-2026 01:35 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -1287,12 +1287,23 @@ Caring with Compassion. Living with Dignity.`;
 
   function App(){
     React.useEffect(()=>{ensureCleanWorkspaceLayout()},[]);
+    const LAST_OPEN_PAGE_KEY='samara_last_open_page_v1';
+    const readLastOpenPage=()=>{
+      try{
+        return sessionStorage.getItem(LAST_OPEN_PAGE_KEY)||
+          localStorage.getItem(LAST_OPEN_PAGE_KEY)||
+          'Dashboard';
+      }catch(_error){
+        return 'Dashboard';
+      }
+    };
     const [session,setSession]=React.useState(null);
     const [profile,setProfile]=React.useState(null);
     const [loading,setLoading]=React.useState(true);
-    const [page,setPage]=React.useState('Dashboard');
-    const previousPageRef=React.useRef('Dashboard');
-    const currentPageRef=React.useRef('Dashboard');
+    const [page,setPage]=React.useState(readLastOpenPage);
+    const previousPageRef=React.useRef(readLastOpenPage());
+    const currentPageRef=React.useRef(readLastOpenPage());
+    const workspaceInitialisedForUserRef=React.useRef(null);
     const [mobileDrawerOpen,setMobileDrawerOpen]=React.useState(false);
     const [authMessage,setAuthMessage]=React.useState('');
     const [recoveryMode,setRecoveryMode]=React.useState(false);
@@ -1301,7 +1312,11 @@ Caring with Compassion. Living with Dignity.`;
       if(currentPageRef.current!==page){
         previousPageRef.current=currentPageRef.current;
         currentPageRef.current=page;
-        try{sessionStorage.setItem('samara_previous_page',previousPageRef.current)}catch(_error){}
+        try{
+          sessionStorage.setItem('samara_previous_page',previousPageRef.current);
+          sessionStorage.setItem(LAST_OPEN_PAGE_KEY,page);
+          localStorage.setItem(LAST_OPEN_PAGE_KEY,page);
+        }catch(_error){}
       }
     },[page]);
     React.useEffect(()=>{
@@ -1396,7 +1411,11 @@ Caring with Compassion. Living with Dignity.`;
     },[]);
 
     React.useEffect(()=>{
-      if(!session){setProfile(null);return;}
+      if(!session){
+        setProfile(null);
+        workspaceInitialisedForUserRef.current=null;
+        return;
+      }
       (async()=>{
         let data=null;
         const direct=await client.from('profiles').select('*').or(`id.eq.${session.user.id},auth_user_id.eq.${session.user.id}`).maybeSingle();
@@ -1429,7 +1448,21 @@ Caring with Compassion. Living with Dignity.`;
           client.rpc('complete_my_first_login').then(()=>{}).catch(()=>{});
         }
         setProfile(data);
-        setPage(ROLE_HOME[data.role]||'Notifications');
+
+        const allowedPages=ROLE_NAV[data.role]||['Dashboard'];
+        const savedPage=readLastOpenPage();
+        const firstWorkspaceLoad=workspaceInitialisedForUserRef.current!==session.user.id;
+
+        if(firstWorkspaceLoad){
+          workspaceInitialisedForUserRef.current=session.user.id;
+          const pageToRestore=allowedPages.includes(savedPage)
+            ?savedPage
+            :(ROLE_HOME[data.role]||allowedPages[0]||'Notifications');
+          setPage(pageToRestore);
+        }else if(!allowedPages.includes(currentPageRef.current)){
+          setPage(ROLE_HOME[data.role]||allowedPages[0]||'Notifications');
+        }
+
         client.from('profiles').update({last_sign_in_at:new Date().toISOString()}).eq('id',data.id).then(()=>{});
         // Automatic daily room and nursing billing. Duplicate-safe and silent.
         client.rpc('run_daily_billing_automation',{p_charge_date:todayISOIndia(),p_force:false})

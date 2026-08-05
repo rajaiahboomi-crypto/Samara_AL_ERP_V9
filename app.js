@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.4.4';
-  const APP_BUILD_DATE = '05-Aug-2026 01:35 PM IST';
+  const APP_VERSION = '2.4.5';
+  const APP_BUILD_DATE = '05-Aug-2026 01:52 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -1285,8 +1285,94 @@ Caring with Compassion. Living with Dignity.`;
     );
   }
 
+
+  function ensureCompactDataEntryStyle(){
+    if(document.getElementById('samara-compact-data-entry-style'))return;
+    const style=document.createElement('style');
+    style.id='samara-compact-data-entry-style';
+    style.textContent=`
+      .content .section-card{
+        padding:14px 16px!important;
+        margin-bottom:10px!important;
+        border-radius:15px!important;
+      }
+      .content .section-card>h4,
+      .content .section-title h4{
+        margin:0 0 10px!important;
+      }
+      .content .section-title{
+        margin-bottom:8px!important;
+      }
+      .content .form-grid,
+      .content .modal-grid{
+        gap:9px 12px!important;
+      }
+      .content .field{
+        gap:3px!important;
+      }
+      .content .field label{
+        margin-bottom:2px!important;
+        line-height:1.2!important;
+      }
+      .content .field input:not([type="checkbox"]):not([type="radio"]),
+      .content .field select{
+        min-height:38px!important;
+        height:38px;
+        padding:7px 11px!important;
+      }
+      .content .field textarea{
+        min-height:62px!important;
+        padding:8px 11px!important;
+        line-height:1.35!important;
+      }
+      .content .repeat-row{
+        gap:8px 10px!important;
+        padding:10px!important;
+        margin:7px 0!important;
+        border-radius:12px!important;
+      }
+      .content .check-grid{
+        gap:8px!important;
+        margin-bottom:9px!important;
+      }
+      .content .check-card{
+        min-height:42px!important;
+        padding:8px 11px!important;
+        border-radius:10px!important;
+      }
+      .content .modal{
+        padding:16px!important;
+      }
+      .content .panel-head{
+        margin-bottom:10px!important;
+      }
+      .content .actions{
+        margin-top:10px!important;
+        gap:8px!important;
+      }
+      .content .btn{
+        min-height:38px;
+      }
+      .content .clinical-charge-note{
+        grid-column:1/-1;
+        padding:9px 11px;
+        border:1px solid #b9dfd3;
+        border-radius:10px;
+        background:#edf9f5;
+        color:#075c4d;
+        font-size:12px;
+        font-weight:800;
+      }
+      @media(max-width:700px){
+        .content .section-card{padding:12px!important}
+        .content .modal{padding:13px!important}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function App(){
-    React.useEffect(()=>{ensureCleanWorkspaceLayout()},[]);
+    React.useEffect(()=>{ensureCleanWorkspaceLayout();ensureCompactDataEntryStyle()},[]);
     const LAST_OPEN_PAGE_KEY='samara_last_open_page_v1';
     const readLastOpenPage=()=>{
       try{
@@ -8300,8 +8386,9 @@ function ShiftHandover({profile,onNavigate}){
       setBusy(true);
       try{
         const qty=Math.max(1,Number(form.quantity||1));
-        const rate=Number(form.unit_cost||0);
-        const amount=Number(form.requested_amount||qty*rate||0);
+        const nurseRaised=profile?.role==='Nurse';
+        const rate=nurseRaised?0:Number(form.unit_cost||0);
+        const amount=nurseRaised?0:Number(form.requested_amount||qty*rate||0);
         const auth=await client.auth.getUser();
         const user=auth.data?.user;
         const payload={
@@ -8310,8 +8397,11 @@ function ShiftHandover({profile,onNavigate}){
           category:form.category,service_code:form.service_name.toUpperCase().replace(/[^A-Z0-9]+/g,'_'),
           service_name:form.service_name,service_provider:form.service_provider||null,
           doctor_name:form.doctor_name||null,description:form.description||form.service_name,
-          quantity:qty,unit:form.unit,unit_cost:rate||null,estimated_amount:qty*rate||null,
-          requested_amount:amount||null,billable:form.billable,bill_available:form.bill_available,
+          quantity:qty,unit:form.unit,
+          unit_cost:nurseRaised?null:(rate||null),
+          estimated_amount:nurseRaised?null:(qty*rate||null),
+          requested_amount:nurseRaised?null:(amount||null),
+          billable:form.billable,bill_available:form.bill_available,
           bill_number:form.bill_number||null,bill_date:form.bill_date||null,
           urgency:form.urgency,status:'Raised',approval_status:'Pending',
           hospital_name:form.hospital_name||null,visit_reason:form.visit_reason||null,
@@ -8335,7 +8425,8 @@ function ShiftHandover({profile,onNavigate}){
             test_name:form.test_name||form.service_name,laboratory_name:form.laboratory_name||form.service_provider||null,
             sample_type:form.sample_type||null,ordered_at:payload.service_datetime,
             sample_collected_at:payload.sample_collected_at,report_status:form.report_status,
-            report_received_at:payload.report_received_at,bill_amount:amount||null,
+            report_received_at:payload.report_received_at,
+            bill_amount:nurseRaised?null:(amount||null),
             paid_by_samara:form.paid_by_samara,requested_by:user?.id||profile.id
           });
           if(diag.error)throw diag.error;
@@ -8348,11 +8439,20 @@ function ShiftHandover({profile,onNavigate}){
     async function decide(row,decision){
       if(!canApprove||busy)return;
       let amount=Number(row.requested_amount||row.estimated_amount||0);
-      if(decision==='Partially Approved'){
-        const entered=prompt(`Requested ${money(amount)}. Enter approved amount:`,String(amount));
+      if(['Approved','Partially Approved'].includes(decision)){
+        const defaultAmount=amount>0?String(amount):'';
+        const entered=prompt(
+          amount>0
+            ?`Nursing request amount is ${money(amount)}. Confirm or enter the approved amount:`
+            :'Enter the bill / approved amount:',
+          defaultAmount
+        );
         if(entered===null)return;
         amount=Number(entered);
-        if(!Number.isFinite(amount)||amount<0){notify('error','Enter a valid approved amount.');return}
+        if(!Number.isFinite(amount)||amount<=0){
+          notify('error','Enter a valid approved amount greater than zero.');
+          return;
+        }
       }
       const remarks=prompt('Decision remarks:',decision)||decision;
       setBusy(true);
@@ -8387,7 +8487,7 @@ function ShiftHandover({profile,onNavigate}){
 
     const register=h(LogTable,{
       title:`Bill & Charge Requests (${filtered.length})`,
-      heads:['Date','Patient','Category','Service','Provider','Qty','Requested','Approved','Decision','Decision By','Decision Time','Remarks','Action'],
+      heads:['Date','Patient','Category','Service','Provider','Qty','Request Amount','Approved Amount','Decision','Decision By','Decision Time','Remarks','Action'],
       rows:filtered.map(r=>[
         formatDateIN(r.charge_date),pLabel(r.patient_id),r.category,r.service_name||r.description,
         r.service_provider||r.hospital_name||r.laboratory_name||'—',
@@ -8421,8 +8521,8 @@ function ShiftHandover({profile,onNavigate}){
       miniInput('Doctor / Consultant',form.doctor_name,v=>setForm({...form,doctor_name:v})),
       miniInput('Quantity',form.quantity,v=>setForm({...form,quantity:v}),true,'number'),
       miniInput('Unit',form.unit,v=>setForm({...form,unit:v})),
-      miniInput('Unit Cost',form.unit_cost,v=>setForm({...form,unit_cost:v}),false,'number'),
-      miniInput('Total Amount',form.requested_amount,v=>setForm({...form,requested_amount:v}),false,'number'),
+      profile?.role!=='Nurse'&&miniInput('Unit Cost',form.unit_cost,v=>setForm({...form,unit_cost:v}),false,'number'),
+      profile?.role!=='Nurse'&&miniInput('Total Amount',form.requested_amount,v=>setForm({...form,requested_amount:v}),false,'number'),
       miniSelect('Urgency',form.urgency,['Routine','Urgent','Emergency'],v=>setForm({...form,urgency:v})),
       h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.billable,onChange:e=>setForm({...form,billable:e.target.checked})}),h('span',null,'Billable')),
       h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.bill_available,onChange:e=>setForm({...form,bill_available:e.target.checked})}),h('span',null,'Bill available'))
@@ -8445,15 +8545,35 @@ function ShiftHandover({profile,onNavigate}){
     }
     basicFields.push(miniInput('Description',form.description,v=>setForm({...form,description:v}),true));
     basicFields.push(miniInput('Remarks',form.remarks,v=>setForm({...form,remarks:v})));
-    basicFields.push(h('div',{className:'field span-2'},h('label',null,'Supporting Bill / Report'),h('input',{type:'file',multiple:true,accept:'image/*,.pdf',onChange:e=>setFiles(Array.from(e.target.files||[]))})));
+    basicFields.push(h('div',{className:'field span-2'},
+      h('label',null,profile?.role==='Nurse'?'Upload Supporting Bill / Report (when available)':'Supporting Bill / Report'),
+      h('input',{
+        type:'file',
+        multiple:true,
+        accept:'image/*,.pdf',
+        onChange:e=>setFiles(Array.from(e.target.files||[]))
+      }),
+      profile?.role==='Nurse'&&h('small',{className:'small-note'},'Bill upload is optional at the time of request and may be attached when received.')
+    ));
 
     const modal=show?h('div',{className:'modal-backdrop'},
       h('form',{className:'card modal clinical-charge-modal',onSubmit:save},
         h('div',{className:'panel-head'},
-          h('div',null,h('h3',null,'Raise Bill / Charge'),h('small',null,'The form closes automatically after successful save.')),
+          h('div',null,
+            h('h3',null,profile?.role==='Nurse'?'Raise Bill / Charge Request':'Raise Bill / Charge'),
+            h('small',null,profile?.role==='Nurse'
+              ?'Record the service and upload the supporting bill when available. Management/Accounts will enter and approve the amount.'
+              :'The form closes automatically after successful save.'
+            )
+          ),
           h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')
         ),
-        h('div',{className:'modal-grid'},...basicFields),
+        h('div',{className:'modal-grid'},
+          profile?.role==='Nurse'&&h('div',{className:'clinical-charge-note'},
+            'Nursing staff must not enter an amount. Upload the available bill/report; Admin, Manager or Accounts will verify and enter the approved amount.'
+          ),
+          ...basicFields.filter(Boolean)
+        ),
         h('button',{className:'btn btn-primary full',disabled:busy},busy?'Saving…':'Submit for Approval')
       )
     ):null;

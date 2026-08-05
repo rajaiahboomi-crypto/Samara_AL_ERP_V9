@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.4.1';
-  const APP_BUILD_DATE = '05-Aug-2026 12:50 IST';
+  const APP_VERSION = '2.4.2';
+  const APP_BUILD_DATE = '05-Aug-2026 01:05 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -114,7 +114,7 @@
   const BED_CODE_OPTIONS = ['A','B','C','D'];
   const NAV_SECTIONS = [
     { title:'OVERVIEW', items:['Dashboard','Notifications'] },
-    { title:'ADMIN', items:['Employees','Rooms','Audit Trail','Alert Settings','System Maintenance'] },
+    { title:'ADMIN', items:['Employees','Rooms','Form Field Settings','Audit Trail','Alert Settings','System Maintenance'] },
     { title:'ADMISSION', items:['Enquiries','Admissions','Patients','Discharge','Documents'] },
     { title:'MANAGER', items:['Reports','Intelligent Reports','Medication Errors','Recovery Timeline'] },
     { title:'NURSING', items:['Clinical Dashboard','Clinical Alerts','Shift Tasks','Daily Care','Vital Signs','Medicines','Physiotherapy','Special Nurse','Shift Handover','Incidents'] },
@@ -877,6 +877,360 @@ Caring with Compassion. Living with Dignity.`;
     document.head.appendChild(style);
   };
 
+
+  const FORM_FIELD_CATALOG = [
+    ['Admissions','Patient name'],['Admissions','Age'],['Admissions','Gender'],['Admissions','Mobile'],
+    ['Admissions','Address'],['Admissions','Family / attendant name'],['Admissions','Attendant phone'],
+    ['Admissions','Patient category'],['Admissions','Admission date'],['Admissions','Admission source'],
+    ['Admissions','Hospital name'],['Admissions','Diagnosis / procedure'],['Admissions','Treating doctor'],
+    ['Admissions','Doctor phone'],['Admissions','Known allergies'],['Admissions','Room number'],
+    ['Admissions','Bed'],['Admissions','Medicine name'],['Admissions','Strength'],['Admissions','Dose'],
+    ['Admissions','Route'],['Admissions','Administration times'],['Admissions','Food instruction'],
+    ['Admissions','Care activity'],['Admissions','Shift'],['Admissions','Patient Photo'],
+    ['Admissions','Identity Proof'],
+
+    ['Employees','Employee name'],['Employees','Login ID'],['Employees','Role'],['Employees','Mobile'],
+    ['Employees','Email'],['Employees','Date of joining'],['Employees','Residential Address'],
+    ['Employees','Qualification'],['Employees','Previous employer'],['Employees','Reference Contact'],
+
+    ['Enquiries','Name'],['Enquiries','Mobile'],['Enquiries','Enquiry source'],['Enquiries','Enquiry date'],
+
+    ['Daily Care','Patient'],['Daily Care','Care activity'],['Daily Care','Shift'],['Daily Care','Status'],
+    ['Vital Signs','Patient'],['Vital Signs','Date'],['Vital Signs','Time'],['Vital Signs','Temperature'],
+    ['Vital Signs','Blood Pressure'],['Vital Signs','Pulse'],['Vital Signs','SpO₂'],
+    ['Vital Signs','Blood Sugar'],['Vital Signs','Remarks'],
+
+    ['Medicines','Patient'],['Medicines','Medicine'],['Medicines','Strength'],['Medicines','Frequency'],
+    ['Medicines','Route'],['Medicines','Time'],['Medicines','Food'],['Medicines','Status'],
+    ['Medicines','Actual Administration Time'],['Medicines','Remarks'],
+
+    ['Food & Diet','Patient'],['Food & Diet','Meal'],['Food & Diet','Diet type'],['Food & Diet','Status'],
+    ['Physiotherapy','Patient'],['Physiotherapy','Therapy type'],['Physiotherapy','Frequency'],
+    ['Physiotherapy','Time'],['Physiotherapy','Status'],
+
+    ['Shift Handover','Patient'],['Shift Handover','Outgoing shift'],['Shift Handover','Patient summary'],
+    ['Shift Handover','Pending tasks'],['Shift Handover','Special instructions'],['Shift Handover','Priority'],
+
+    ['Incidents','Patient'],['Incidents','Incident type'],['Incidents','Severity'],['Incidents','Description'],
+    ['Incidents','Immediate action'],
+
+    ['Charge Approvals','Patient'],['Charge Approvals','Charge category'],['Charge Approvals','Amount'],
+    ['Charge Approvals','Description'],['Payments','Patient'],['Payments','Transaction'],['Payments','Category'],
+    ['Payments','Amount'],['Payments','Payment mode'],['Payments','Description / reference'],
+
+    ['Discharge','Patient'],['Discharge','Initiation Basis'],['Discharge','Consultant / Doctor Name'],
+    ['Discharge','Consultant / Doctor Contact'],['Discharge','Doctor Discharge Advice'],
+    ['Discharge','Discharge Type'],['Discharge','Discharge Date'],['Discharge','Discharge Time'],
+    ['Discharge','Destination'],['Discharge','Destination Details'],['Discharge','Condition at Discharge'],
+    ['Discharge','Rectification / Correction Made'],['Discharge','Management Remarks'],
+    ['Discharge','Discount Amount'],['Discharge','Discount Reason'],
+    ['Discharge','Receiving Relative / Attendant'],['Discharge','Relative Contact'],
+    ['Discharge','Transport Arrangement'],['Discharge','Final Nursing Remarks']
+  ];
+
+  const SYSTEM_LOCKED_REQUIRED = new Set([
+    'Admissions::Patient name',
+    'Admissions::Admission date',
+    'Admissions::Room number',
+    'Admissions::Bed',
+    'Admissions::Medicine name',
+    'Admissions::Administration times',
+    'Daily Care::Patient',
+    'Vital Signs::Patient',
+    'Medicines::Patient',
+    'Medicines::Medicine',
+    'Incidents::Patient',
+    'Incidents::Incident type',
+    'Incidents::Description',
+    'Payments::Patient',
+    'Payments::Transaction',
+    'Payments::Amount',
+    'Payments::Payment mode',
+    'Discharge::Patient',
+    'Discharge::Initiation Basis'
+  ]);
+
+  const normaliseFieldLabel=value=>String(value||'')
+    .replace(/\*/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  const formFieldKey=(moduleName,label)=>`${moduleName}::${normaliseFieldLabel(label)}`;
+
+  function ensureFormRequirementStyle(){
+    if(document.getElementById('samara-form-requirement-style'))return;
+    const style=document.createElement('style');
+    style.id='samara-form-requirement-style';
+    style.textContent=`
+      .samara-required-star{color:#d92d20;font-weight:900;margin-left:4px}
+      .samara-required-note{
+        margin:0 0 12px;padding:9px 12px;border-radius:10px;
+        background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;
+        font-size:12px;font-weight:700
+      }
+      .samara-field-error{
+        border-color:#d92d20!important;
+        box-shadow:0 0 0 3px rgba(217,45,32,.10)!important
+      }
+      .samara-field-error-text{display:block;margin-top:5px;color:#b42318;font-size:12px;font-weight:700}
+      .field-setting-grid{display:grid;gap:10px}
+      .field-setting-row{
+        display:grid;grid-template-columns:minmax(220px,1fr) 130px 110px;
+        gap:12px;align-items:center;padding:11px 13px;border:1px solid #dce8e4;
+        border-radius:12px;background:#fff
+      }
+      .field-setting-row small{display:block;margin-top:3px;color:#697873}
+      .field-setting-status{font-size:12px;font-weight:800}
+      @media(max-width:720px){
+        .field-setting-row{grid-template-columns:1fr}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function GlobalFormRequirementManager({page,profile}){
+    const [settings,setSettings]=React.useState([]);
+
+    React.useEffect(()=>{
+      ensureFormRequirementStyle();
+      let alive=true;
+      async function load(){
+        const {data,error}=await client.from('form_field_settings')
+          .select('module_name,field_label,is_required,is_locked');
+        if(!alive)return;
+        if(error){
+          console.warn('Form field settings unavailable; native required fields remain active:',error.message);
+          setSettings([]);
+        }else setSettings(data||[]);
+      }
+      load();
+      const channel=client.channel('form-field-settings-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'form_field_settings'},load)
+        .subscribe();
+      return()=>{alive=false;client.removeChannel(channel)};
+    },[]);
+
+    React.useEffect(()=>{
+      ensureFormRequirementStyle();
+      const root=document.querySelector('.content');
+      if(!root)return;
+
+      const settingMap=new Map(settings.map(row=>[
+        formFieldKey(row.module_name,row.field_label),
+        row
+      ]));
+
+      function associatedControl(label){
+        const forId=label.getAttribute('for');
+        if(forId)return document.getElementById(forId);
+        const field=label.closest('.field');
+        return field?.querySelector('input,select,textarea')||null;
+      }
+
+      function cleanError(control){
+        control?.classList.remove('samara-field-error');
+        const field=control?.closest('.field');
+        field?.querySelector('.samara-field-error-text')?.remove();
+      }
+
+      function apply(){
+        root.querySelectorAll('label').forEach(label=>{
+          const raw=normaliseFieldLabel(label.textContent);
+          if(!raw)return;
+          label.querySelector('.samara-required-star')?.remove();
+
+          const control=associatedControl(label);
+          if(!control||control.disabled||control.type==='hidden')return;
+
+          const key=formFieldKey(page,raw);
+          const configured=settingMap.get(key);
+          const locked=SYSTEM_LOCKED_REQUIRED.has(key)||configured?.is_locked;
+          const required=configured ? Boolean(configured.is_required) : Boolean(control.required);
+
+          control.required=locked||required;
+          control.dataset.samaraRequired=(locked||required)?'true':'false';
+
+          if(locked||required){
+            const star=document.createElement('span');
+            star.className='samara-required-star';
+            star.textContent='*';
+            star.setAttribute('aria-hidden','true');
+            label.appendChild(star);
+          }else{
+            cleanError(control);
+          }
+        });
+
+        root.querySelectorAll('form').forEach(form=>{
+          if(form.dataset.samaraRequiredBound==='true')return;
+          form.dataset.samaraRequiredBound='true';
+          form.addEventListener('submit',event=>{
+            const invalid=[...form.querySelectorAll('[data-samara-required="true"]')]
+              .find(control=>!control.disabled&&!String(control.value||'').trim());
+            if(!invalid)return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            root.querySelectorAll('.samara-field-error').forEach(cleanError);
+            invalid.classList.add('samara-field-error');
+            const field=invalid.closest('.field');
+            if(field&&!field.querySelector('.samara-field-error-text')){
+              const label=normaliseFieldLabel(field.querySelector('label')?.textContent)||'This field';
+              const error=document.createElement('small');
+              error.className='samara-field-error-text';
+              error.textContent=`${label} is required`;
+              field.appendChild(error);
+            }
+            invalid.scrollIntoView({behavior:'smooth',block:'center'});
+            setTimeout(()=>invalid.focus({preventScroll:true}),350);
+          },true);
+        });
+      }
+
+      apply();
+      const observer=new MutationObserver(()=>requestAnimationFrame(apply));
+      observer.observe(root,{childList:true,subtree:true});
+      return()=>observer.disconnect();
+    },[page,settings]);
+
+    return null;
+  }
+
+  function FormFieldSettings({profile}){
+    const [rows,setRows]=React.useState([]);
+    const [moduleName,setModuleName]=React.useState('Admissions');
+    const [search,setSearch]=React.useState('');
+    const [message,setMessage]=React.useState('');
+    const [busyKey,setBusyKey]=React.useState('');
+
+    React.useEffect(()=>{ensureFormRequirementStyle()},[]);
+
+    async function load(){
+      const {data,error}=await client.from('form_field_settings')
+        .select('*')
+        .order('module_name')
+        .order('field_label');
+      if(error){
+        setMessage(`Settings table is not ready: ${error.message}`);
+        return;
+      }
+      setRows(data||[]);
+    }
+    React.useEffect(()=>{load()},[]);
+
+    if(profile?.role!=='Admin'){
+      return h(Section,{title:'Form Field Settings'},
+        h('div',{className:'message error'},'Administrator access is required.')
+      );
+    }
+
+    const modules=[...new Set(FORM_FIELD_CATALOG.map(([module])=>module))];
+    const savedMap=new Map(rows.map(row=>[formFieldKey(row.module_name,row.field_label),row]));
+    const fields=FORM_FIELD_CATALOG
+      .filter(([module])=>module===moduleName)
+      .filter(([,label])=>normaliseFieldLabel(label).toLowerCase().includes(search.toLowerCase()));
+
+    async function setRequired(label,nextRequired){
+      const key=formFieldKey(moduleName,label);
+      const locked=SYSTEM_LOCKED_REQUIRED.has(key);
+      if(locked)return;
+      setBusyKey(key);
+      const payload={
+        module_name:moduleName,
+        field_label:normaliseFieldLabel(label),
+        is_required:Boolean(nextRequired),
+        is_locked:false,
+        updated_by:profile.id,
+        updated_at:new Date().toISOString()
+      };
+      const {error}=await client.from('form_field_settings')
+        .upsert(payload,{onConflict:'module_name,field_label'});
+      setBusyKey('');
+      if(error){
+        setMessage(error.message);
+        return;
+      }
+      setMessage(`${label} is now ${nextRequired?'mandatory':'optional'} in ${moduleName}.`);
+      await load();
+      writeAuditEvent(
+        'Form Field Requirement Changed',
+        'Form Field Settings',
+        key,
+        {module_name:moduleName,field_label:label,is_required:Boolean(nextRequired)},
+        'Success'
+      );
+    }
+
+    async function restoreDefaults(){
+      if(!window.confirm(`Restore recommended mandatory/optional settings for ${moduleName}?`))return;
+      setBusyKey('restore');
+      const payload=FORM_FIELD_CATALOG.filter(([module])=>module===moduleName).map(([module,label])=>{
+        const key=formFieldKey(module,label);
+        return {
+          module_name:module,
+          field_label:normaliseFieldLabel(label),
+          is_required:SYSTEM_LOCKED_REQUIRED.has(key),
+          is_locked:SYSTEM_LOCKED_REQUIRED.has(key),
+          updated_by:profile.id,
+          updated_at:new Date().toISOString()
+        };
+      });
+      const {error}=await client.from('form_field_settings')
+        .upsert(payload,{onConflict:'module_name,field_label'});
+      setBusyKey('');
+      if(error){setMessage(error.message);return}
+      setMessage(`Recommended defaults restored for ${moduleName}.`);
+      await load();
+    }
+
+    return h(React.Fragment,null,
+      h('div',{className:'accounts-hero'},
+        h('div',null,
+          h('small',null,'ADMINISTRATOR CONTROL'),
+          h('h3',null,'Form Field Settings'),
+          h('p',null,'Decide which fields are mandatory or optional throughout Samara Care ERP.')
+        ),
+        h('div',{className:'accounts-actions'},
+          h('button',{className:'btn btn-secondary',disabled:busyKey==='restore',onClick:restoreDefaults},
+            busyKey==='restore'?'Restoring…':'Restore Recommended Defaults'
+          )
+        )
+      ),
+      message&&h('div',{className:message.includes('now')||message.includes('restored')?'message success':'message error'},message),
+      h(Section,{title:'Select Module',subtitle:'System-critical fields remain locked as mandatory'},
+        h('div',{className:'accounts-report-filters'},
+          h('div',{className:'field'},h('label',null,'Module'),h('select',{
+            value:moduleName,onChange:e=>{setModuleName(e.target.value);setSearch('')}
+          },modules.map(module=>h('option',{key:module,value:module},module)))),
+          h('div',{className:'field'},h('label',null,'Search field'),h('input',{
+            value:search,onChange:e=>setSearch(e.target.value),placeholder:'Search field name'
+          }))
+        )
+      ),
+      h('div',{className:'samara-required-note'},'Fields marked with a red * are mandatory. System-critical mandatory fields cannot be made optional.'),
+      h('div',{className:'field-setting-grid'},
+        fields.map(([,label])=>{
+          const key=formFieldKey(moduleName,label);
+          const locked=SYSTEM_LOCKED_REQUIRED.has(key);
+          const saved=savedMap.get(key);
+          const required=locked||Boolean(saved?.is_required);
+          return h('div',{className:'field-setting-row',key},
+            h('div',null,
+              h('strong',null,label,required&&h('span',{className:'samara-required-star'},'*')),
+              h('small',null,locked?'System-critical field':'Administrator configurable')
+            ),
+            h('span',{className:'field-setting-status'},required?'Mandatory':'Optional'),
+            h('button',{
+              type:'button',
+              className:required?'btn btn-secondary':'btn btn-primary',
+              disabled:locked||busyKey===key,
+              onClick:()=>setRequired(label,!required)
+            },locked?'Locked':busyKey===key?'Saving…':required?'Make Optional':'Make Mandatory')
+          );
+        })
+      )
+    );
+  }
+
   function App(){
     React.useEffect(()=>{ensureCleanWorkspaceLayout()},[]);
     const [session,setSession]=React.useState(null);
@@ -1048,6 +1402,7 @@ Caring with Compassion. Living with Dignity.`;
     const allowed = ROLE_NAV[profile.role]||['Dashboard'];
     if(!allowed.includes(page)) setTimeout(()=>setPage(ROLE_HOME[profile.role]||allowed[0]||'Notifications'),0);
     return h('div',{className:'app'},
+      h(GlobalFormRequirementManager,{page,profile}),
       h(Sidebar,{profile,page,setPage,allowed}),
       h('main',{className:'main'},
         h('header',{className:'topbar'},
@@ -1072,6 +1427,7 @@ Caring with Compassion. Living with Dignity.`;
           page==='Patients'&&h(Patients,{profile}),
           page==='Discharge'&&h(DischargeManagement,{profile}),
           page==='Rooms'&&h(RoomsBeds,{profile}),
+          page==='Form Field Settings'&&h(FormFieldSettings,{profile}),
           page==='Daily Care'&&h(DailyCare,{profile,onNavigate:setPage}),
           page==='Vital Signs'&&h(VitalSigns,{profile,onNavigate:setPage}),
           page==='Medicines'&&h(Medicines,{profile,onNavigate:setPage}),

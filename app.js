@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.4';
-  const APP_BUILD_DATE = '05-Aug-2026 11:11 IST';
+  const APP_VERSION = '2.3.5';
+  const APP_BUILD_DATE = '05-Aug-2026 11:18 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -1382,9 +1382,10 @@ Caring with Compassion. Living with Dignity.`;
       const patients=pat.data||[];
       const risks=patients.filter(p=>p.fall_risk||p.pressure_sore_risk||p.aspiration_risk||p.wandering_risk||p.infection_risk||p.oxygen_required).length;
       const outstanding=(bill.data||[]).reduce((a,x)=>a+(x.transaction_type==='Charge'?Number(x.amount||0):-Number(x.amount||0)),0);
-      const activeDischarges=(dis.data||[]).filter(row=>
-        String(row.status||'').trim().toLowerCase()!=='completed'
-      );
+      const activeDischarges=(dis.data||[]).filter(row=>{
+        const status=String(row.status||'').trim().toLowerCase();
+        return !['completed','closed','cancelled','canceled'].includes(status);
+      });
       const awaitingManagement=activeDischarges.filter(row=>
         ['','pending'].includes(String(row.management_status||'').trim().toLowerCase())
       ).length;
@@ -4222,10 +4223,16 @@ function RoomsBeds({profile}){
         client.from('incidents').select('*,patients(full_name,title,patient_id,room_no,bed_no)').eq('status','Open').order('incident_at',{ascending:false}),
         client.from('shift_handovers').select('*,profiles!shift_handovers_submitted_by_fkey(full_name,title)').order('created_at',{ascending:false}).limit(5),
         client.from('patient_discharges')
-          .select('id,patient_id,status,management_status,accounts_status,proposed_discharge_date,patients(full_name,title,patient_id,room_no,bed_no)')
+          .select('*')
           .order('created_at',{ascending:false})
       ]);
-      const data=results.map(r=>r.data||[]);
+      const data=results.map((result,index)=>{
+        if(result.error){
+          console.warn(`Clinical Dashboard query ${index+1} failed:`,result.error.message);
+          return [];
+        }
+        return result.data||[];
+      });
       setState({loading:false,patients:data[0],medOrders:data[1],medLogs:data[2],careOrders:data[3],careLogs:data[4],vitals:data[5],physioOrders:data[6],physioSessions:data[7],incidents:data[8],handovers:data[9],discharges:data[10]});
     }
     React.useEffect(()=>{load();const ch=client.channel('clinical-dashboard-live').on('postgres_changes',{event:'*',schema:'public',table:'vital_signs'},load).on('postgres_changes',{event:'*',schema:'public',table:'medication_administrations'},load).on('postgres_changes',{event:'*',schema:'public',table:'care_logs'},load).on('postgres_changes',{event:'*',schema:'public',table:'incidents'},load).on('postgres_changes',{event:'*',schema:'public',table:'patient_discharges'},load).subscribe();return()=>client.removeChannel(ch)},[]);
@@ -4246,9 +4253,10 @@ function RoomsBeds({profile}){
     const patientName=row=>formalName(row?.patients||row)||row?.patients?.full_name||row?.full_name||'Patient';
     const currentShiftCarePending=carePending.filter(x=>!x.isUpcoming);
     const upcomingShiftCarePending=carePending.filter(x=>x.isUpcoming);
-    const activeDischarges=state.discharges.filter(row=>
-      String(row.status||'').trim().toLowerCase()!=='completed'
-    );
+    const activeDischarges=state.discharges.filter(row=>{
+      const status=String(row.status||'').trim().toLowerCase();
+      return !['completed','closed','cancelled','canceled'].includes(status);
+    });
     const dischargeReady=activeDischarges.filter(row=>
       String(row.accounts_status||'').trim().toLowerCase()==='cleared'
     );
@@ -4276,7 +4284,7 @@ function RoomsBeds({profile}){
     const dischargeTone=
       dischargeReady.length||dischargeReturned.length
         ?'clinical-red'
-        :state.discharges.length
+        :activeDischarges.length
           ?'clinical-amber'
           :'clinical-green';
     const cards=[

@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.7';
-  const APP_BUILD_DATE = '05-Aug-2026 11:45 IST';
+  const APP_VERSION = '2.3.8';
+  const APP_BUILD_DATE = '05-Aug-2026 11:58 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3098,6 +3098,7 @@ Caring with Compassion. Living with Dignity.`;
     const [managementRemarks,setManagementRemarks]=React.useState('');
     const [managementDiscount,setManagementDiscount]=React.useState('');
     const [managementDiscountReason,setManagementDiscountReason]=React.useState('');
+    const [rectificationNote,setRectificationNote]=React.useState('');
     const [showFinalDischarge,setShowFinalDischarge]=React.useState(false);
     const [finalDischargeRow,setFinalDischargeRow]=React.useState(null);
     const [finalForm,setFinalForm]=React.useState({
@@ -3188,13 +3189,19 @@ Caring with Compassion. Living with Dignity.`;
       return()=>client.removeChannel(ch);
     },[profile?.id]);
 
-    function openNew(){setEditing(null);setForm({...initial,proposed_discharge_date:todayISOIndia()});setShow(true)}
+    function openNew(){
+      setEditing(null);
+      setRectificationNote('');
+      setForm({...initial,proposed_discharge_date:todayISOIndia()});
+      setShow(true);
+    }
     function openEdit(row){
       const patient=patientFor(row.patient_id);
       const voluntary=row.initiation_basis==='Voluntary Discharge'
         ?voluntaryDetails(patient,row.voluntary_requested_by||'Patient')
         :{};
       setEditing(row);
+      setRectificationNote('');
       setForm({
         ...initial,
         ...row,
@@ -3265,6 +3272,16 @@ Caring with Compassion. Living with Dignity.`;
       if(!form.patient_id){notify('error','Discharge not initiated','Select the patient.');return}
       if(form.initiation_basis==='Consultant / Doctor Instruction'&&!form.instructed_by_name.trim()){notify('error','Discharge not initiated','Consultant / Doctor name is mandatory.');return}
       if(form.initiation_basis==='Voluntary Discharge'&&!form.voluntary_requester_name.trim()){notify('error','Discharge not initiated','Voluntary requester name is mandatory.');return}
+      const isReturnedRequest=Boolean(
+        editing&&(
+          String(editing.management_status||'').trim().toLowerCase()==='rejected'||
+          String(editing.status||'').trim().toLowerCase()==='returned to nursing'
+        )
+      );
+      if(isReturnedRequest&&!String(rectificationNote||'').trim()){
+        notify('error','Re-initiation not completed','Enter what was corrected or clarified before re-submitting the discharge request.');
+        return;
+      }
       if(isFutureDateIndia(form.proposed_discharge_date)){notify('error','Discharge not initiated','Future discharge dates are not permitted for final processing.');return}
       if(!editing){
         const existing=openDischargeForPatient(form.patient_id);
@@ -3280,13 +3297,30 @@ Caring with Compassion. Living with Dignity.`;
       }
       setBusy(true);
       const {data:{user}}=await client.auth.getUser();
+      const previousReturnReason=String(editing?.management_remarks||'').trim();
+      const rectificationHistory=isReturnedRequest
+        ?[
+            previousReturnReason?`Previous return reason: ${previousReturnReason}`:'',
+            `Nursing rectification: ${String(rectificationNote||'').trim()}`,
+            `Re-submitted on ${formatDateTimeIN(new Date())}`
+          ].filter(Boolean).join(' | ')
+        :form.management_remarks||editing?.management_remarks||null;
+
       const payload={...form,
         initiated_by:editing?.initiated_by||user?.id||profile.id,
         initiated_by_name:editing?.initiated_by_name||formalName(profile)||profile?.full_name||'Nurse',
         initiated_at:editing?.initiated_at||new Date().toISOString(),
-        management_status:editing?.management_status||'Pending',
-        accounts_status:editing?.accounts_status||'Pending',
-        status:editing?.status||'Initiated',updated_at:new Date().toISOString()
+        management_status:isReturnedRequest?'Pending':(editing?.management_status||'Pending'),
+        accounts_status:isReturnedRequest?'Pending':(editing?.accounts_status||'Pending'),
+        status:isReturnedRequest?'Initiated':(editing?.status||'Initiated'),
+        management_remarks:rectificationHistory,
+        management_approved_at:isReturnedRequest?null:(editing?.management_approved_at||null),
+        management_approved_by:isReturnedRequest?null:(editing?.management_approved_by||null),
+        management_approved_by_name:isReturnedRequest?null:(editing?.management_approved_by_name||null),
+        accounts_cleared_at:isReturnedRequest?null:(editing?.accounts_cleared_at||null),
+        accounts_cleared_by:isReturnedRequest?null:(editing?.accounts_cleared_by||null),
+        accounts_cleared_by_name:isReturnedRequest?null:(editing?.accounts_cleared_by_name||null),
+        updated_at:new Date().toISOString()
       };
       delete payload.id;delete payload.created_at;delete payload.completed_at;delete payload.completed_by;
       const result=editing
@@ -3294,9 +3328,26 @@ Caring with Compassion. Living with Dignity.`;
         :await client.from('patient_discharges').insert(payload).select('id').single();
       setBusy(false);
       if(result.error){notify('error','Discharge not saved',result.error.message);return}
-      notify('success',editing?'Discharge request updated successfully':'Discharge initiated successfully','Forwarded automatically to Admin and Manager for approval.');
+      notify(
+        'success',
+        isReturnedRequest?'Discharge re-initiated successfully':editing?'Discharge request updated successfully':'Discharge initiated successfully',
+        isReturnedRequest
+          ?'The corrections were recorded and the request was returned to Admin/Manager for fresh review.'
+          :'Forwarded automatically to Admin and Manager for approval.'
+      );
       finishSuccessfulAction({close:()=>setShow(false),refresh:load});
-      writeAuditEvent(editing?'Discharge Updated':'Discharge Initiated','Discharge',result.data?.id,{patient_id:form.patient_id,initiation_basis:form.initiation_basis},'Success');
+      writeAuditEvent(
+        isReturnedRequest?'Discharge Re-initiated':editing?'Discharge Updated':'Discharge Initiated',
+        'Discharge',
+        result.data?.id,
+        {
+          patient_id:form.patient_id,
+          initiation_basis:form.initiation_basis,
+          rectification_note:isReturnedRequest?String(rectificationNote||'').trim():null,
+          previous_return_reason:isReturnedRequest?String(editing?.management_remarks||'').trim():null
+        },
+        'Success'
+      );
     }
 
     async function removeHistoricalDuplicate(row){
@@ -3741,6 +3792,14 @@ Caring with Compassion. Living with Dignity.`;
           disabled:busy,
           onClick:()=>removeHistoricalDuplicate(row)
         },'Remove Duplicate'),
+        canInitiate&&(
+          String(row.management_status||'').trim().toLowerCase()==='rejected'||
+          String(row.status||'').trim().toLowerCase()==='returned to nursing'
+        )&&h('button',{
+          type:'button',
+          className:'btn btn-primary',
+          onClick:()=>openEdit(row)
+        },'Rectify & Re-initiate'),
         canInitiate&&row.status==='Initiated'&&(row.management_status||'Pending')==='Pending'&&!isHistoricalDuplicate(row)&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Update'),
         canApprove&&(row.management_status||'Pending')==='Pending'&&!isHistoricalDuplicate(row)&&h('button',{
           className:'btn btn-primary',
@@ -3808,7 +3867,21 @@ Caring with Compassion. Living with Dignity.`;
       }),
       show&&h('div',{className:'modal-backdrop'},
         h('form',{className:'card modal',style:{width:'min(1100px,96vw)',maxHeight:'92vh',overflow:'auto'},onSubmit:save},
-          h('div',{className:'panel-head'},h('div',null,h('h3',null,editing?'Update Discharge Request':'Initiate Patient Discharge'),h('small',null,'Record only the essential instruction or voluntary request. Final handover details will be completed later by Nursing after Accounts clearance.')),h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')),
+          h('div',{className:'panel-head'},h('div',null,h('h3',null,
+            editing&&(
+              String(editing.management_status||'').trim().toLowerCase()==='rejected'||
+              String(editing.status||'').trim().toLowerCase()==='returned to nursing'
+            )
+              ?'Rectify and Re-initiate Discharge'
+              :editing?'Update Discharge Request':'Initiate Patient Discharge'
+          ),h('small',null,'Record only the essential instruction or voluntary request. Final handover details will be completed later by Nursing after Accounts clearance.')),h('button',{type:'button',className:'close',onClick:()=>setShow(false)},'×')),
+          editing&&(
+            String(editing.management_status||'').trim().toLowerCase()==='rejected'||
+            String(editing.status||'').trim().toLowerCase()==='returned to nursing'
+          )&&h('div',{className:'message error',style:{marginBottom:'14px'}},
+            h('strong',null,'Returned by Admin / Manager'),
+            h('div',{style:{marginTop:'6px'}},editing.management_remarks||'No return reason was recorded.')
+          ),
           h('div',{className:'modal-grid'},
             h('div',{className:'field'},h('label',null,'Patient'),h('select',{required:true,value:form.patient_id,disabled:!!editing,onChange:e=>selectPatient(e.target.value)},h('option',{value:''},'Select active patient'),patients.filter(p=>p.is_active!==false).map(p=>h('option',{key:p.id,value:p.id},patientLabel(p.id))))),
             miniSelect('Initiation Basis',form.initiation_basis,['Consultant / Doctor Instruction','Voluntary Discharge'],changeInitiationBasis),
@@ -3830,8 +3903,29 @@ Caring with Compassion. Living with Dignity.`;
             miniSelect('Destination',form.destination,['Home','Hospital','Rehabilitation Centre','Another Assisted Living Facility','Relative Residence','Other'],v=>setForm({...form,destination:v})),
             miniInput('Destination Details',form.destination_details,v=>setForm({...form,destination_details:v})),
             miniSelect('Condition at Discharge',form.condition_at_discharge,['Stable','Improved','Requires Continued Monitoring','Transferred for Higher Care','Critical','Other'],v=>setForm({...form,condition_at_discharge:v})),
+            editing&&(
+              String(editing.management_status||'').trim().toLowerCase()==='rejected'||
+              String(editing.status||'').trim().toLowerCase()==='returned to nursing'
+            )&&h('div',{className:'field span-2'},
+              h('label',null,'Rectification / Correction Made'),
+              h('textarea',{
+                required:true,
+                rows:3,
+                value:rectificationNote,
+                onChange:e=>setRectificationNote(e.target.value),
+                placeholder:'State exactly what was corrected, clarified or newly attached before re-submission.'
+              })
+            )
           ),
-          h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShow(false)},'Cancel'),h('button',{className:'btn btn-primary',disabled:busy},busy?'Saving…':editing?'Update Request':'Submit for Management Approval'))
+          h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShow(false)},'Cancel'),h('button',{className:'btn btn-primary',disabled:busy},
+            busy?'Saving…':
+            editing&&(
+              String(editing.management_status||'').trim().toLowerCase()==='rejected'||
+              String(editing.status||'').trim().toLowerCase()==='returned to nursing'
+            )
+              ?'Re-initiate for Management Review'
+              :editing?'Update Request':'Submit for Management Approval'
+          ))
         )
       ),
       managementReviewRow&&h('div',{

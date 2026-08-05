@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.5.5';
-  const APP_BUILD_DATE = '05-Aug-2026 03:40 PM IST';
+  const APP_VERSION = '2.6.0';
+  const APP_BUILD_DATE = '05-Aug-2026 04:05 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -2739,7 +2739,7 @@ Caring with Compassion. Living with Dignity.`;
 
   function Admissions({profile}){
     const today=new Date().toISOString().slice(0,10);
-    const initial={admission_type:'Hospital Discharge',patient_category:'Short Stay',title:'',full_name:'',age:'',gender:'Male',mobile:'',address:'',room_no:'',bed_no:'',admission_date:today,hospital_name:'',discharge_date:today,diagnosis:'',treating_doctor:'',doctor_phone:'',referring_doctor:'',referring_source:'',family_doctor:'',attendant_name:'',attendant_phone:'',allergies:'',special_instructions:'',diet_plan:'Normal diet',feeding_instruction:'',billing_package:'',fall_risk:false,pressure_sore_risk:false,aspiration_risk:false,wandering_risk:false,infection_risk:false,seizure_history:false,oxygen_required:false,oxygen_instruction:'',dressing_required:false,dressing_instruction:'',special_nurse_required:false,special_nurse_name:'',special_nurse_shift:'Both shifts / 24-hour coverage',special_nurse_instructions:'',physio_required:false,therapy_type:'',physiotherapist_name:'',physio_frequency:'Daily',physio_time:'10:00',physio_precautions:''};
+    const initial={admission_type:'Previous Hospital / Care Centre',patient_category:'Short Stay',title:'',full_name:'',age:'',gender:'Male',mobile:'',address:'',room_no:'',bed_no:'',admission_date:today,hospital_name:'',discharge_date:today,diagnosis:'',treating_doctor:'',doctor_phone:'',referring_doctor:'',referring_source:'',family_doctor:'',attendant_name:'',attendant_phone:'',allergies:'',special_instructions:'',diet_plan:'Normal diet',feeding_instruction:'',billing_package:'',fall_risk:false,pressure_sore_risk:false,aspiration_risk:false,wandering_risk:false,infection_risk:false,seizure_history:false,oxygen_required:false,oxygen_instruction:'',dressing_required:false,dressing_instruction:'',special_nurse_required:false,special_nurse_name:'',special_nurse_shift:'Both shifts / 24-hour coverage',special_nurse_instructions:'',physio_required:false,therapy_type:'',physiotherapist_name:'',physio_frequency:'Daily',physio_time:'10:00',physio_precautions:''};
     const [form,setForm]=React.useState(initial),[meds,setMeds]=React.useState([blankMedicine()]),[care,setCare]=React.useState([blankCare()]),[busy,setBusy]=React.useState(false),[msg,setMsg]=React.useState('');
     const [photoFiles,setPhotoFiles]=React.useState([]),[idFiles,setIdFiles]=React.useState([]),[dischargeFiles,setDischargeFiles]=React.useState([]),[prescriptionFiles,setPrescriptionFiles]=React.useState([]),[reportFiles,setReportFiles]=React.useState([]),[cameraConfig,setCameraConfig]=React.useState(null),[patientPhotoPreview,setPatientPhotoPreview]=React.useState('');
     const [roomBeds,setRoomBeds]=React.useState([]);
@@ -2786,6 +2786,67 @@ Caring with Compassion. Living with Dignity.`;
     const [returningPatient,setReturningPatient]=React.useState(null);
     const [patientSearch,setPatientSearch]=React.useState('');
     const [matchList,setMatchList]=React.useState([]);
+    const ADMISSION_DRAFT_KEY=`samara_admission_draft_${profile?.id||'current'}`;
+    const [draftRestored,setDraftRestored]=React.useState(false);
+    const [lastAutoSavedAt,setLastAutoSavedAt]=React.useState(null);
+    const draftReadyRef=React.useRef(false);
+    React.useEffect(()=>{
+      try{
+        const raw=localStorage.getItem(ADMISSION_DRAFT_KEY);
+        if(raw){
+          const draft=JSON.parse(raw);
+          if(draft?.form&&window.confirm('An unfinished Admission form was found. Restore the saved draft?')){
+            setForm({...initial,...draft.form});
+            setMeds(Array.isArray(draft.meds)&&draft.meds.length?draft.meds:[blankMedicine()]);
+            setCare(Array.isArray(draft.care)&&draft.care.length?draft.care:[blankCare()]);
+            setReturningPatient(draft.returningPatient||null);
+            setDraftRestored(true);
+            setMsg('Saved Admission draft restored. Uploaded files must be selected again for browser security.');
+          }else if(raw){
+            localStorage.removeItem(ADMISSION_DRAFT_KEY);
+          }
+        }
+      }catch(error){
+        console.warn('Unable to restore Admission draft:',error);
+      }finally{
+        setTimeout(()=>{draftReadyRef.current=true},0);
+      }
+    },[]);
+
+    React.useEffect(()=>{
+      if(!draftReadyRef.current||busy)return;
+      const timer=setTimeout(()=>{
+        try{
+          const hasMeaningfulData=Boolean(
+            form.full_name||form.mobile||form.address||form.attendant_name||
+            form.diagnosis||form.room_no||form.billing_package||
+            meds.some(m=>m.medicine_name)||care.some(c=>c.task_name)
+          );
+          if(!hasMeaningfulData){
+            localStorage.removeItem(ADMISSION_DRAFT_KEY);
+            return;
+          }
+          localStorage.setItem(ADMISSION_DRAFT_KEY,JSON.stringify({
+            form,
+            meds,
+            care,
+            returningPatient,
+            saved_at:new Date().toISOString()
+          }));
+          setLastAutoSavedAt(new Date());
+        }catch(error){
+          console.warn('Unable to auto-save Admission draft:',error);
+        }
+      },700);
+      return()=>clearTimeout(timer);
+    },[form,meds,care,returningPatient,busy]);
+
+    function clearAdmissionDraft(){
+      try{localStorage.removeItem(ADMISSION_DRAFT_KEY)}catch(_error){}
+      setDraftRestored(false);
+      setLastAutoSavedAt(null);
+    }
+
     React.useEffect(()=>{
       let active=true;
       async function loadRoomBeds(){
@@ -2846,7 +2907,7 @@ Caring with Compassion. Living with Dignity.`;
       let alive=true;
       async function loadPreviousPatients(){
         const {data,error}=await client.from('patients')
-          .select('id,patient_id,title,full_name,age,gender,mobile,address,attendant_name,attendant_phone,allergies,diagnosis,treating_doctor,doctor_phone,hospital_name,photo_storage_path,is_active,admission_date,discharge_date,patient_category,billing_package,diet_plan,feeding_instruction,special_instructions')
+          .select('id,patient_id,patient_code,title,full_name,age,gender,mobile,address,attendant_name,attendant_phone,allergies,diagnosis,treating_doctor,doctor_phone,hospital_name,photo_storage_path,is_active,admission_date,discharge_date,patient_category,billing_package,diet_plan,feeding_instruction,special_instructions')
           .order('full_name',{ascending:true});
         if(!alive)return;
         if(error){
@@ -2933,8 +2994,14 @@ Caring with Compassion. Living with Dignity.`;
 
     const careTemplates=['Bathing assistance','Restroom/toileting assistance','Oral hygiene','Dressing assistance','Feeding assistance','Walking/mobility assistance','Diaper change','Position change / bedsore prevention','Fluid intake monitoring','Sleep assistance'];
     const riskItems=[['fall_risk','Fall risk'],['pressure_sore_risk','Pressure sore risk'],['aspiration_risk','Aspiration risk'],['wandering_risk','Wandering / confusion risk'],['infection_risk','Infection-control precautions'],['seizure_history','Seizure history']];
-    const needsHospital=form.admission_type==='Hospital Discharge'||form.admission_type==='Hospital Transfer';
+    const needsHospital=[
+      'Previous Hospital / Care Centre',
+      'Hospital Transfer',
+      'Post-operative Recovery'
+    ].includes(form.admission_type);
     const needsReferral=form.admission_type==='Doctor Referral';
+    const isDirectElderlyCare=form.admission_type==='Direct Admission – Elderly Care';
+    const isRespiteCare=form.admission_type==='Short Stay / Respite Care';
     function updateRow(setter,rows,i,key,value){setter(rows.map((r,n)=>n===i?{...r,[key]:value}:r))}
     function addCareTemplate(name){if(care.some(x=>x.care_type===name))return;setCare([...care,{...blankCare(),care_type:name}])}
     function setCapturedFiles(setter,isPhoto,file){
@@ -2989,19 +3056,42 @@ Caring with Compassion. Living with Dignity.`;
       return date.toISOString().slice(0,10);
     };
 
+    async function generateMonthlyPatientCode(){
+      const rpcResult=await client.rpc('next_monthly_patient_code');
+      if(!rpcResult.error&&rpcResult.data)return rpcResult.data;
+
+      const now=new Date();
+      const prefix=`PAT-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-`;
+      const {data,error}=await client.from('patients')
+        .select('patient_code,patient_id')
+        .or(`patient_code.like.${prefix}%,patient_id.like.${prefix}%`)
+        .limit(5000);
+      if(error)throw error;
+      const highest=(data||[]).reduce((max,row)=>{
+        const code=String(row.patient_code||row.patient_id||'');
+        const match=code.match(/(\d{4})$/);
+        return match?Math.max(max,Number(match[1])):max;
+      },0);
+      return `${prefix}${String(highest+1).padStart(4,'0')}`;
+    }
+
     async function submit(e){
       e.preventDefault();setBusy(true);setMsg('');
       if(!['Admin','Manager'].includes(profile?.role)){setMsg('Only Admin or Manager can allot a room and complete patient admission.');setBusy(false);return}
       const selectedBed=roomBeds.find(r=>String(r.room_no)===String(form.room_no)&&String(r.bed_no||r.bed_code||'').toUpperCase()===String(form.bed_no||'').toUpperCase());
       if(!selectedBed||selectedBed.status!=='Available'||selectedBed.patient_id){setMsg('The selected room/bed is no longer available. Please choose another available bed.');setBusy(false);return}
       if(isFutureDateIndia(form.admission_date)){setMsg(`Admission date cannot be later than today (${formatDateIN(todayISOIndia())}). Please correct the date.`);setBusy(false);return}
-      if(needsHospital&&!dischargeFiles.length){setMsg('Upload the hospital discharge summary or transfer note.');setBusy(false);return}
-      if((needsHospital||needsReferral)&&!prescriptionFiles.length){setMsg('Upload the current prescription.');setBusy(false);return}
+      if(!idFiles.length&&!returningPatient){
+        const continueWithoutId=window.confirm(
+          'Aadhaar / Identity Card has not been uploaded.\n\nContinue this admission under the temporary ID-document exception? The document can be added later from Patient Documents.'
+        );
+        if(!continueWithoutId){setBusy(false);return}
+      }
       if(!meds.length||meds.some(m=>!m.medicine_name||!m.strength||!m.times)){setMsg('Enter every current medicine, strength and administration time.');setBusy(false);return}
       if(form.special_nurse_required&&!form.special_nurse_name){setMsg('Assign or enter the special nurse name.');setBusy(false);return}
       const {data:{user}}=await client.auth.getUser();
       let patient=null;
-      let patientCode=returningPatient?.patient_id||null;
+      let patientCode=returningPatient?.patient_code||returningPatient?.patient_id||null;
       const payload={...form,age:Number(form.age)||null,is_active:true,admission_status:'Active',
         prescription_verified:true,prescription_verified_by:user.id,prescription_verified_at:new Date().toISOString(),
         package_id:selectedPackage?.id||null,package_start_date:selectedPackage?form.admission_date:null,
@@ -3018,7 +3108,7 @@ Caring with Compassion. Living with Dignity.`;
         if(roomAssignError){setMsg(roomAssignError.message||'Unable to allot the selected room for re-admission.');setBusy(false);return}
 
         const {data:updated,error:updateError}=await client.from('patients')
-          .update({...payload,patient_id:returningPatient.patient_id,created_by:returningPatient.created_by||user.id})
+          .update({...payload,patient_id:patientCode,patient_code:patientCode,created_by:returningPatient.created_by||user.id})
           .eq('id',returningPatient.id)
           .select()
           .single();
@@ -3033,11 +3123,15 @@ Caring with Compassion. Living with Dignity.`;
         await client.from('care_orders').update({is_active:false}).eq('patient_id',patient.id);
         await client.from('physiotherapy_plans').update({is_active:false}).eq('patient_id',patient.id);
       }else{
-        const codeResult=await client.rpc('next_patient_code');
-        if(codeResult.error){setMsg(codeResult.error.message);setBusy(false);return}
-        patientCode=codeResult.data;
+        try{
+          patientCode=await generateMonthlyPatientCode();
+        }catch(codeError){
+          setMsg(`Unable to generate Patient ID: ${codeError.message||codeError}`);
+          setBusy(false);
+          return;
+        }
         const {data:created,error:createError}=await client.from('patients')
-          .insert({...payload,patient_id:patientCode,created_by:user.id})
+          .insert({...payload,patient_id:patientCode,patient_code:patientCode,created_by:user.id})
           .select()
           .single();
         if(createError){setMsg(createError.message);setBusy(false);return}
@@ -3095,6 +3189,7 @@ Caring with Compassion. Living with Dignity.`;
           ?`Re-admission completed for ${formalName(patient)||patient.full_name}. Existing Patient ID ${patient.patient_id} has been retained. ${noPackageSelected?'Daily billing is active.':'The selected care package is active.'}`
           :`Admission completed. Patient photo, documents, medicines and care plan are active. ${noPackageSelected?'Daily billing is active.':'The selected care package is active.'}`
         );
+        clearAdmissionDraft();
         setForm(initial);setReturningPatient(null);setMatchList([]);setPatientSearch('');
         setMeds([blankMedicine()]);setCare([blankCare()]);setPhotoFiles([]);setIdFiles([]);setDischargeFiles([]);setPrescriptionFiles([]);setReportFiles([]);if(patientPhotoPreview)URL.revokeObjectURL(patientPhotoPreview);setPatientPhotoPreview('');
       }catch(err){setMsg(`${returningPatient?'Patient re-activated':'Patient created'}, but document or care setup failed: ${err.message}`)}
@@ -3102,7 +3197,25 @@ Caring with Compassion. Living with Dignity.`;
     }
     return h('form',{className:'card panel',onSubmit:submit},
       h('div',{className:'panel-head'},h('div',null,h('h3',null,'Unified Patient Admission'),h('small',null,'Hospital discharge, direct admission, doctor referral or transfer'))),
-      msg&&h('div',{className:`message ${msg.includes('completed')?'success':'error'}`},msg),
+      h('div',{className:'small-note',style:{display:'flex',justifyContent:'space-between',gap:'12px',alignItems:'center',marginBottom:'8px'}},
+        h('span',null,lastAutoSavedAt
+          ?`Draft auto-saved at ${lastAutoSavedAt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`
+          :'Admission form auto-save is active. Text entries, medicines and care-plan details are retained if you leave the page.'
+        ),
+        (draftRestored||lastAutoSavedAt)&&h('button',{
+          type:'button',
+          className:'btn btn-secondary',
+          onClick:()=>{
+            if(window.confirm('Discard the saved Admission draft and clear this form?')){
+              clearAdmissionDraft();
+              setForm(initial);setMeds([blankMedicine()]);setCare([blankCare()]);
+              setReturningPatient(null);setMatchList([]);setPatientSearch('');
+              setMsg('Saved Admission draft discarded.');
+            }
+          }
+        },'Discard Draft')
+      ),
+      msg&&h('div',{className:`message ${msg.includes('completed')||msg.includes('restored')?'success':'error'}`},msg),
       h('div',{className:'section-card'},
         h('div',{className:'section-title'},
           h('div',null,
@@ -3148,7 +3261,14 @@ Caring with Compassion. Living with Dignity.`;
         )
       ),
       h('div',{className:'section-card'},h('h4',null,'1. Admission route and patient identity'),h('div',{className:'form-grid'},
-        selectField('Admission type','admission_type',form,setForm,['Hospital Discharge','Direct Admission','Doctor Referral','Hospital Transfer']),
+        selectField('Admission source','admission_type',form,setForm,[
+          'Previous Hospital / Care Centre',
+          'Direct Admission – Elderly Care',
+          'Doctor Referral',
+          'Hospital Transfer',
+          'Post-operative Recovery',
+          'Short Stay / Respite Care'
+        ]),
         selectField('Patient category','patient_category',form,setForm,['Short Stay','Respite Care','Post-Surgery','Rehabilitation','Stroke Recovery','Dementia Care','Parkinsonism','Palliative Care','Long-Term Assisted Living','Observation','Elderly Care']),
         selectField('Title / Salutation','title',form,setForm,PATIENT_TITLES),
         h('div',{className:'field'},h('label',null,'Patient name'),h('input',{
@@ -3170,7 +3290,7 @@ Caring with Compassion. Living with Dignity.`;
         field('Attendant phone','attendant_phone',form,setForm,true,'tel')
       ),
       h('div',{className:'small-note',style:{marginBottom:'8px'}},
-        'Patient photo, identity proof and supporting documents may be uploaded now or added later from the Patient Documents section.'
+        'Only Aadhaar / Identity Card is the standard identity document. A temporary exception permits admission without it for now. Photo and all other supporting documents are optional and may be added later.'
       ),
       h('div',{className:'upload-grid'},
         patientCaptureInput(
@@ -3181,18 +3301,71 @@ Caring with Compassion. Living with Dignity.`;
           false
         ),
         patientCaptureInput(
-          returningPatient?'New Identity Proof (optional — only if changed)':'Identity Proof (optional)',
+          returningPatient?'New Aadhaar / ID Card (only if changed)':'Aadhaar / Identity Card (temporary exception allowed)',
           idFiles,
           setIdFiles,
           'image/*,.pdf',
           false
         )
       )),
-      h('div',{className:'section-card'},h('h4',null,'2. Medical source and records'),h('div',{className:'form-grid'},
-        needsHospital&&field('Hospital / previous centre','hospital_name',form,setForm,true),needsHospital&&field('Discharge / transfer date','discharge_date',form,setForm,true,'date'),
-        needsReferral&&field('Referring doctor','referring_doctor',form,setForm,true),needsReferral&&field('Clinic / referral source','referring_source',form,setForm,false),
-        form.admission_type==='Direct Admission'&&field('Family doctor','family_doctor',form,setForm,false),field('Diagnosis / current condition','diagnosis',form,setForm,true),field('Treating doctor','treating_doctor',form,setForm,false),field('Doctor contact','doctor_phone',form,setForm,false,'tel'),field('Known allergies','allergies',form,setForm,false),textareaField('Instructions / precautions','special_instructions',form,setForm,'span-2')
-      ),h('div',{className:'upload-grid'},patientCaptureInput('Discharge / Transfer / Previous Medical Record',dischargeFiles,setDischargeFiles,'image/*,.pdf',false),patientCaptureInput('Current Prescription',prescriptionFiles,setPrescriptionFiles,'image/*,.pdf',false),patientCaptureInput('Lab, Scan and Other Reports',reportFiles,setReportFiles,'image/*,.pdf',false))),
+      h('div',{className:'section-card'},
+        h('h4',null,needsHospital?'2. Previous hospital / centre and current care details':'2. Current care requirement and medical details'),
+        h('div',{className:'form-grid'},
+          needsHospital&&field('Previous Hospital / Care Centre','hospital_name',form,setForm,true),
+          needsHospital&&field(
+            form.admission_type==='Hospital Transfer'?'Transfer date':'Discharge date',
+            'discharge_date',form,setForm,true,'date'
+          ),
+
+          needsReferral&&field('Referring doctor','referring_doctor',form,setForm,true),
+          needsReferral&&field('Clinic / referral source','referring_source',form,setForm,false),
+
+          isDirectElderlyCare&&h('div',{className:'field span-2'},
+            h('label',null,'Reason for assisted living / home care difficulty'),
+            h('textarea',{
+              required:true,
+              rows:3,
+              value:form.referring_source,
+              onChange:e=>setForm({...form,referring_source:e.target.value}),
+              placeholder:'Example: Living alone, family unavailable during daytime, requires assistance with daily activities'
+            })
+          ),
+          isDirectElderlyCare&&field('Family doctor (if any)','family_doctor',form,setForm,false),
+
+          isRespiteCare&&h('div',{className:'field span-2'},
+            h('label',null,'Reason for short stay / respite care'),
+            h('textarea',{
+              required:true,
+              rows:3,
+              value:form.referring_source,
+              onChange:e=>setForm({...form,referring_source:e.target.value}),
+              placeholder:'Example: Family travelling, caregiver temporarily unavailable, recovery support'
+            })
+          ),
+
+          field(
+            needsHospital?'Diagnosis / condition at admission':'Current condition / care requirement',
+            'diagnosis',form,setForm,true
+          ),
+          field(needsHospital?'Treating doctor':'Doctor / family physician (if any)','treating_doctor',form,setForm,false),
+          field('Doctor contact','doctor_phone',form,setForm,false,'tel'),
+          field('Known allergies','allergies',form,setForm,false),
+          textareaField(
+            isDirectElderlyCare?'Daily care needs / family instructions':'Instructions / precautions',
+            'special_instructions',form,setForm,'span-2'
+          )
+        ),
+        h('div',{className:'small-note',style:{marginBottom:'8px'}},
+          needsHospital
+            ?'Previous hospital records may be uploaded if available. Uploads are optional and can also be added later.'
+            :'Medical records are not compulsory for direct elderly care admission. Upload only the documents currently available.'
+        ),
+        h('div',{className:'upload-grid'},
+          needsHospital&&patientCaptureInput('Discharge / Transfer / Previous Medical Record (optional)',dischargeFiles,setDischargeFiles,'image/*,.pdf',false),
+          patientCaptureInput('Current Prescription / Medicine List (optional)',prescriptionFiles,setPrescriptionFiles,'image/*,.pdf',false),
+          patientCaptureInput('Lab, Scan and Other Reports (optional)',reportFiles,setReportFiles,'image/*,.pdf',false)
+        )
+      ),
       h('div',{className:'section-card'},h('div',{className:'section-title'},h('h4',null,'3. Current medicines and prescription verification'),h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setMeds([...meds,blankMedicine()])},'Add medicine')),meds.map((m,i)=>h('div',{className:'repeat-row medicine-order-row',key:i},miniInput('Medicine',m.medicine_name,v=>updateRow(setMeds,meds,i,'medicine_name',v),true),miniInput('Strength',m.strength,v=>updateRow(setMeds,meds,i,'strength',v),true),miniSelect('Frequency',m.frequency,['Once Daily (OD)','Twice Daily (BD)','Three Times Daily (TDS)','Four Times Daily (QID)','HS','STAT','SOS / PRN','Weekly','Monthly'],v=>{const next=meds.map((row,n)=>n===i?{...row,frequency:v,times:(MEDICATION_FREQUENCY_TIMES[v]||String(row.times||'').split(',').map(normalizeMedicationTime).filter(Boolean)).join(', ')}:row);setMeds(next)}),miniSelect('Route',m.route,['Oral','IV','IM'],v=>updateRow(setMeds,meds,i,'route',v)),h(MedicationTimeSelector,{label:'Time',value:m.times,onChange:v=>updateRow(setMeds,meds,i,'times',v),required:true}),miniSelect('Food',m.food_instruction,['Before food','After food','With food','No restriction'],v=>updateRow(setMeds,meds,i,'food_instruction',v)),miniSelect('Duration',m.duration,['Single Dose','1 Day','3 Days','5 Days','7 Days','10 Days','14 Days','21 Days','30 Days','Until Doctor Review','Long Term','Custom'],v=>updateRow(setMeds,meds,i,'duration',v)),m.duration==='Custom'&&miniInput('Custom days',m.custom_duration_days,v=>updateRow(setMeds,meds,i,'custom_duration_days',v),true,'number'),miniInput('Start date',m.start_date,v=>updateRow(setMeds,meds,i,'start_date',v),true,'date'),miniInput('Special instruction',m.special_instruction,v=>updateRow(setMeds,meds,i,'special_instruction',v)),h('button',{type:'button',className:'icon-btn',onClick:()=>setMeds(meds.filter((_,n)=>n!==i)),disabled:meds.length===1},'Remove')))),
       h('div',{className:'section-card'},h('h4',null,'4. Master care plan'),h('div',{className:'check-grid'},careTemplates.map(name=>h('label',{className:'check-card',key:name},h('input',{type:'checkbox',checked:care.some(x=>x.care_type===name),onChange:e=>e.target.checked?addCareTemplate(name):setCare(care.filter(x=>x.care_type!==name))}),h('span',null,name)))),care.map((c,i)=>h('div',{className:'repeat-row care',key:c.care_type+i},miniInput('Care task',c.care_type,v=>updateRow(setCare,care,i,'care_type',v),true),miniSelect('Shift',c.shift,['Day Shift (7 AM–7 PM)','Night Shift (7 PM–7 AM)','Both shifts'],v=>updateRow(setCare,care,i,'shift',v)),miniSelect('Frequency',c.frequency,['Daily','Each shift','Twice daily','As required'],v=>updateRow(setCare,care,i,'frequency',v)),miniInput('Instruction',c.instruction,v=>updateRow(setCare,care,i,'instruction',v)),h('button',{type:'button',className:'icon-btn',onClick:()=>setCare(care.filter((_,n)=>n!==i))},'Remove'))),h('div',{className:'form-grid'},selectField('Diet plan','diet_plan',form,setForm,['Normal diet','Soft diet','Liquid diet','Diabetic diet','Low-salt diet','Renal diet','High-protein diet','Tube feeding','Custom diet']),textareaField('Feeding instructions','feeding_instruction',form,setForm,'span-2'))),
       h('div',{className:'section-card'},h('h4',null,'5. Risks, special nurse and physiotherapy'),h('div',{className:'check-grid'},riskItems.map(([key,label])=>h('label',{className:'check-card',key},h('input',{type:'checkbox',checked:!!form[key],onChange:e=>setForm({...form,[key]:e.target.checked})}),h('span',null,label))),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.oxygen_required,onChange:e=>setForm({...form,oxygen_required:e.target.checked})}),h('span',null,'Oxygen required')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.dressing_required,onChange:e=>setForm({...form,dressing_required:e.target.checked})}),h('span',null,'Wound dressing required')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.special_nurse_required,onChange:e=>setForm({...form,special_nurse_required:e.target.checked})}),h('span',null,'Special / dedicated nurse')),h('label',{className:'check-card'},h('input',{type:'checkbox',checked:form.physio_required,onChange:e=>setForm({...form,physio_required:e.target.checked})}),h('span',null,'Physiotherapy advised'))),form.special_nurse_required&&h('div',{className:'form-grid'},field('Special nurse name','special_nurse_name',form,setForm,true),selectField('Coverage','special_nurse_shift',form,setForm,['Day Shift','Night Shift','Both shifts / 24-hour coverage']),textareaField('Special nursing instructions','special_nurse_instructions',form,setForm,'span-2')),form.physio_required&&h('div',{className:'form-grid'},field('Therapy / exercise','therapy_type',form,setForm,true),field('Physiotherapist name','physiotherapist_name',form,setForm,false),field('Frequency','physio_frequency',form,setForm,false),field('Preferred time','physio_time',form,setForm,false,'time'),textareaField('Precautions','physio_precautions',form,setForm,'span-2'))),
@@ -3886,7 +4059,14 @@ Caring with Compassion. Living with Dignity.`;
           selectField('Title / Salutation','title',editForm,setEditForm,PATIENT_TITLES),field('Patient Name','full_name',editForm,setEditForm,true),field('Age','age',editForm,setEditForm,false,'number'),selectField('Gender','gender',editForm,setEditForm,['Male','Female','Other']),field('Patient Mobile','mobile',editForm,setEditForm,false,'tel'),
           field('Emergency Contact Name','attendant_name',editForm,setEditForm,false),field('Emergency Contact Number','attendant_phone',editForm,setEditForm,false,'tel'),
           field('Main Diagnosis','diagnosis',editForm,setEditForm,false),field('Referred By Doctor','referring_doctor',editForm,setEditForm,false),field('Treating Doctor','treating_doctor',editForm,setEditForm,false),field('Doctor Mobile','doctor_phone',editForm,setEditForm,false,'tel'),
-          field('Hospital / Previous Centre','hospital_name',editForm,setEditForm,false),selectField('Admission Type','admission_type',editForm,setEditForm,['Hospital Discharge','Direct Admission','Doctor Referral','Hospital Transfer']),
+          field('Hospital / Previous Centre','hospital_name',editForm,setEditForm,false),selectField('Admission Source','admission_type',editForm,setEditForm,[
+              'Previous Hospital / Care Centre',
+              'Direct Admission – Elderly Care',
+              'Doctor Referral',
+              'Hospital Transfer',
+              'Post-operative Recovery',
+              'Short Stay / Respite Care'
+            ]),
           selectField('Patient Category','patient_category',editForm,setEditForm,['Short Stay','Respite Care','Post-Surgery','Rehabilitation','Stroke Recovery','Dementia Care','Parkinsonism','Palliative Care','Long-Term Assisted Living','Observation','Elderly Care']),
           roomBedSelect(roomBeds,editForm.room_no,editForm.bed_no,(room_no,bed_no)=>setEditForm({...editForm,room_no,bed_no}),false,editTarget.id),field('Admission Date','admission_date',editForm,setEditForm,false,'date'),
           field('Known Allergies','allergies',editForm,setEditForm,false),textareaField('Residential Address','address',editForm,setEditForm,'span-2'),textareaField('Special Instructions / Precautions','special_instructions',editForm,setEditForm,'span-2'),
@@ -9131,7 +9311,18 @@ function ShiftHandover({profile,onNavigate}){
 
     function patientHumanNarrative(p,d){
       const status=conditionAssessment(p,d.vitals,d.incidents,d.mar);
-      const admissionSource=p.admission_type==='Hospital Discharge'?`following discharge from ${p.hospital_name||'a hospital'}`:p.admission_type==='Doctor Referral'?`on referral by ${p.referring_doctor||p.treating_doctor||'the referring doctor'}`:p.admission_type==='Hospital Transfer'?`as a transfer from ${p.hospital_name||'another care centre'}`:'as a direct admission to Samara';
+      const admissionSource=[
+        'Previous Hospital / Care Centre',
+        'Post-operative Recovery'
+      ].includes(p.admission_type)
+        ?`following discharge from ${p.hospital_name||'a hospital or care centre'}`
+        :p.admission_type==='Doctor Referral'
+          ?`on referral by ${p.referring_doctor||p.treating_doctor||'the referring doctor'}`
+          :p.admission_type==='Hospital Transfer'
+            ?`as a transfer from ${p.hospital_name||'another care centre'}`
+            :p.admission_type==='Short Stay / Respite Care'
+              ?'for short-stay or respite care'
+              :'as a direct elderly-care admission to Samara';
       const pronoun=String(p.gender||'').toLowerCase()==='female'?'She':String(p.gender||'').toLowerCase()==='male'?'He':'The patient';
       const stay=lengthOfStay(p,reportDate);
       const intro='Admission Summary: '+`${formalName(p)||'The patient'} (${p.patient_id||'patient ID not assigned'}) was admitted ${admissionSource} on ${p.admission_date||'the recorded admission date'} with ${p.diagnosis?`a diagnosis of ${p.diagnosis}`:`a requirement for ${p.patient_category||'assisted-living care'}`}. ${stay.days!==null?`${pronoun} has completed ${stay.label} of stay as on ${formatDateIN(reportDate)}. `:''}${p.allergies?`Known allergies: ${p.allergies}.`:'No allergy is documented in the available record.'}`;

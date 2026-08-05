@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.4.0';
-  const APP_BUILD_DATE = '05-Aug-2026 12:40 IST';
+  const APP_VERSION = '2.4.1';
+  const APP_BUILD_DATE = '05-Aug-2026 12:50 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3767,7 +3767,7 @@ Caring with Compassion. Living with Dignity.`;
       setManagementBilling(data||[]);
     }
 
-    async function approveReviewed(decision){
+    async function approveReviewed(decision,reasonOverride=''){
       const row=managementReviewRow;
       if(!row||!canApprove||busy)return;
 
@@ -3782,7 +3782,8 @@ Caring with Compassion. Living with Dignity.`;
         Number(totals.Refund||0)
       );
 
-      if(decision==='Rejected'&&!String(managementRemarks||'').trim()){
+      const effectiveManagementRemarks=String(reasonOverride||managementRemarks||'').trim();
+      if(decision==='Rejected'&&!effectiveManagementRemarks){
         notify('error','Decision not saved','Reason for rejection is mandatory.');
         return;
       }
@@ -3803,7 +3804,7 @@ Caring with Compassion. Living with Dignity.`;
       try{
         const {data:{user}}=await client.auth.getUser();
         const remarks=[
-          String(managementRemarks||'').trim()||decision,
+          effectiveManagementRemarks||decision,
           discountAmount>0?`Admin-approved discount: ₹${discountAmount.toLocaleString('en-IN')}`:'',
           discountAmount>0?`Discount reason: ${String(managementDiscountReason||'').trim()}`:''
         ].filter(Boolean).join(' | ');
@@ -3895,7 +3896,7 @@ Caring with Compassion. Living with Dignity.`;
           {
             patient_id:row.patient_id,
             decision,
-            management_remarks:String(managementRemarks||'').trim()||null,
+            management_remarks:effectiveManagementRemarks||null,
             discount_amount:discountAmount||0,
             discount_reason:String(managementDiscountReason||'').trim()||null
           },
@@ -3906,6 +3907,24 @@ Caring with Compassion. Living with Dignity.`;
       }finally{
         setBusy(false);
       }
+    }
+
+    function rejectAndReturnToNursing(){
+      let reason=String(managementRemarks||'').trim();
+      if(!reason){
+        const entered=window.prompt(
+          'Reason for returning this discharge request to Nursing:',
+          ''
+        );
+        if(entered===null)return;
+        reason=String(entered||'').trim();
+        if(!reason){
+          notify('error','Decision not saved','Please enter the reason for returning the request to Nursing.');
+          return;
+        }
+        setManagementRemarks(reason);
+      }
+      approveReviewed('Rejected',reason);
     }
 
     function openPayments(row){
@@ -4401,7 +4420,12 @@ Caring with Compassion. Living with Dignity.`;
             ),
             h('div',{className:'actions'},
               h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setManagementReviewRow(null)},'Cancel'),
-              h('button',{type:'button',className:'btn btn-danger',disabled:busy,onClick:()=>approveReviewed('Rejected')},busy?'Saving…':'Reject & Return to Nursing'),
+              h('button',{
+                type:'button',
+                className:'btn btn-danger',
+                disabled:busy,
+                onClick:rejectAndReturnToNursing
+              },busy?'Saving…':'Reject & Return to Nursing'),
               h('button',{type:'button',className:'btn btn-primary',disabled:busy,onClick:()=>approveReviewed('Approved')},busy?'Saving…':'Approve & Forward to Accounts')
             )
           )

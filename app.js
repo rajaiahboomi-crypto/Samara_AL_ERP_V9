@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.3';
-  const APP_BUILD_DATE = '05-Aug-2026 03:18 IST';
+  const APP_VERSION = '2.3.4';
+  const APP_BUILD_DATE = '05-Aug-2026 11:11 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3091,6 +3091,12 @@ Caring with Compassion. Living with Dignity.`;
     const [toast,setToast]=React.useState(null);
     const [message,setMessage]=React.useState('');
     const [paymentTarget,setPaymentTarget]=React.useState(null);
+    const [managementReviewRow,setManagementReviewRow]=React.useState(null);
+    const [managementBilling,setManagementBilling]=React.useState([]);
+    const [managementReviewLoading,setManagementReviewLoading]=React.useState(false);
+    const [managementRemarks,setManagementRemarks]=React.useState('');
+    const [managementDiscount,setManagementDiscount]=React.useState('');
+    const [managementDiscountReason,setManagementDiscountReason]=React.useState('');
     const [showFinalDischarge,setShowFinalDischarge]=React.useState(false);
     const [finalDischargeRow,setFinalDischargeRow]=React.useState(null);
     const [finalForm,setFinalForm]=React.useState({
@@ -3137,6 +3143,12 @@ Caring with Compassion. Living with Dignity.`;
       const p=patientFor(id);
       return p.id?`${formalName(p)} · ${p.patient_id||'—'} · Room ${p.room_no||'—'}${p.bed_no?`-${p.bed_no}`:''}`:'—';
     };
+    const isOpenDischarge=row=>!['completed','cancelled','closed'].includes(
+      String(row?.status||'').trim().toLowerCase()
+    );
+    const openDischargeForPatient=patientId=>rows.find(row=>
+      row.patient_id===patientId&&isOpenDischarge(row)
+    )||null;
 
     async function load(){
       const [d,p]=await Promise.all([
@@ -3194,6 +3206,16 @@ Caring with Compassion. Living with Dignity.`;
     }
 
     function selectPatient(id){
+      const existing=!editing?openDischargeForPatient(id):null;
+      if(existing){
+        notify(
+          'error',
+          'Existing discharge request resumed',
+          'This patient already has an open discharge workflow. Complete, cancel or update that request before starting another one.'
+        );
+        openEdit(existing);
+        return;
+      }
       const p=patientFor(id);
       const voluntary=voluntaryDetails(p,form.voluntary_requested_by||'Patient');
       setForm(current=>({
@@ -3233,6 +3255,18 @@ Caring with Compassion. Living with Dignity.`;
       if(form.initiation_basis==='Consultant / Doctor Instruction'&&!form.instructed_by_name.trim()){notify('error','Discharge not initiated','Consultant / Doctor name is mandatory.');return}
       if(form.initiation_basis==='Voluntary Discharge'&&!form.voluntary_requester_name.trim()){notify('error','Discharge not initiated','Voluntary requester name is mandatory.');return}
       if(isFutureDateIndia(form.proposed_discharge_date)){notify('error','Discharge not initiated','Future discharge dates are not permitted for final processing.');return}
+      if(!editing){
+        const existing=openDischargeForPatient(form.patient_id);
+        if(existing){
+          notify(
+            'error',
+            'Duplicate discharge prevented',
+            'An earlier discharge request is still open for this patient and room. The existing request has been opened for continuation.'
+          );
+          openEdit(existing);
+          return;
+        }
+      }
       setBusy(true);
       const {data:{user}}=await client.auth.getUser();
       const payload={...form,
@@ -3254,15 +3288,142 @@ Caring with Compassion. Living with Dignity.`;
       writeAuditEvent(editing?'Discharge Updated':'Discharge Initiated','Discharge',result.data?.id,{patient_id:form.patient_id,initiation_basis:form.initiation_basis},'Success');
     }
 
-    async function approve(row,decision){
-      if(!canApprove||busy)return;
-      const remarks=prompt(decision==='Approved'?'Management approval remarks:':'Reason for rejection:',decision)||decision;
+    const managementBillingTotals=list=>(list||[]).reduce((totals,row)=>{
+      const amount=Number(row.amount||0);
+      const type=row.transaction_type||'Charge';
+      totals[type]=(totals[type]||0)+amount;
+      return totals;
+    },{Charge:0,Payment:0,Advance:0,Discount:0,Refund:0});
+
+    async function openManagementReview(row){
+      if(!canApprove)return;
+      setManagementReviewRow(row);
+      setManagementBilling([]);
+      setManagementRemarks(row.management_remarks||'');
+      setManagementDiscount('');
+      setManagementDiscountReason('');
+      setManagementReviewLoading(true);
+      const {data,error}=await client.from('billing_transactions')
+        .select('id,transaction_type,category,amount,payment_mode,description,transaction_date,entered_by')
+        .eq('patient_id',row.patient_id)
+        .order('transaction_date',{ascending:false});
+      setManagementReviewLoading(false);
+      if(error){
+        notify('error','Account details not loaded',error.message);
+        return;
+      }
+      setManagementBilling(data||[]);
+    }
+
+    async function approveReviewed(decision){
+      const row=managementReviewRow;
+      if(!row||!canApprove||busy)return;
+
+      const discountAmount=profile?.role==='Admin'?Number(managementDiscount||0):0;
+      const totals=managementBillingTotals(managementBilling);
+      const currentOutstanding=Math.max(
+        0,
+        Number(totals.Charge||0)-
+        Number(totals.Payment||0)-
+        Number(totals.Advance||0)-
+        Number(totals.Discount||0)+
+        Number(totals.Refund||0)
+      );
+
+      if(decision==='Rejected'&&!managementRemarks.trim()){
+        notify('error','Decision not saved','Reason for rejection is mandatory.');
+        return;
+      }
+      if(discountAmount<0){
+        notify('error','Discount not saved','Discount cannot be negative.');
+        return;
+      }
+      if(discountAmount>currentOutstanding+0.009){
+        notify('error','Discount not saved',`Discount cannot exceed the current outstanding amount of ₹${currentOutstanding.toLocaleString('en-IN')}.`);
+        return;
+      }
+      if(discountAmount>0&&!managementDiscountReason.trim()){
+        notify('error','Discount not saved','Enter the reason for granting the discount.');
+        return;
+      }
+
       setBusy(true);
-      const {error}=await client.rpc('approve_patient_discharge_v2',{p_discharge_id:row.id,p_decision:decision,p_remarks:remarks});
+      let insertedDiscountId=null;
+
+      if(decision==='Approved'&&discountAmount>0&&profile?.role==='Admin'){
+        const {data:discountData,error:discountError}=await client.from('billing_transactions')
+          .insert({
+            patient_id:row.patient_id,
+            transaction_type:'Discount',
+            category:'Discharge Discount',
+            amount:discountAmount,
+            payment_mode:'Not applicable',
+            description:[
+              `Approved during discharge management review`,
+              `Discharge ID: ${row.id}`,
+              `Reason: ${managementDiscountReason.trim()}`
+            ].join(' | '),
+            transaction_date:new Date().toISOString(),
+            entered_by:profile.id
+          })
+          .select('id')
+          .single();
+
+        if(discountError){
+          setBusy(false);
+          notify('error','Discount not saved',discountError.message);
+          return;
+        }
+        insertedDiscountId=discountData?.id||null;
+      }
+
+      const remarks=[
+        managementRemarks.trim()||decision,
+        discountAmount>0?`Admin-approved discount: ₹${discountAmount.toLocaleString('en-IN')}`:'',
+        discountAmount>0?`Discount reason: ${managementDiscountReason.trim()}`:''
+      ].filter(Boolean).join(' | ');
+
+      const {error}=await client.rpc('approve_patient_discharge_v2',{
+        p_discharge_id:row.id,
+        p_decision:decision,
+        p_remarks:remarks
+      });
+
+      if(error){
+        if(insertedDiscountId){
+          await client.from('billing_transactions').delete().eq('id',insertedDiscountId);
+        }
+        setBusy(false);
+        notify('error','Management decision not saved',error.message);
+        return;
+      }
+
       setBusy(false);
-      if(error){notify('error','Management decision not saved',error.message);return}
-      notify('success',decision==='Approved'?'Discharge approved successfully':'Discharge rejected',decision==='Approved'?'Forwarded automatically to Accounts for payment clearance.':'Returned automatically to Nursing.');
+      setManagementReviewRow(null);
+      notify(
+        'success',
+        decision==='Approved'?'Discharge approved successfully':'Discharge rejected',
+        decision==='Approved'
+          ?discountAmount>0
+            ?`Approved and forwarded to Accounts. Discount of ₹${discountAmount.toLocaleString('en-IN')} has been saved in the permanent patient account history.`
+            :'Forwarded automatically to Accounts for payment clearance.'
+          :'Returned automatically to Nursing.'
+      );
       await load();
+
+      writeAuditEvent(
+        decision==='Approved'?'Discharge Approved':'Discharge Rejected',
+        'Discharge',
+        row.id,
+        {
+          patient_id:row.patient_id,
+          decision,
+          management_remarks:managementRemarks.trim()||null,
+          discount_amount:discountAmount||0,
+          discount_reason:managementDiscountReason.trim()||null
+        },
+        'Success'
+      );
     }
 
     function openPayments(row){
@@ -3441,8 +3602,10 @@ Caring with Compassion. Living with Dignity.`;
       h('span',{className:`badge ${row.status==='Completed'?'':'off'}`},row.status||'Initiated'),
       h('div',{className:'employee-actions'},
         canInitiate&&row.status==='Initiated'&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Update'),
-        canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-primary',onClick:()=>approve(row,'Approved')},'Approve'),
-        canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-danger',onClick:()=>approve(row,'Rejected')},'Reject'),
+        canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{
+          className:'btn btn-primary',
+          onClick:()=>openManagementReview(row)
+        },'Review & Decide'),
         canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&h('button',{className:'btn btn-secondary',onClick:()=>openPayments(row)},'View Payments'),
         canCloseAccounts&&row.management_status==='Approved'&&row.status!=='Completed'&&row.accounts_status==='Ready to Close'&&h('button',{className:'btn btn-primary',onClick:()=>closeAccounts(row)},'Enter Closure Remarks & Close'),
         isNurse&&String(row.accounts_status||'').trim().toLowerCase()==='cleared'&&String(row.status||'').trim().toLowerCase()!=='completed'&&h('button',{
@@ -3527,16 +3690,112 @@ Caring with Compassion. Living with Dignity.`;
             miniSelect('Destination',form.destination,['Home','Hospital','Rehabilitation Centre','Another Assisted Living Facility','Relative Residence','Other'],v=>setForm({...form,destination:v})),
             miniInput('Destination Details',form.destination_details,v=>setForm({...form,destination_details:v})),
             miniSelect('Condition at Discharge',form.condition_at_discharge,['Stable','Improved','Requires Continued Monitoring','Transferred for Higher Care','Critical','Other'],v=>setForm({...form,condition_at_discharge:v})),
-            h('div',{className:'field span-2'},h('label',null,'Initiation Remarks'),h('textarea',{
-              rows:3,
-              value:form.remarks,
-              onChange:e=>setForm({...form,remarks:e.target.value}),
-              placeholder:'Brief reason for initiating discharge or any important note for Management review.'
-            }))
           ),
           h('div',{className:'actions'},h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setShow(false)},'Cancel'),h('button',{className:'btn btn-primary',disabled:busy},busy?'Saving…':editing?'Update Request':'Submit for Management Approval'))
         )
       ),
+      managementReviewRow&&h('div',{
+        className:'modal-backdrop',
+        'data-manual-close':'true'
+      },
+        h('div',{
+          className:'card modal',
+          style:{width:'min(1180px,97vw)',maxHeight:'94vh',overflow:'auto'}
+        },
+          h('div',{className:'panel-head'},
+            h('div',null,
+              h('h3',null,'Management Discharge Review'),
+              h('small',null,patientLabel(managementReviewRow.patient_id))
+            ),
+            h('button',{type:'button',className:'close',onClick:()=>setManagementReviewRow(null)},'×')
+          ),
+
+          h('div',{className:'accounts-kpi-grid'},
+            (()=>{
+              const totals=managementBillingTotals(managementBilling);
+              const paid=Number(totals.Payment||0)+Number(totals.Advance||0);
+              const outstanding=Math.max(0,Number(totals.Charge||0)-paid-Number(totals.Discount||0)+Number(totals.Refund||0));
+              return [
+                ['Total Charges',totals.Charge||0,'red'],
+                ['Payments / Advance',paid,'green'],
+                ['Discount History',totals.Discount||0,'orange'],
+                ['Current Outstanding',outstanding,'purple']
+              ].map(([label,value,tone])=>h('div',{className:`accounts-kpi ${tone}`,key:label},
+                h('span',null,label),
+                h('strong',null,`₹${Number(value||0).toLocaleString('en-IN')}`),
+                h('small',null,'Live patient account position')
+              ));
+            })()
+          ),
+
+          h(Section,{title:'Discharge Request Submitted by Nursing',subtitle:'Review the full initiation details before taking a management decision'},
+            h('div',{className:'modal-grid'},
+              h('div',{className:'field'},h('label',null,'Patient'),h('input',{readOnly:true,value:patientLabel(managementReviewRow.patient_id)})),
+              h('div',{className:'field'},h('label',null,'Initiation Basis'),h('input',{readOnly:true,value:managementReviewRow.initiation_basis||'—'})),
+              h('div',{className:'field'},h('label',null,'Consultant / Requester'),h('input',{readOnly:true,value:
+                managementReviewRow.initiation_basis==='Voluntary Discharge'
+                  ?managementReviewRow.voluntary_requester_name||'—'
+                  :managementReviewRow.instructed_by_name||'—'
+              })),
+              h('div',{className:'field'},h('label',null,'Contact'),h('input',{readOnly:true,value:
+                managementReviewRow.initiation_basis==='Voluntary Discharge'
+                  ?managementReviewRow.voluntary_requester_contact||'—'
+                  :managementReviewRow.instructed_by_contact||'—'
+              })),
+              h('div',{className:'field span-2'},h('label',null,
+                managementReviewRow.initiation_basis==='Voluntary Discharge'
+                  ?'Voluntary Declaration / Reason'
+                  :'Doctor Discharge Advice'
+              ),h('textarea',{readOnly:true,rows:3,value:managementReviewRow.doctor_discharge_advice||'—'})),
+              h('div',{className:'field'},h('label',null,'Discharge Type'),h('input',{readOnly:true,value:managementReviewRow.discharge_type||'—'})),
+              h('div',{className:'field'},h('label',null,'Proposed Date & Time'),h('input',{readOnly:true,value:`${formatDateIN(managementReviewRow.proposed_discharge_date)} · ${String(managementReviewRow.proposed_discharge_time||'—').slice(0,5)}`})),
+              h('div',{className:'field'},h('label',null,'Destination'),h('input',{readOnly:true,value:[managementReviewRow.destination,managementReviewRow.destination_details].filter(Boolean).join(' · ')||'—'})),
+              h('div',{className:'field'},h('label',null,'Condition at Discharge'),h('input',{readOnly:true,value:managementReviewRow.condition_at_discharge||'—'}))
+            )
+          ),
+
+          h(LogTable,{
+            title:managementReviewLoading?'Loading patient account…':`Patient Account Transactions (${managementBilling.length})`,
+            subtitle:'All charges, payments, advances, discounts and refunds are retained permanently',
+            heads:['Date','Type','Category','Mode','Description','Amount'],
+            rows:managementBilling.map(row=>[
+              formatDateTimeIN(row.transaction_date),
+              row.transaction_type||'—',
+              row.category||'—',
+              row.payment_mode||'—',
+              row.description||'—',
+              `₹${Number(row.amount||0).toLocaleString('en-IN')}`
+            ])
+          }),
+
+          h(Section,{title:'Management Decision',subtitle:profile?.role==='Admin'
+            ?'The Administrator may approve a discharge discount. Every discount is saved in the permanent billing history.'
+            :'Review the clinical and account information before approval or rejection.'
+          },
+            h('div',{className:'modal-grid'},
+              h('div',{className:'field span-2'},
+                h('label',null,'Management Remarks'),
+                h('textarea',{
+                  rows:3,
+                  value:managementRemarks,
+                  onChange:e=>setManagementRemarks(e.target.value),
+                  placeholder:'Clinical review, management instructions or reason for rejection.'
+                })
+              ),
+              profile?.role==='Admin'&&h(React.Fragment,null,
+                miniInput('Discount Amount',managementDiscount,v=>setManagementDiscount(v),false,'number'),
+                miniInput('Discount Reason',managementDiscountReason,v=>setManagementDiscountReason(v))
+              )
+            ),
+            h('div',{className:'actions'},
+              h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setManagementReviewRow(null)},'Cancel'),
+              h('button',{type:'button',className:'btn btn-danger',disabled:busy,onClick:()=>approveReviewed('Rejected')},busy?'Saving…':'Reject & Return to Nursing'),
+              h('button',{type:'button',className:'btn btn-primary',disabled:busy,onClick:()=>approveReviewed('Approved')},busy?'Saving…':'Approve & Forward to Accounts')
+            )
+          )
+        )
+      ),
+
       showFinalDischarge&&finalDischargeRow&&h('div',{
         className:'modal-backdrop',
         'data-manual-close':'true',

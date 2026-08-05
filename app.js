@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.7.3';
-  const APP_BUILD_DATE = '05-Aug-2026 05:18 PM IST';
+  const APP_VERSION = '2.7.4';
+  const APP_BUILD_DATE = '05-Aug-2026 05:35 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -2852,6 +2852,7 @@ Caring with Compassion. Living with Dignity.`;
     const [consentBusy,setConsentBusy]=React.useState(false);
     const [consentPdfBusy,setConsentPdfBusy]=React.useState(false);
     const [admissionErrorToast,setAdmissionErrorToast]=React.useState('');
+    const [admissionSaveAttempt,setAdmissionSaveAttempt]=React.useState(0);
     const admissionErrorTimerRef=React.useRef(null);
     const defaultCarePackages=[
       {
@@ -2962,7 +2963,7 @@ Caring with Compassion. Living with Dignity.`;
       async function loadRoomBeds(){
         const [roomResult,patientResult]=await Promise.all([
           client.from('room_beds').select('*').order('room_no',{ascending:true}).order('bed_no',{ascending:true}),
-          client.from('patients').select('id,patient_id,title,full_name,room_no,bed_no,is_active').eq('is_active',true)
+          client.from('patients').select('id,patient_id,patient_code,title,full_name,mobile,room_no,bed_no,is_active').eq('is_active',true)
         ]);
         if(!active)return;
         if(roomResult.error){
@@ -2978,7 +2979,8 @@ Caring with Compassion. Living with Dignity.`;
           return {
             ...room,
             occupant_name:occupant?formalName(occupant):'',
-            occupant_patient_id:occupant?.patient_id||'',
+            occupant_patient_id:occupant?.patient_code||occupant?.patient_id||'',
+            occupant_mobile:occupant?.mobile||'',
             occupant_id:occupant?.id||room.patient_id||null
           };
         });
@@ -3244,7 +3246,7 @@ Caring with Compassion. Living with Dignity.`;
         msg.includes('formalities are complete')||
         msg.includes('activated under consent-upload exception');
       if(!successMessage)showAdmissionError(msg);
-    },[msg]);
+    },[msg,admissionSaveAttempt]);
 
     React.useEffect(()=>()=> {
       if(admissionErrorTimerRef.current)clearTimeout(admissionErrorTimerRef.current);
@@ -3252,35 +3254,80 @@ Caring with Compassion. Living with Dignity.`;
 
     const matchingExistingPatient=React.useMemo(()=>{
       if(returningPatient)return returningPatient;
-      const mobile=String(form.mobile||'').replace(/\D/g,'');
-      const name=String(form.full_name||'').trim().toLowerCase();
+      const mobile=String(form.mobile||'').replace(/\D/g,'').slice(-10);
+      const name=String(form.full_name||'').trim().toLowerCase().replace(/\s+/g,' ');
       if(!mobile&&!name)return null;
       return previousPatients.find(patient=>{
-        const sameMobile=mobile&&String(patient.mobile||'').replace(/\D/g,'')===mobile;
-        const sameName=name&&String(patient.full_name||'').trim().toLowerCase()===name;
+        const patientMobile=String(patient.mobile||'').replace(/\D/g,'').slice(-10);
+        const patientName=String(patient.full_name||'').trim().toLowerCase().replace(/\s+/g,' ');
+        const sameMobile=mobile&&patientMobile===mobile;
+        const sameName=name&&patientName===name;
         return patient.is_active!==false&&(sameMobile||sameName);
       })||null;
     },[returningPatient,previousPatients,form.mobile,form.full_name]);
 
-    const currentAdmissionPatientId=matchingExistingPatient?.id||returningPatient?.id||'';
+    function bedMatchesEnteredPatient(bed){
+      if(!bed)return false;
 
-    function bedBelongsToCurrentPatient(bed){
-      if(!bed||!currentAdmissionPatientId)return false;
-      const occupantId=bed.occupant_id||bed.patient_id||'';
-      if(String(occupantId)===String(currentAdmissionPatientId))return true;
+      const enteredMobile=String(form.mobile||'').replace(/\D/g,'').slice(-10);
+      const occupantMobile=String(bed.occupant_mobile||'').replace(/\D/g,'').slice(-10);
+      if(enteredMobile&&occupantMobile&&enteredMobile===occupantMobile)return true;
+
+      const enteredName=String(form.full_name||'').trim().toLowerCase().replace(/\s+/g,' ');
+      const occupantName=String(bed.occupant_name||'')
+        .replace(/^(mr|mrs|ms|dr)\.?\s+/i,'')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g,' ');
+      if(enteredName&&occupantName&&enteredName===occupantName)return true;
 
       const currentCode=
-        matchingExistingPatient?.patient_code||
-        matchingExistingPatient?.patient_id||
         returningPatient?.patient_code||
         returningPatient?.patient_id||
+        matchingExistingPatient?.patient_code||
+        matchingExistingPatient?.patient_id||
         '';
       const occupantCode=bed.occupant_patient_id||bed.patient_code||'';
-      if(currentCode&&occupantCode&&String(currentCode)===String(occupantCode))return true;
+      return Boolean(currentCode&&occupantCode&&String(currentCode)===String(occupantCode));
+    }
 
-      const currentMobile=String(form.mobile||matchingExistingPatient?.mobile||'').replace(/\D/g,'');
-      const occupantMobile=String(bed.occupant_mobile||'').replace(/\D/g,'');
-      return Boolean(currentMobile&&occupantMobile&&currentMobile===occupantMobile);
+    function occupantPatientForBed(bed){
+      if(!bed||!bedMatchesEnteredPatient(bed))return null;
+      const occupantId=bed.occupant_id||bed.patient_id||'';
+      if(occupantId){
+        const byId=previousPatients.find(patient=>String(patient.id)===String(occupantId));
+        if(byId)return byId;
+      }
+      const occupantCode=String(bed.occupant_patient_id||'');
+      if(occupantCode){
+        const byCode=previousPatients.find(patient=>
+          String(patient.patient_code||patient.patient_id||'')===occupantCode
+        );
+        if(byCode)return byCode;
+      }
+      return null;
+    }
+
+    const selectedDraftBed=roomBeds.find(r=>
+      String(r.room_no)===String(form.room_no)&&
+      String(r.bed_no||r.bed_code||'').toUpperCase()===String(form.bed_no||'').toUpperCase()
+    )||null;
+
+    const roomOccupantPatient=occupantPatientForBed(selectedDraftBed);
+    const effectiveExistingPatient=
+      returningPatient||
+      roomOccupantPatient||
+      matchingExistingPatient||
+      null;
+
+    const currentAdmissionPatientId=effectiveExistingPatient?.id||'';
+
+    function bedBelongsToCurrentPatient(bed){
+      if(!bed)return false;
+      if(bedMatchesEnteredPatient(bed))return true;
+      if(!currentAdmissionPatientId)return false;
+      const occupantId=bed.occupant_id||bed.patient_id||'';
+      return Boolean(occupantId&&String(occupantId)===String(currentAdmissionPatientId));
     }
 
     function composePatientAddress(source=form){
@@ -3686,7 +3733,11 @@ Caring with Compassion. Living with Dignity.`;
     }
 
     async function submit(e){
-      e.preventDefault();setBusy(true);setMsg('');
+      e.preventDefault();
+      setAdmissionSaveAttempt(value=>value+1);
+      setAdmissionErrorToast('');
+      setBusy(true);
+      setMsg('');
       if(!['Admin','Manager'].includes(profile?.role)){setMsg('Only Admin or Manager can allot a room and complete patient admission.');setBusy(false);return}
       const selectedBed=roomBeds.find(r=>
         String(r.room_no)===String(form.room_no)&&
@@ -3728,7 +3779,8 @@ Caring with Compassion. Living with Dignity.`;
       if(form.special_nurse_required&&!form.special_nurse_name){setMsg('Assign or enter the special nurse name.');setBusy(false);return}
       const {data:{user}}=await client.auth.getUser();
       let patient=null;
-      let patientCode=returningPatient?.patient_code||returningPatient?.patient_id||null;
+      const admissionExistingPatient=effectiveExistingPatient;
+      let patientCode=admissionExistingPatient?.patient_code||admissionExistingPatient?.patient_id||null;
       const payload={...form,address:composePatientAddress(form),age:Number(form.age)||null,is_active:true,admission_status:'Active',
         prescription_verified:true,prescription_verified_by:user.id,prescription_verified_at:new Date().toISOString(),
         package_id:selectedPackage?.id||null,package_start_date:selectedPackage?form.admission_date:null,
@@ -3736,10 +3788,10 @@ Caring with Compassion. Living with Dignity.`;
         package_room_class:selectedPackage?packageRoomClass():null};
       ['physio_required','therapy_type','physiotherapist_name','physio_frequency','physio_time','physio_precautions'].forEach(k=>delete payload[k]);
 
-      if(returningPatient){
+      if(admissionExistingPatient){
         if(!selectedBedIsCurrentPatient){
           const {error:roomAssignError}=await client.rpc('assign_patient_room',{
-            p_patient_id:returningPatient.id,
+            p_patient_id:admissionExistingPatient.id,
             p_room_bed_id:selectedBed.id,
             p_reason:'Re-admission room allotment'
           });
@@ -3747,8 +3799,8 @@ Caring with Compassion. Living with Dignity.`;
         }
 
         const {data:updated,error:updateError}=await client.from('patients')
-          .update({...payload,patient_id:patientCode,patient_code:patientCode,created_by:returningPatient.created_by||user.id})
-          .eq('id',returningPatient.id)
+          .update({...payload,patient_id:patientCode,patient_code:patientCode,created_by:admissionExistingPatient.created_by||user.id})
+          .eq('id',admissionExistingPatient.id)
           .select()
           .single();
         if(updateError){
@@ -3812,7 +3864,7 @@ Caring with Compassion. Living with Dignity.`;
         if(form.physio_required&&form.therapy_type)await client.from('physiotherapy_plans').insert({patient_id:patient.id,advised_by:form.treating_doctor||form.referring_doctor,therapy_type:form.therapy_type,physiotherapist_name:form.physiotherapist_name||null,frequency:form.physio_frequency,preferred_time:form.physio_time,precautions:form.physio_precautions,start_date:form.admission_date,entered_by:user.id});
         await client.from('audit_log').insert({
           user_id:user.id,
-          action:returningPatient?'PATIENT_READMISSION_COMPLETED':'PATIENT_ADMISSION_COMPLETED',
+          action:admissionExistingPatient?'PATIENT_ADMISSION_RECORD_RESUMED':'PATIENT_ADMISSION_COMPLETED',
           entity:'patients',
           entity_id:patient.id,
           details:{
@@ -3820,7 +3872,8 @@ Caring with Compassion. Living with Dignity.`;
             category:form.patient_category,
             patient_id:patient.patient_id,
             readmission:!!returningPatient,
-            previous_admission_date:returningPatient?.admission_date||null,
+            resumed_existing_admission:!!admissionExistingPatient&&!returningPatient,
+            previous_admission_date:admissionExistingPatient?.admission_date||null,
             billing_option:noPackageSelected?'Daily Billing':'Fixed Care Package',
             package_name:selectedPackage?.package_name||null,
             package_fee:selectedPackage?selectedPackageFee():null
@@ -3835,11 +3888,12 @@ Caring with Compassion. Living with Dignity.`;
           form:{...form},
           medicines:effectiveMeds.map(m=>({...m,is_locked:true})),
           carePlan:effectiveCare.map(c=>({...c,is_locked:true})),
-          returningPatient:!!returningPatient
+          returningPatient:!!returningPatient,
+          resumedExistingAdmission:!!admissionExistingPatient&&!returningPatient
         });
         setSignedConsentFiles([]);
         setMsg('Admission data saved. Print the generated consent, obtain signatures and upload the signed form to complete admission formalities.');
-      }catch(err){setMsg(`${returningPatient?'Patient re-activated':'Patient created'}, but document or care setup failed: ${err.message}`)}
+      }catch(err){setMsg(`${admissionExistingPatient?'Existing patient admission resumed':'Patient created'}, but document or care setup failed: ${err.message}`)}
       setBusy(false);
     }
     return h('form',{className:'card panel',onSubmit:submit},
@@ -3862,7 +3916,14 @@ Caring with Compassion. Living with Dignity.`;
           }
         },'Discard Draft')
       ),
-      msg&&h('div',{className:`message ${msg.includes('completed')||msg.includes('restored')?'success':'error'}`},msg),
+      msg&&(
+        msg.includes('completed')||
+        msg.includes('restored')||
+        msg.includes('saved. Print')||
+        msg.includes('formalities are complete')||
+        msg.includes('activated under consent-upload exception')||
+        msg.includes('PDF downloaded successfully')
+      )&&h('div',{className:'message success'},msg),
       h('div',{className:'section-card'},
         h('div',{className:'section-title'},
           h('div',null,
@@ -5045,7 +5106,9 @@ Caring with Compassion. Living with Dignity.`;
 
     function optionDetails(r){
       const occupantId=r.occupant_id||r.patient_id;
-      const isCurrent=currentPatientId&&String(occupantId||'')===String(currentPatientId);
+      const isCurrent=Boolean(
+        currentPatientId&&String(occupantId||'')===String(currentPatientId)
+      );
       const occupied=!!occupantId&&!isCurrent;
       const status=isCurrent?'Current':occupied?'Occupied':String(r.status||'Available');
       const type=String(r.room_type||'Room').replace(/\s+/g,' ').trim();

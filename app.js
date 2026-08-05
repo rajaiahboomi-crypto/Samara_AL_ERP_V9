@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.5.0';
-  const APP_BUILD_DATE = '05-Aug-2026 02:05 PM IST';
+  const APP_VERSION = '2.5.1';
+  const APP_BUILD_DATE = '05-Aug-2026 02:18 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -2835,6 +2835,29 @@ Caring with Compassion. Living with Dignity.`;
       const {error:doc}=await client.from('patient_documents').insert({patient_id:patientId,document_type:type,document_name:file.name||type,storage_path:path,mime_type:file.type||null,file_size:file.size||null,uploaded_by:profile.id,is_verified:true});if(doc)throw doc;
       if(isPhoto){const {error:e}=await client.from('patients').update({photo_storage_path:path}).eq('id',patientId);if(e)throw e}
     }
+    const selectedPackage=carePackages.find(pkg=>pkg.package_name===form.billing_package)||null;
+    const selectedPackageBed=roomBeds.find(r=>String(r.room_no)===String(form.room_no)&&String(r.bed_no||r.bed_code||'').toUpperCase()===String(form.bed_no||'').toUpperCase())||null;
+    const packageRoomClass=()=>{
+      const type=String(selectedPackageBed?.room_type||'').toLowerCase();
+      if(type.includes('private')||type.includes('single')||type.includes('deluxe')||type.includes('isolation'))return 'Private';
+      if(type.includes('twin')||type.includes('double'))return 'Twin';
+      return 'General';
+    };
+    const selectedPackageFee=()=>{
+      if(!selectedPackage)return 0;
+      if(packageRoomClass()==='Private')return Number(selectedPackage.private_fee||0);
+      if(packageRoomClass()==='Twin')return Number(selectedPackage.twin_fee||0);
+      return Number(selectedPackage.general_fee||0);
+    };
+    const packageEndDate=()=>{
+      if(!selectedPackage||!form.admission_date)return null;
+      const date=new Date(`${form.admission_date}T00:00:00`);
+      if(selectedPackage.duration_unit==='Weeks')date.setDate(date.getDate()+Number(selectedPackage.duration_value)*7-1);
+      else if(selectedPackage.duration_unit==='Months'){date.setMonth(date.getMonth()+Number(selectedPackage.duration_value));date.setDate(date.getDate()-1)}
+      else date.setDate(date.getDate()+Number(selectedPackage.duration_value)-1);
+      return date.toISOString().slice(0,10);
+    };
+
     async function submit(e){
       e.preventDefault();setBusy(true);setMsg('');
       if(!['Admin','Manager'].includes(profile?.role)){setMsg('Only Admin or Manager can allot a room and complete patient admission.');setBusy(false);return}
@@ -4142,29 +4165,6 @@ Caring with Compassion. Living with Dignity.`;
         destination_details:value==='Home'?'':suggested
       }));
     }
-
-    const selectedPackage=carePackages.find(pkg=>pkg.package_name===form.billing_package)||null;
-    const selectedPackageBed=roomBeds.find(r=>String(r.room_no)===String(form.room_no)&&String(r.bed_no||r.bed_code||'').toUpperCase()===String(form.bed_no||'').toUpperCase())||null;
-    const packageRoomClass=()=>{
-      const type=String(selectedPackageBed?.room_type||'').toLowerCase();
-      if(type.includes('private')||type.includes('single')||type.includes('deluxe')||type.includes('isolation'))return 'Private';
-      if(type.includes('twin')||type.includes('double'))return 'Twin';
-      return 'General';
-    };
-    const selectedPackageFee=()=>{
-      if(!selectedPackage)return 0;
-      if(packageRoomClass()==='Private')return Number(selectedPackage.private_fee||0);
-      if(packageRoomClass()==='Twin')return Number(selectedPackage.twin_fee||0);
-      return Number(selectedPackage.general_fee||0);
-    };
-    const packageEndDate=()=>{
-      if(!selectedPackage||!form.admission_date)return null;
-      const date=new Date(`${form.admission_date}T00:00:00`);
-      if(selectedPackage.duration_unit==='Weeks')date.setDate(date.getDate()+Number(selectedPackage.duration_value)*7-1);
-      else if(selectedPackage.duration_unit==='Months'){date.setMonth(date.getMonth()+Number(selectedPackage.duration_value));date.setDate(date.getDate()-1)}
-      else date.setDate(date.getDate()+Number(selectedPackage.duration_value)-1);
-      return date.toISOString().slice(0,10);
-    };
 
     async function save(e){
       e.preventDefault();

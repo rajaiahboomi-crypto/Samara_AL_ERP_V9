@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.0';
-  const APP_BUILD_DATE = '05-Aug-2026 06:45 PM IST';
+  const APP_VERSION = '2.8.1';
+  const APP_BUILD_DATE = '05-Aug-2026 07:20 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -5089,74 +5089,156 @@ Caring with Compassion. Living with Dignity.`;
       }
     }
 
+    async function moveDuplicatePatientData(deleteRecord,keepRecord){
+      const linkTables=[
+        'billing_transactions',
+        'bill_charge_requests',
+        'medication_orders',
+        'medication_administrations',
+        'medication_errors',
+        'care_orders',
+        'care_logs',
+        'vital_signs',
+        'incidents',
+        'patient_documents',
+        'patient_communications',
+        'patient_discharges',
+        'physiotherapy_plans',
+        'physiotherapy_sessions',
+        'diagnostic_services',
+        'meal_records',
+        'recovery_events',
+        'shift_handovers',
+        'special_nurse_assignments',
+        'clinical_alert_acknowledgements',
+        'room_transfer_history'
+      ];
+
+      const moved=[];
+      for(const table of linkTables){
+        const {error}=await client
+          .from(table)
+          .update({patient_id:keepRecord.id})
+          .eq('patient_id',deleteRecord.id);
+
+        if(error){
+          const ignorable=['42P01','42703','PGRST204','PGRST205'];
+          if(!ignorable.includes(error.code)){
+            throw new Error(`${table}: ${error.message}`);
+          }
+        }else{
+          moved.push(table);
+        }
+      }
+      return moved;
+    }
+
     async function deleteReviewedDuplicate(deleteRecord){
       if(!duplicateReview?.records?.length)return;
-      const keepRecord=duplicateReview.records.find(record=>record.id!==deleteRecord.id)
-        ||duplicateReview.records[0];
 
-      if(deleteRecord.activityCount>0){
-        showPatientToast(
-          'error',
-          'This record contains clinical or financial activity and cannot be directly deleted. Retain it and correct the details, or arrange a controlled data merge.'
-        );
+      const keepRecord=
+        duplicateReview.records.find(record=>record.id===duplicateReview.recommendedKeepId&&record.id!==deleteRecord.id)
+        ||duplicateReview.records.find(record=>record.id!==deleteRecord.id);
+
+      if(!keepRecord){
+        showPatientToast('error','Select or retain one patient record before deleting the duplicate.');
         return;
       }
 
+      const hasLinkedHistory=deleteRecord.activityCount>0||deleteRecord.counts.documents>0;
+      const actionText=hasLinkedHistory
+        ?'MERGE its clinical, billing and document history into the retained patient, then DELETE the duplicate'
+        :'DELETE the empty duplicate';
+
       const confirmed=window.confirm(
-        `Delete duplicate patient ${formalName(deleteRecord)} (${deleteRecord.patient_code||deleteRecord.patient_id})?\n\n`+
-        `Keep: ${formalName(keepRecord)} (${keepRecord.patient_code||keepRecord.patient_id})\n\n`+
-        'This action cannot be undone.'
+        `${actionText}?\n\n`+
+        `DELETE: ${formalName(deleteRecord)} (${deleteRecord.patient_code||deleteRecord.patient_id})\n`+
+        `KEEP: ${formalName(keepRecord)} (${keepRecord.patient_code||keepRecord.patient_id})\n\n`+
+        (hasLinkedHistory
+          ?'All linked records will be reassigned to the retained Patient ID before deletion.'
+          :'This duplicate has no material clinical or financial activity.')+
+        '\n\nThis action cannot be undone.'
       );
       if(!confirmed)return;
 
       setDuplicateReviewBusy(true);
       try{
+        let movedTables=[];
+
+        if(hasLinkedHistory){
+          movedTables=await moveDuplicatePatientData(deleteRecord,keepRecord);
+        }
+
         const sameRoom=
           keepRecord?.room_no&&keepRecord?.bed_no&&
           String(keepRecord.room_no)===String(deleteRecord.room_no)&&
           String(keepRecord.bed_no)===String(deleteRecord.bed_no);
 
-        if(sameRoom){
-          const room=roomBeds.find(bed=>
-            String(bed.room_no)===String(deleteRecord.room_no)&&
+        const duplicateRooms=roomBeds.filter(bed=>
+          String(bed.patient_id||'')===String(deleteRecord.id)||
+          (
+            String(bed.room_no)===String(deleteRecord.room_no||'')&&
             String(bed.bed_no||bed.bed_code||'').toUpperCase()===String(deleteRecord.bed_no||'').toUpperCase()
-          );
-          if(room){
-            const {error:roomError}=await client.from('room_beds').update({
-              patient_id:keepRecord.id,
-              status:'Occupied',
-              updated_at:new Date().toISOString()
-            }).eq('id',room.id);
-            if(roomError)throw roomError;
-          }
-        }else{
-          const occupiedRooms=roomBeds.filter(bed=>
-            String(bed.patient_id||'')===String(deleteRecord.id)
-          );
-          for(const room of occupiedRooms){
-            const {error:roomError}=await client.from('room_beds').update({
-              patient_id:null,
-              status:'Available',
-              updated_at:new Date().toISOString()
-            }).eq('id',room.id);
-            if(roomError)throw roomError;
-          }
+          )
+        );
+
+        for(const room of duplicateRooms){
+          const {error:roomError}=await client.from('room_beds').update(
+            sameRoom
+              ?{
+                  patient_id:keepRecord.id,
+                  status:'Occupied',
+                  updated_at:new Date().toISOString()
+                }
+              :{
+                  patient_id:null,
+                  status:'Available',
+                  updated_at:new Date().toISOString()
+                }
+          ).eq('id',room.id);
+          if(roomError)throw roomError;
         }
 
-        const {error:docError}=await client.from('patient_documents').delete().eq('patient_id',deleteRecord.id);
-        if(docError)throw docError;
+        // Preserve useful identity/admission fields that may exist only in the duplicate.
+        const mergeFields=[
+          'photo_storage_path','address','state','district','taluk','village_town',
+          'locality_area','street_name','house_no','apartment_name','flat_no',
+          'landmark','pincode','allergies','diagnosis','treating_doctor','doctor_phone',
+          'hospital_name','special_instructions','diet_plan','feeding_instruction',
+          'admission_consent_status','admission_consent_generated_at',
+          'admission_consent_uploaded_at','admission_consent_storage_path',
+          'admission_consent_exception_reason'
+        ];
+        const keepUpdate={};
+        mergeFields.forEach(field=>{
+          if(
+            (keepRecord[field]===null||keepRecord[field]===undefined||keepRecord[field]==='')&&
+            deleteRecord[field]!==null&&deleteRecord[field]!==undefined&&deleteRecord[field]!==''
+          ){
+            keepUpdate[field]=deleteRecord[field];
+          }
+        });
+        if(Object.keys(keepUpdate).length){
+          const {error:updateError}=await client.from('patients')
+            .update(keepUpdate)
+            .eq('id',keepRecord.id);
+          if(updateError)throw updateError;
+        }
 
-        const {error:deleteError}=await client.from('patients').delete().eq('id',deleteRecord.id);
+        const {error:deleteError}=await client.from('patients')
+          .delete()
+          .eq('id',deleteRecord.id);
         if(deleteError)throw deleteError;
 
         await writeAuditEvent(
-          'Duplicate Patient Deleted',
+          hasLinkedHistory?'Duplicate Patient Merged and Deleted':'Duplicate Patient Deleted',
           'Patients',
           deleteRecord.id,
           {
             deleted_patient_code:deleteRecord.patient_code||deleteRecord.patient_id,
             retained_patient_id:keepRecord.id,
             retained_patient_code:keepRecord.patient_code||keepRecord.patient_id,
+            moved_tables:movedTables,
             reviewed_by:profile?.id||null
           },
           'Success'
@@ -5164,12 +5246,17 @@ Caring with Compassion. Living with Dignity.`;
 
         showPatientToast(
           'success',
-          `Duplicate ${deleteRecord.patient_code||deleteRecord.patient_id} deleted. ${keepRecord.patient_code||keepRecord.patient_id} was retained.`
+          hasLinkedHistory
+            ?`Duplicate ${deleteRecord.patient_code||deleteRecord.patient_id} merged into ${keepRecord.patient_code||keepRecord.patient_id} and deleted.`
+            :`Duplicate ${deleteRecord.patient_code||deleteRecord.patient_id} deleted. ${keepRecord.patient_code||keepRecord.patient_id} was retained.`
         );
         setDuplicateReview(null);
         await load();
       }catch(error){
-        showPatientToast('error',error.message||'Unable to delete the duplicate patient record.');
+        showPatientToast(
+          'error',
+          error.message||'Unable to merge and delete the duplicate patient record.'
+        );
       }finally{
         setDuplicateReviewBusy(false);
       }
@@ -5325,33 +5412,147 @@ Caring with Compassion. Living with Dignity.`;
           :'<tr><td colspan="5">No master care-plan task recorded.</td></tr>';
 
         const filename=patientConsentFilename(row);
-        const html=`<!doctype html><html><head><meta charset="utf-8">
-          <title>${escapeHtml(filename)}</title>
-          <style>
-            @page{size:A4;margin:12mm}*{box-sizing:border-box}
-            body{font-family:Arial,sans-serif;color:#17302a;font-size:10px;line-height:1.4;margin:0}
-            .head{display:grid;grid-template-columns:70px 1fr 92px;gap:14px;align-items:center;border-bottom:3px solid #086a57;padding-bottom:10px}
-            .logo{width:62px;height:62px;border-radius:15px;background:#086a57;color:#fff;display:grid;place-items:center;font-size:25px;font-weight:900}
-            h1{font-size:22px;margin:0;text-align:center;color:#064f42}h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #8fa9a2;padding-bottom:3px}
-            .subtitle{text-align:center;font-weight:800}.qr img{width:86px;height:86px}
-            .info{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;border:1px solid #829b94;border-radius:7px;padding:9px;margin:11px 0}
-            table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px}th,td{border:1px solid #829b94;padding:4px;text-align:left;vertical-align:top}th{background:#e9f3f0}
-            p{text-align:justify;margin:5px 0}.sign{display:grid;grid-template-columns:1fr 1fr;gap:18px 25px;margin-top:25px}.line{border-top:1px solid #222;padding-top:4px;margin-top:28px;font-weight:700}
-          </style></head><body>
-          <div class="head"><div class="logo">SC</div><div><h1>SAMARA CARE</h1><div class="subtitle">ASSISTED LIVING</div><div class="subtitle">RESIDENT ADMISSION, CARE CONSENT AND ACKNOWLEDGEMENT</div></div><div class="qr"><img src="${qrDataUrl}"></div></div>
-          <div class="info">
-            <div><b>Resident:</b> ${escapeHtml(formalName(row))}</div><div><b>Patient ID:</b> ${escapeHtml(patientCode)}</div>
-            <div><b>Admission Date:</b> ${escapeHtml(formatDateIN(row.admission_date))}</div><div><b>Room / Bed:</b> ${escapeHtml(`${row.room_no||'—'} / ${row.bed_no||'—'}`)}</div>
-            <div><b>Mobile:</b> ${escapeHtml(row.mobile||'—')}</div><div><b>Attendant:</b> ${escapeHtml(`${row.attendant_name||'—'} · ${row.attendant_phone||'—'}`)}</div>
-            <div><b>Admission Source:</b> ${escapeHtml(row.admission_type||'—')}</div><div><b>Condition:</b> ${escapeHtml(row.diagnosis||'—')}</div>
-          </div>
-          <h2>Current Medicines</h2><table><thead><tr><th>No.</th><th>Medicine</th><th>Strength</th><th>Frequency</th><th>Route</th><th>Time</th><th>Food</th></tr></thead><tbody>${medRows}</tbody></table>
-          <h2>Master Care Plan</h2><table><thead><tr><th>No.</th><th>Care Task</th><th>Shift</th><th>Frequency</th><th>Instruction</th></tr></thead><tbody>${careRows}</tbody></table>
-          <h2>Agreed Fee Structure at Admission</h2><table><tbody>${feeRows.map(([label,value])=>`<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`).join('')}</tbody></table>
-          <h2>Consent and Acknowledgement</h2>
-          <p>The Resident or authorised representative confirms voluntary admission, disclosure of relevant medical and care information, consent for assisted-living services and medication support according to recorded prescriptions, emergency transfer where reasonably necessary, maintenance of care and billing records, and acknowledgement of the applicable fee arrangement and separately chargeable services. This consent does not waive any right or remedy available under applicable law.</p>
-          <div class="sign">${['Resident / Thumb Impression','Relative / Authorised Representative','Admission Nurse / Officer','Admin / Manager','Witness'].map(label=>`<div><div class="line">${label}</div><div>Name: __________________________</div><div>Date & Time: ____________________</div></div>`).join('')}</div>
-          </body></html>`;
+        const risks=[
+          ['Fall risk',row.fall_risk],
+          ['Pressure-sore risk',row.pressure_sore_risk],
+          ['Aspiration risk',row.aspiration_risk],
+          ['Wandering / confusion risk',row.wandering_risk],
+          ['Infection-control precautions',row.infection_risk],
+          ['Seizure history',row.seizure_history],
+          ['Oxygen required',row.oxygen_required],
+          ['Wound dressing required',row.dressing_required],
+          ['Special / dedicated nurse',row.special_nurse_required],
+          ['Physiotherapy advised',row.physio_required]
+        ].filter(([,value])=>value).map(([label])=>label).join(', ')||'None specifically recorded';
+
+        const feeHtml=feeRows.map(([label,value])=>
+          `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`
+        ).join('');
+
+        const html=`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(filename)}</title>
+<style>
+  @page{size:A4;margin:12mm}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,sans-serif;color:#17302a;font-size:10.5px;line-height:1.4;background:#fff}
+  .page{width:100%;background:#fff}
+  .header{display:grid;grid-template-columns:72px 1fr 94px;gap:14px;align-items:center;border-bottom:3px solid #086a57;padding-bottom:10px;margin-bottom:12px}
+  .logo{width:64px;height:64px;border-radius:15px;background:#086a57;color:#fff;display:grid;place-items:center;font-size:26px;font-weight:900}
+  .brand{text-align:center}.brand-name{font-size:22px;font-weight:900;color:#064f42}.brand-sub{font-size:12px;font-weight:700}.document-title{font-size:16px;font-weight:900;margin-top:6px}
+  .qr{text-align:center}.qr img{width:88px;height:88px}.qr small{display:block;font-size:7px;color:#536a64}
+  .identity{border:1px solid #829b94;border-radius:7px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;margin-bottom:10px}
+  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #8fa9a2;padding-bottom:3px}
+  h3{font-size:11px;margin:8px 0 4px}
+  p{margin:5px 0;text-align:justify}
+  table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px;page-break-inside:auto}
+  tr{page-break-inside:avoid;page-break-after:auto}
+  th,td{border:1px solid #829b94;padding:4px;text-align:left;vertical-align:top}
+  th{background:#e9f3f0}
+  .fee-table th{width:34%;font-weight:800}.fee-table td{font-weight:600}
+  .signatures{display:grid;grid-template-columns:1fr 1fr;gap:16px 25px;margin-top:22px;page-break-inside:avoid}
+  .signature{min-height:72px}.line{border-top:1px solid #222;padding-top:4px;margin-top:27px;font-weight:700}
+  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #b7c8c3;font-size:7.5px;color:#526660}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="logo">SC</div>
+    <div class="brand">
+      <div class="brand-name">SAMARA CARE</div>
+      <div class="brand-sub">ASSISTED LIVING</div>
+      <div class="document-title">RESIDENT ADMISSION, CARE CONSENT AND ACKNOWLEDGEMENT</div>
+    </div>
+    <div class="qr">
+      <img src="${qrDataUrl}" alt="Admission verification QR code">
+      <small>Admission verification</small>
+    </div>
+  </div>
+
+  <div class="identity">
+    <div><b>Resident:</b> ${escapeHtml(formalName(row))}</div>
+    <div><b>Patient ID:</b> ${escapeHtml(patientCode)}</div>
+    <div><b>Consent Reference:</b> ${escapeHtml(reference)}</div>
+    <div><b>Admission Date:</b> ${escapeHtml(formatDateIN(row.admission_date))}</div>
+    <div><b>Age / Gender:</b> ${escapeHtml(row.age||'—')} / ${escapeHtml(row.gender||'—')}</div>
+    <div><b>Mobile:</b> ${escapeHtml(row.mobile||'—')}</div>
+    <div><b>Room / Bed:</b> ${escapeHtml(`${row.room_no||'—'} / ${row.bed_no||'—'}`)}</div>
+    <div><b>Admission Source:</b> ${escapeHtml(row.admission_type||'—')}</div>
+    <div><b>Family / Attendant:</b> ${escapeHtml(row.attendant_name||'—')}</div>
+    <div><b>Attendant Contact:</b> ${escapeHtml(row.attendant_phone||'—')}</div>
+    <div><b>Billing:</b> ${escapeHtml(row.billing_package||'No Package / Daily Billing')}</div>
+    <div><b>Condition:</b> ${escapeHtml(row.diagnosis||'—')}</div>
+  </div>
+
+  <h2>1. Voluntary Admission and Authority</h2>
+  <p>The Resident confirms that admission is voluntary. Where the Resident is unable to understand or sign, the authorised relative or representative confirms that the admission is made in the Resident’s best interests and that the basis of authority has been disclosed. Samara Care may request supporting authority documents.</p>
+
+  <h2>2. Nature and Scope of Assisted-Living Services</h2>
+  <p>Samara Care is an assisted-living and supportive-care facility and is not represented as a full-service hospital. Services may include accommodation, assistance with activities of daily living, medication support according to recorded prescriptions, nutrition support, nursing observation, physiotherapy where arranged, and coordination with external doctors, laboratories, ambulances and hospitals. Clinical emergencies or needs beyond the facility’s capability may require transfer to an appropriate hospital.</p>
+
+  <h2>3. Medical Information, Medication and Emergency Authorisation</h2>
+  <p>The Resident or Representative confirms that known illnesses, allergies, medicines, behavioural concerns, mobility risks and special instructions have been disclosed accurately. Consent is given to administer or assist with medicines according to the recorded prescription and to contact the treating doctor. In an emergency, Samara Care is authorised to arrange first aid, ambulance transport and hospital evaluation where reasonably necessary. External medical, ambulance, investigation and hospital expenses remain chargeable as applicable.</p>
+
+  <h3>Current Medicines Recorded at Admission</h3>
+  <table>
+    <thead><tr><th>No.</th><th>Medicine</th><th>Strength</th><th>Frequency</th><th>Route</th><th>Time</th><th>Food</th></tr></thead>
+    <tbody>${medRows}</tbody>
+  </table>
+
+  <h3>Master Care Plan</h3>
+  <table>
+    <thead><tr><th>No.</th><th>Care Task</th><th>Shift</th><th>Frequency</th><th>Instruction</th></tr></thead>
+    <tbody>${careRows}</tbody>
+  </table>
+
+  <p><b>Risks / special arrangements:</b> ${escapeHtml(risks)}</p>
+  <p><b>Diet / feeding instructions:</b> ${escapeHtml(row.diet_plan||'Normal diet')}; ${escapeHtml(row.feeding_instruction||'No additional instruction')}</p>
+
+  <h2>4. Fees, Package and Additional Charges</h2>
+  <p>The Resident or Representative acknowledges the selected package or daily-billing arrangement, room category, payment obligations, deposits, discounts approved by authorised management, and separately chargeable services. Doctor visits, medicines, investigations, ambulance or transport, external hospital expenses, special nursing, physiotherapy and other non-included services may be charged separately where applicable. Detailed bills and payment records will be maintained by Samara Care.</p>
+
+  <h3>Agreed Fee Structure at Admission</h3>
+  <table class="fee-table"><tbody>${feeHtml}</tbody></table>
+  <p><b>Financial acknowledgement:</b> The above fee structure represents the admission arrangement recorded on the admission date. Any authorised revision, room transfer, approved discount or separately chargeable service shall be reflected in the patient ledger and final bill.</p>
+
+  <h2>5. Dignity, Privacy, Records and Communication</h2>
+  <p>Samara Care will endeavour to protect the Resident’s dignity, privacy, safety and confidentiality. Consent is given to maintain electronic and physical records, use the provided contact details for care coordination and billing communication, and share necessary information with authorised staff, treating professionals, emergency services and hospitals for care purposes. Photographs or recordings for publicity require separate specific consent.</p>
+
+  <h2>6. Personal Belongings and Conduct</h2>
+  <p>Valuables should be declared and handled according to facility procedure. The Resident and visitors shall follow reasonable safety, hygiene, visiting and conduct rules. Samara Care is not responsible for undeclared valuables except to the extent required by applicable law or where loss is attributable to proven misconduct of the facility or its personnel.</p>
+
+  <h2>7. Review, Change of Care and Discharge</h2>
+  <p>The care plan may be reviewed and reasonably modified based on the Resident’s condition, doctor’s advice and assessed needs, with communication to the Resident or Representative. Transfer or discharge may be initiated on medical advice, voluntary request, non-payment subject to lawful procedure, serious safety concerns, or where the facility can no longer safely meet the Resident’s needs. Final nursing, accounts, belongings and document handover procedures shall be completed at discharge.</p>
+
+  <h2>8. Acknowledgement</h2>
+  <p>The undersigned confirm that the admission details, medicine list, care plan, package or billing arrangement and key facility procedures have been explained in a language understood by them; questions were permitted; and the information provided is true to the best of their knowledge. This consent does not waive any right or remedy available under applicable law.</p>
+
+  <div class="signatures">
+    ${[
+      'Resident Signature / Thumb Impression',
+      'Relative / Authorised Representative',
+      'Admission Officer / Nurse',
+      'Admin / Manager Authorisation',
+      'Independent Witness'
+    ].map(label=>`
+      <div class="signature">
+        <div class="line">${label}</div>
+        <div>Name: ______________________________</div>
+        <div>Relationship / Designation: __________________</div>
+        <div>Date & Time: ________________________</div>
+      </div>`).join('')}
+  </div>
+
+  <div class="footer">
+    This operational consent document was generated from the Samara Care admission record. The QR code contains the admission reference particulars. Facility management should have the legal wording reviewed periodically by qualified counsel for applicable requirements.
+  </div>
+</div>
+</body>
+</html>`;
 
         const frame=document.createElement('iframe');
         frame.style.position='fixed';
@@ -5462,7 +5663,7 @@ Caring with Compassion. Living with Dignity.`;
             h('button',{type:'button',className:'close',onClick:()=>setDuplicateReview(null)},'×')
           ),
           h('div',{className:'message warning'},
-            'The record marked “Recommended Keep” has the stronger history, completed consent, or earlier registration. Records containing clinical or financial activity are protected from direct deletion.'
+            'The record marked “Recommended Keep” has the stronger history, completed consent, or earlier registration. Use Merge & Delete Duplicate to transfer linked history safely before deleting the unwanted Patient ID.'
           ),
           h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:'12px'}},
             duplicateReview.records.map(record=>
@@ -5509,10 +5710,12 @@ Caring with Compassion. Living with Dignity.`;
                   canEdit&&record.id!==duplicateReview.recommendedKeepId?h('button',{
                     type:'button',
                     className:'btn btn-danger',
-                    disabled:duplicateReviewBusy||record.activityCount>0,
-                    title:record.activityCount>0?'Clinical or financial activity exists; direct deletion is blocked.':'Delete this duplicate record',
+                    disabled:duplicateReviewBusy,
+                    title:record.activityCount>0
+                      ?'Merge this record’s history into the recommended patient and delete the duplicate'
+                      :'Delete this empty duplicate record',
                     onClick:()=>deleteReviewedDuplicate(record)
-                  },record.activityCount>0?'Protected Record':'Delete Duplicate'):null
+                  },record.activityCount>0?'Merge & Delete Duplicate':'Delete Duplicate'):null
                 )
               )
             )

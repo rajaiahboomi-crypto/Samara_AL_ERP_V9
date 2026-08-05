@@ -1,4 +1,4 @@
-SAMARA CARE ERP v2.8.0
+SAMARA CARE ERP v2.8.1
 
 UPLOAD / REPLACE:
 1. app.js
@@ -6,11 +6,9 @@ UPLOAD / REPLACE:
 
 NO SQL REQUIRED.
 
-NEW:
-- Possible duplicate rows show Review & Delete.
-- Duplicate review compares consent status, room, documents, billing and clinical history.
-- Empty incorrect duplicates can be deleted after confirmation.
-- Records with clinical or financial history are protected from direct deletion.
-- Every Patient Master row includes Print Consent.
-- If a signed consent exists, it is opened for printing.
-- Otherwise, a fresh consent is reconstructed from current patient, medicines, care plan and fee structure.
+CORRECTIONS:
+1. Patient Master Print Consent uses the complete previous legal consent format.
+2. Package / daily fee particulars are added under Section 4.
+3. Duplicate review now provides Merge & Delete Duplicate.
+4. Clinical, billing and document records are transferred to the retained Patient ID before deleting the duplicate.
+5. Room assignment remains with the retained patient.

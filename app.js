@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.6.1';
-  const APP_BUILD_DATE = '05-Aug-2026 04:28 PM IST';
+  const APP_VERSION = '2.6.2';
+  const APP_BUILD_DATE = '05-Aug-2026 04:48 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -2737,6 +2737,49 @@ Caring with Compassion. Living with Dignity.`;
     };
   }
 
+
+  const TAMIL_NADU_DISTRICT_TALUKS={
+    'Ariyalur':['Andimadam','Ariyalur','Sendurai','Udayarpalayam'],
+    'Chengalpattu':['Cheyyur','Madurantakam','Pallavaram','Tambaram','Thirukalukundram','Tiruporur','Vandalur'],
+    'Chennai':['Alandur','Ambattur','Aminjikarai','Ayanavaram','Egmore','Guindy','Madhavaram','Maduravoyal','Mambalam','Mylapore','Perambur','Purasawalkam','Sholinganallur','Thiruvottriyur','Tondiarpet','Velachery'],
+    'Coimbatore':['Anaimalai','Annur','Coimbatore North','Coimbatore South','Kinathukadavu','Madukkarai','Mettupalayam','Perur','Pollachi','Sulur','Valparai'],
+    'Cuddalore':['Bhuvanagiri','Chidambaram','Cuddalore','Kattumannarkoil','Kurinjipadi','Panruti','Srimushnam','Tittakudi','Vepur','Virudhachalam'],
+    'Dharmapuri':['Dharmapuri','Harur','Karimangalam','Nallampalli','Palacode','Pappireddipatti','Pennagaram'],
+    'Dindigul':['Athoor','Dindigul East','Dindigul West','Gujiliamparai','Kodaikanal','Natham','Nilakottai','Oddanchatram','Palani','Vedasandur'],
+    'Erode':['Anthiyur','Bhavani','Erode','Gobichettipalayam','Kodumudi','Modakkurichi','Nambiyur','Perundurai','Sathyamangalam','Thalavadi'],
+    'Kallakurichi':['Chinnasalem','Kallakurichi','Kalvarayan Hills','Sankarapuram','Tirukoilur','Ulundurpet'],
+    'Kancheepuram':['Kancheepuram','Kundrathur','Sriperumbudur','Uthiramerur','Walajabad'],
+    'Kanniyakumari':['Agastheeswaram','Kalkulam','Killiyur','Thiruvattar','Thovalai','Vilavancode'],
+    'Karur':['Aravakurichi','Kadavur','Karur','Krishnarayapuram','Kulithalai','Manmangalam','Pugalur'],
+    'Krishnagiri':['Anchetty','Bargur','Denkanikottai','Hosur','Krishnagiri','Pochampalli','Shoolagiri','Uthangarai'],
+    'Madurai':['Kalligudi','Madurai East','Madurai North','Madurai South','Madurai West','Melur','Peraiyur','Thirumangalam','Thirupparankundram','Usilampatti','Vadipatti'],
+    'Mayiladuthurai':['Kuthalam','Mayiladuthurai','Sirkazhi','Tharangambadi'],
+    'Nagapattinam':['Kilvelur','Nagapattinam','Thirukkuvalai','Vedaranyam'],
+    'Namakkal':['Kolli Hills','Kumarapalayam','Mohanur','Namakkal','Paramathi Velur','Rasipuram','Sendamangalam','Tiruchengode'],
+    'The Nilgiris':['Coonoor','Gudalur','Kotagiri','Kundah','Pandalur','Udhagamandalam'],
+    'Perambalur':['Alathur','Kunnam','Perambalur','Veppanthattai'],
+    'Pudukkottai':['Alangudi','Aranthangi','Avudaiyarkoil','Gandarvakottai','Iluppur','Karambakudi','Kulathur','Manamelkudi','Ponnamaravathi','Pudukkottai','Thirumayam','Viralimalai'],
+    'Ramanathapuram':['Kadaladi','Kamuthi','Keelakarai','Mudukulathur','Paramakudi','Rajasingamangalam','Ramanathapuram','Rameswaram','Tiruvadanai'],
+    'Ranipet':['Arakkonam','Arcot','Kalavai','Nemili','Sholinghur','Walajah'],
+    'Salem':['Attur','Edappadi','Gangavalli','Kadayampatti','Mettur','Omalur','Pethanaickenpalayam','Salem','Salem South','Sankari','Vazhapadi','Yercaud'],
+    'Sivaganga':['Devakottai','Ilayangudi','Kalaiyarkoil','Karaikudi','Manamadurai','Singampunari','Sivaganga','Thiruppathur','Tiruppuvanam'],
+    'Tenkasi':['Alangulam','Kadayanallur','Sankarankovil','Shenkottai','Sivagiri','Tenkasi','Thiruvengadam','Veerakeralampudur'],
+    'Thanjavur':['Budalur','Kumbakonam','Orathanadu','Papanasam','Pattukkottai','Peravurani','Thanjavur','Thiruvaiyaru','Thiruvidaimarudur'],
+    'Theni':['Andipatti','Bodinayakanur','Periyakulam','Theni','Uthamapalayam'],
+    'Thoothukudi':['Eral','Ettayapuram','Kayathar','Kovilpatti','Ottapidaram','Sathankulam','Srivaikuntam','Thoothukudi','Tiruchendur','Vilathikulam'],
+    'Tiruchirappalli':['Lalgudi','Manachanallur','Manapparai','Marungapuri','Musiri','Srirangam','Thottiyam','Thuraiyur','Tiruchirappalli East','Tiruchirappalli West','Tiruverumbur'],
+    'Tirunelveli':['Ambasamudram','Cheranmahadevi','Manur','Nanguneri','Palayamkottai','Radhapuram','Thisayanvilai','Tirunelveli'],
+    'Tirupathur':['Ambur','Natrampalli','Tirupathur','Vaniyambadi'],
+    'Tiruppur':['Avinashi','Dharapuram','Kangeyam','Madathukulam','Palladam','Tiruppur North','Tiruppur South','Udumalpet','Uthukuli'],
+    'Tiruvallur':['Avadi','Gummidipoondi','Pallipet','Ponneri','Poonamallee','R.K. Pet','Tiruttani','Tiruvallur','Uthukottai'],
+    'Tiruvannamalai':['Arani','Chengam','Chetpet','Cheyyar','Jamunamarathur','Kalasapakkam','Kilpennathur','Polur','Thandrampet','Tiruvannamalai','Vandavasi','Vembakkam'],
+    'Tiruvarur':['Kodavasal','Koothanallur','Mannargudi','Muthupet','Nannilam','Needamangalam','Thiruthuraipoondi','Tiruvarur','Valangaiman'],
+    'Vellore':['Anaicut','Gudiyatham','Katpadi','K.V. Kuppam','Pernambut','Vellore'],
+    'Viluppuram':['Gingee','Kandachipuram','Marakkanam','Melmalayanur','Tindivanam','Vanur','Vikravandi','Viluppuram'],
+    'Virudhunagar':['Aruppukkottai','Kariapatti','Rajapalayam','Sattur','Sivakasi','Srivilliputhur','Tiruchuli','Vembakottai','Virudhunagar','Watrap']
+  };
+  const TAMIL_NADU_DISTRICTS=Object.keys(TAMIL_NADU_DISTRICT_TALUKS).sort((a,b)=>a.localeCompare(b));
+
   function Admissions({profile}){
     const today=new Date().toISOString().slice(0,10);
     const initial={admission_type:'Previous Hospital / Care Centre',patient_category:'Short Stay',title:'',full_name:'',age:'',gender:'Male',mobile:'',address:'',state:'Tamil Nadu',district:'',taluk:'',village_town:'',locality_area:'',street_name:'',house_no:'',apartment_name:'',flat_no:'',landmark:'',pincode:'',room_no:'',bed_no:'',admission_date:today,hospital_name:'',discharge_date:today,diagnosis:'',treating_doctor:'',doctor_phone:'',referring_doctor:'',referring_source:'',family_doctor:'',attendant_name:'',attendant_phone:'',allergies:'',special_instructions:'',diet_plan:'Normal diet',feeding_instruction:'',billing_package:'',fall_risk:false,pressure_sore_risk:false,aspiration_risk:false,wandering_risk:false,infection_risk:false,seizure_history:false,oxygen_required:false,oxygen_instruction:'',dressing_required:false,dressing_instruction:'',special_nurse_required:false,special_nurse_name:'',special_nurse_shift:'Both shifts / 24-hour coverage',special_nurse_instructions:'',physio_required:false,therapy_type:'',physiotherapist_name:'',physio_frequency:'Daily',physio_time:'10:00',physio_precautions:''};
@@ -3305,8 +3348,28 @@ Caring with Compassion. Living with Dignity.`;
           readOnly:!!returningPatient
         })),
         field('State','state',form,setForm,false),
-        field('District','district',form,setForm,true),
-        field('Taluk','taluk',form,setForm,false),
+        h('div',{className:'field'},
+          h('label',null,'District'),
+          h('select',{
+            required:true,
+            value:form.district,
+            onChange:e=>setForm({...form,district:e.target.value,taluk:''})
+          },
+            h('option',{value:''},'Select District'),
+            TAMIL_NADU_DISTRICTS.map(name=>h('option',{key:name,value:name},name))
+          )
+        ),
+        h('div',{className:'field'},
+          h('label',null,'Taluk'),
+          h('select',{
+            value:form.taluk,
+            disabled:!form.district,
+            onChange:e=>setForm({...form,taluk:e.target.value})
+          },
+            h('option',{value:''},form.district?'Select Taluk':'Select District first'),
+            ...(TAMIL_NADU_DISTRICT_TALUKS[form.district]||[]).map(name=>h('option',{key:name,value:name},name))
+          )
+        ),
         field('Village / Town / City','village_town',form,setForm,true),
         field('Locality / Area','locality_area',form,setForm,false),
         field('Street / Road Name','street_name',form,setForm,true),
@@ -4131,8 +4194,28 @@ Caring with Compassion. Living with Dignity.`;
           roomBedSelect(roomBeds,editForm.room_no,editForm.bed_no,(room_no,bed_no)=>setEditForm({...editForm,room_no,bed_no}),false,editTarget.id),field('Admission Date','admission_date',editForm,setEditForm,false,'date'),
           field('Known Allergies','allergies',editForm,setEditForm,false),
           field('State','state',editForm,setEditForm,false),
-          field('District','district',editForm,setEditForm,true),
-          field('Taluk','taluk',editForm,setEditForm,false),
+          h('div',{className:'field'},
+            h('label',null,'District'),
+            h('select',{
+              required:true,
+              value:editForm.district||'',
+              onChange:e=>setEditForm({...editForm,district:e.target.value,taluk:''})
+            },
+              h('option',{value:''},'Select District'),
+              TAMIL_NADU_DISTRICTS.map(name=>h('option',{key:name,value:name},name))
+            )
+          ),
+          h('div',{className:'field'},
+            h('label',null,'Taluk'),
+            h('select',{
+              value:editForm.taluk||'',
+              disabled:!editForm.district,
+              onChange:e=>setEditForm({...editForm,taluk:e.target.value})
+            },
+              h('option',{value:''},editForm.district?'Select Taluk':'Select District first'),
+              ...(TAMIL_NADU_DISTRICT_TALUKS[editForm.district]||[]).map(name=>h('option',{key:name,value:name},name))
+            )
+          ),
           field('Village / Town / City','village_town',editForm,setEditForm,true),
           field('Locality / Area','locality_area',editForm,setEditForm,false),
           field('Street / Road Name','street_name',editForm,setEditForm,true),

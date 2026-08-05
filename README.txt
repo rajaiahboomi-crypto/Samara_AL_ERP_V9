@@ -1,19 +1,13 @@
-SAMARA CARE ERP v2.7.5 – OFFLINE QR CONSENT PRINT
+SAMARA CARE ERP v2.7.6
 
 UPLOAD / REPLACE:
-1. Replace app.js
-2. Upload the complete vendor folder so the repository contains:
-   vendor/qrcode.bundle.js
+1. app.js
+2. vendor/qrcode.bundle.js
 
-No SQL is required.
+NO SQL REQUIRED.
 
-IMPORTANT:
-Do not upload only app.js. The vendor/qrcode.bundle.js file is required for the offline QR code.
-
-The consent no longer uses:
-- cdn.jsdelivr.net
-- html2pdf
-- popup windows
-
-Clicking Print / Save Admission Consent opens the normal browser Print dialog.
-Choose a printer or select Save as PDF.
+CHANGES:
+- After successful signed-consent upload, Admission closes and returns to the role dashboard.
+- Consent includes a detailed admission fee structure.
+- Print/Save document title follows: Patient_Name_Patient_ID_DD-MM-YYYY
+- Uploaded signed consent is renamed with the same Patient Name, ID and Date format.

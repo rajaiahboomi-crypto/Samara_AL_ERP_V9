@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.7.5';
-  const APP_BUILD_DATE = '05-Aug-2026 05:55 PM IST';
+  const APP_VERSION = '2.7.6';
+  const APP_BUILD_DATE = '05-Aug-2026 06:15 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -1733,7 +1733,7 @@ Caring with Compassion. Living with Dignity.`;
           page==='Dashboard'&&h(Dashboard,{profile,onNavigate:setPage}),
           page==='Employees'&&h(Employees,{profile}),
           page==='Enquiries'&&h(Enquiries,{profile}),
-          page==='Admissions'&&h(Admissions,{profile}),
+          page==='Admissions'&&h(Admissions,{profile,onNavigate:setPage}),
           page==='Clinical Dashboard'&&h(ClinicalDashboard,{profile,onNavigate:setPage}),
           page==='Clinical Alerts'&&h(ClinicalAlertsPage,{engine:alertEngine,setPage}),
           page==='Shift Tasks'&&h(ShiftTasks,{profile,onNavigate:setPage}),
@@ -2841,7 +2841,7 @@ Caring with Compassion. Living with Dignity.`;
   };
   const TAMIL_NADU_DISTRICTS=Object.keys(TAMIL_NADU_DISTRICT_TALUKS).sort((a,b)=>a.localeCompare(b));
 
-  function Admissions({profile}){
+  function Admissions({profile,onNavigate}){
     const today=new Date().toISOString().slice(0,10);
     const initial={admission_type:'Previous Hospital / Care Centre',patient_category:'Short Stay',title:'',full_name:'',age:'',gender:'Male',mobile:'',address:'',state:'Tamil Nadu',district:'',taluk:'',village_town:'',locality_area:'',street_name:'',house_no:'',apartment_name:'',flat_no:'',landmark:'',pincode:'',room_no:'',bed_no:'',admission_date:today,hospital_name:'',discharge_date:today,diagnosis:'',treating_doctor:'',doctor_phone:'',referring_doctor:'',referring_source:'',family_doctor:'',attendant_name:'',attendant_phone:'',allergies:'',special_instructions:'',diet_plan:'Normal diet',feeding_instruction:'',billing_package:'',fall_risk:false,pressure_sore_risk:false,aspiration_risk:false,wandering_risk:false,infection_risk:false,seizure_history:false,oxygen_required:false,oxygen_instruction:'',dressing_required:false,dressing_instruction:'',special_nurse_required:false,special_nurse_name:'',special_nurse_shift:'Both shifts / 24-hour coverage',special_nurse_instructions:'',physio_required:false,therapy_type:'',physiotherapist_name:'',physio_frequency:'Daily',physio_time:'10:00',physio_precautions:''};
     const [form,setForm]=React.useState(initial),[meds,setMeds]=React.useState([blankMedicine()]),[care,setCare]=React.useState([blankCare()]),[busy,setBusy]=React.useState(false),[msg,setMsg]=React.useState('');
@@ -3410,6 +3410,20 @@ Caring with Compassion. Living with Dignity.`;
         .replace(/"/g,'&quot;');
     }
 
+    function consentFileBase(record){
+      const patient=record?.patient||{};
+      const admission=record?.form||{};
+      const patientName=String(formalName(patient)||patient.full_name||'Patient')
+        .trim()
+        .replace(/[^a-zA-Z0-9]+/g,'_')
+        .replace(/^_+|_+$/g,'');
+      const patientCode=String(patient.patient_code||patient.patient_id||'Patient_ID')
+        .replace(/[^a-zA-Z0-9-]+/g,'_');
+      const date=formatDateIN(admission.admission_date||todayISOIndia())
+        .replace(/[^0-9-]/g,'');
+      return `${patientName}_${patientCode}_${date}`;
+    }
+
     async function ensureOfflineQrGenerator(){
       if(window.SamaraQRCode)return window.SamaraQRCode;
       const src='./vendor/qrcode.bundle.js';
@@ -3465,7 +3479,33 @@ Caring with Compassion. Living with Dignity.`;
         const medicines=(record.medicines||[]).filter(medicineRowComplete);
         const carePlan=(record.carePlan||[]).filter(careRowComplete);
         const patientCode=patient.patient_code||patient.patient_id||'PATIENT';
+        const fileBase=consentFileBase(record);
         const consentReference=`SAMARA-${patientCode}-${String(admission.admission_date||'').replace(/-/g,'')}`;
+        const fee=record.feeStructure||{};
+        const isPackageBilling=fee.billing_mode==='Fixed Care Package';
+        const moneyConsent=value=>`₹${Number(value||0).toLocaleString('en-IN')}`;
+        const feeRows=isPackageBilling
+          ?[
+              ['Billing Method','Fixed Care Package'],
+              ['Package',fee.package_name||admission.billing_package||'—'],
+              ['Duration',fee.package_duration||'—'],
+              ['Accommodation',fee.room_class||fee.room_type||'—'],
+              ['Package Period',fee.package_period||'—'],
+              ['Fixed Package Fee',moneyConsent(fee.package_fee)],
+              ['Package Includes',fee.package_inclusions||'As configured in the package master']
+            ]
+          :[
+              ['Billing Method','Daily Billing'],
+              ['Room / Bed',`${admission.room_no||'—'}-${admission.bed_no||'—'} · ${fee.room_type||'—'}`],
+              ['Room Rent per Day',moneyConsent(fee.room_daily_rate)],
+              ['Routine Nursing per Day',moneyConsent(fee.nursing_daily_rate)],
+              ['Special Nurse per Day',fee.special_nurse_daily_rate?moneyConsent(fee.special_nurse_daily_rate):'Not applicable / charged only when assigned'],
+              ['Base Daily Charge',moneyConsent(Number(fee.room_daily_rate||0)+Number(fee.nursing_daily_rate||0)+Number(fee.special_nurse_daily_rate||0))],
+              ['Additional Charges','Medicines, doctor visits, investigations, physiotherapy, transport, external hospital expenses and other approved services are billed separately']
+            ];
+        const feeStructureHtml=feeRows.map(([label,value])=>`
+          <tr><th>${consentEscape(label)}</th><td>${consentEscape(value)}</td></tr>
+        `).join('');
         const qrPayload=[
           'SAMARA CARE ADMISSION CONSENT',
           `Reference: ${consentReference}`,
@@ -3530,7 +3570,7 @@ Caring with Compassion. Living with Dignity.`;
 <html>
 <head>
 <meta charset="utf-8">
-<title>Admission Consent - ${consentEscape(patientCode)}</title>
+<title>${consentEscape(fileBase)}</title>
 <style>
   @page{size:A4;margin:12mm}
   *{box-sizing:border-box}
@@ -3549,7 +3589,7 @@ Caring with Compassion. Living with Dignity.`;
   table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px;page-break-inside:auto}
   tr{page-break-inside:avoid;page-break-after:auto}
   th,td{border:1px solid #829b94;padding:4px;text-align:left;vertical-align:top}
-  th{background:#e9f3f0}
+  th{background:#e9f3f0}.fee-table th{width:34%;font-weight:800}.fee-table td{font-weight:600}
   .signatures{display:grid;grid-template-columns:1fr 1fr;gap:16px 25px;margin-top:22px;page-break-inside:avoid}
   .signature{min-height:72px}.line{border-top:1px solid #222;padding-top:4px;margin-top:27px;font-weight:700}
   .footer{margin-top:14px;padding-top:6px;border-top:1px solid #b7c8c3;font-size:7.5px;color:#526660}
@@ -3615,6 +3655,11 @@ Caring with Compassion. Living with Dignity.`;
 
   <h2>4. Fees, Package and Additional Charges</h2>
   <p>The Resident or Representative acknowledges the selected package or daily-billing arrangement, room category, payment obligations, deposits, discounts approved by authorised management, and separately chargeable services. Doctor visits, medicines, investigations, ambulance or transport, external hospital expenses, special nursing, physiotherapy and other non-included services may be charged separately where applicable. Detailed bills and payment records will be maintained by Samara Care.</p>
+  <h3>Agreed Fee Structure at Admission</h3>
+  <table class="fee-table">
+    <tbody>${feeStructureHtml}</tbody>
+  </table>
+  <p><b>Financial acknowledgement:</b> The above fee structure represents the applicable admission arrangement recorded on the admission date. Any authorised revision, room transfer, approved discount or separately chargeable service shall be reflected in the patient ledger and final bill.</p>
 
   <h2>5. Dignity, Privacy, Records and Communication</h2>
   <p>Samara Care will endeavour to protect the Resident’s dignity, privacy, safety and confidentiality. Consent is given to maintain electronic and physical records, use the provided contact details for care coordination and billing communication, and share necessary information with authorised staff, treating professionals, emergency services and hospitals for care purposes. Photographs or recordings for publicity require separate specific consent.</p>
@@ -3704,8 +3749,20 @@ Caring with Compassion. Living with Dignity.`;
       setConsentBusy(true);
       try{
         let latestPath=null;
-        for(const file of signedConsentFiles){
-          latestPath=await uploadPatientFile(consentRecord.patient.id,file,'Signed Admission Consent Form');
+        const canonicalBase=consentFileBase(consentRecord);
+        for(const [index,file] of signedConsentFiles.entries()){
+          const extension=String(file.name||'').match(/\.[a-zA-Z0-9]+$/)?.[0]
+            ||(file.type==='application/pdf'?'.pdf':'.jpg');
+          const canonicalName=`${canonicalBase}${signedConsentFiles.length>1?`_${index+1}`:''}${extension}`;
+          const renamedFile=new File([file],canonicalName,{
+            type:file.type||undefined,
+            lastModified:file.lastModified||Date.now()
+          });
+          latestPath=await uploadPatientFile(
+            consentRecord.patient.id,
+            renamedFile,
+            'Signed Admission Consent Form'
+          );
         }
         const {error}=await client.from('patients').update({
           admission_consent_status:'Completed',
@@ -3723,6 +3780,9 @@ Caring with Compassion. Living with Dignity.`;
         );
         setMsg('Signed Admission Consent uploaded. Admission formalities are complete.');
         cleanAdmissionAfterConsent();
+        setTimeout(()=>{
+          onNavigate?.(ROLE_HOME[profile?.role]||'Dashboard');
+        },450);
       }catch(error){
         setMsg(error.message||'Unable to upload the signed Admission Consent.');
       }finally{
@@ -3916,6 +3976,25 @@ Caring with Compassion. Living with Dignity.`;
           form:{...form},
           medicines:effectiveMeds.map(m=>({...m,is_locked:true})),
           carePlan:effectiveCare.map(c=>({...c,is_locked:true})),
+          feeStructure:{
+            billing_mode:noPackageSelected?'Daily Billing':'Fixed Care Package',
+            package_name:selectedPackage?.package_name||null,
+            package_duration:selectedPackage
+              ?`${selectedPackage.duration_value} ${selectedPackage.duration_unit}`
+              :null,
+            package_fee:selectedPackage?selectedPackageFee():0,
+            package_period:selectedPackage
+              ?`${formatDateIN(form.admission_date)} to ${formatDateIN(packageEndDate())}`
+              :null,
+            package_inclusions:selectedPackage?.included_services||null,
+            room_class:selectedPackage?packageRoomClass():null,
+            room_type:selectedBed?.room_type||null,
+            room_daily_rate:Number(selectedBed?.room_daily_rate??selectedBed?.daily_rate??0),
+            nursing_daily_rate:Number(selectedBed?.nursing_daily_rate||0),
+            special_nurse_daily_rate:form.special_nurse_required
+              ?Number(selectedBed?.special_nurse_daily_rate||0)
+              :0
+          },
           returningPatient:!!returningPatient,
           resumedExistingAdmission:!!admissionExistingPatient&&!returningPatient
         });

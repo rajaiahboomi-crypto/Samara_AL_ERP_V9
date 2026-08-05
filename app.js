@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.4.6';
-  const APP_BUILD_DATE = '05-Aug-2026 01:40 PM IST';
+  const APP_VERSION = '2.4.7';
+  const APP_BUILD_DATE = '05-Aug-2026 01:48 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -8108,13 +8108,32 @@ function ShiftHandover({profile,onNavigate}){
       setSaving(false);
     }
 
+    const signedFinancialBalance=paidTotal+totals.Discount-totals.Charge-totals.Refund;
+    const balanceDisplay=
+      signedFinancialBalance>0
+        ?`+ ${money(signedFinancialBalance)}`
+        :signedFinancialBalance<0
+          ?`− ${money(Math.abs(signedFinancialBalance))}`
+          :money(0);
+    const balanceTone=
+      signedFinancialBalance>0
+        ?'summary-green'
+        :signedFinancialBalance<0
+          ?'summary-red'
+          :'summary-blue';
+    const balanceLabel=
+      signedFinancialBalance>0
+        ?'Financial Balance · Advance Available'
+        :signedFinancialBalance<0
+          ?'Financial Balance · Outstanding'
+          :'Financial Balance · Account Settled';
+
     const summaryCards=[
       ['Total Charges',totals.Charge,'summary-red'],
       ['Payments / Advance',paidTotal,'summary-green'],
       ['Discounts',totals.Discount,'summary-orange'],
       ['Pending Bills',pendingBills,pendingBills>0?'summary-red':'summary-green'],
-      ['Advance Balance',advanceBalance,'summary-blue'],
-      ['Net Payable',pendingBills,pendingBills>0?'summary-red':'summary-green']
+      [balanceLabel,balanceDisplay,balanceTone,'signed']
     ];
 
     return h(React.Fragment,null,
@@ -8164,9 +8183,19 @@ function ShiftHandover({profile,onNavigate}){
       ),
 
       h('div',{className:'payment-summary-grid'},
-        summaryCards.map(([label,value,klass])=>h('div',{className:`payment-summary-card ${klass}`,key:label},
+        summaryCards.map(([label,value,klass,format])=>h('div',{
+          className:`payment-summary-card ${klass}`,
+          key:label
+        },
           h('span',null,label),
-          h('strong',null,money(value))
+          h('strong',null,format==='signed'?value:money(value)),
+          format==='signed'&&h('small',null,
+            signedFinancialBalance>0
+              ?'Credit available with Samara'
+              :signedFinancialBalance<0
+                ?'Amount payable by patient'
+                :'No amount due or refundable'
+          )
         ))
       ),
 

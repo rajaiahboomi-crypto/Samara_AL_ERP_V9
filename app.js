@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.5';
-  const APP_BUILD_DATE = '05-Aug-2026 11:18 IST';
+  const APP_VERSION = '2.3.6';
+  const APP_BUILD_DATE = '05-Aug-2026 11:32 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -3150,6 +3150,16 @@ Caring with Compassion. Living with Dignity.`;
     const openDischargeForPatient=patientId=>rows.find(row=>
       row.patient_id===patientId&&isOpenDischarge(row)
     )||null;
+    const completedDischargeForPatient=patientId=>rows.find(row=>
+      row.patient_id===patientId&&String(row.status||'').trim().toLowerCase()==='completed'
+    )||null;
+    const isHistoricalDuplicate=row=>Boolean(
+      row&&
+      isOpenDischarge(row)&&
+      String(row.management_status||'Pending').trim().toLowerCase()==='pending'&&
+      String(row.accounts_status||'Pending').trim().toLowerCase()==='pending'&&
+      completedDischargeForPatient(row.patient_id)
+    );
 
     async function load(){
       const [d,p]=await Promise.all([
@@ -3289,6 +3299,45 @@ Caring with Compassion. Living with Dignity.`;
       writeAuditEvent(editing?'Discharge Updated':'Discharge Initiated','Discharge',result.data?.id,{patient_id:form.patient_id,initiation_basis:form.initiation_basis},'Success');
     }
 
+    async function removeHistoricalDuplicate(row){
+      if(!row||busy||!isHistoricalDuplicate(row))return;
+      const patient=patientFor(row.patient_id);
+      const confirmed=window.confirm(
+        `This is an unfinished duplicate discharge request for ${formalName(patient)||patient.full_name||'the patient'}. `+
+        `A completed discharge already exists. Remove only this duplicate request?`
+      );
+      if(!confirmed)return;
+
+      setBusy(true);
+      try{
+        const {error}=await client.from('patient_discharges')
+          .delete()
+          .eq('id',row.id)
+          .eq('management_status','Pending')
+          .eq('accounts_status','Pending');
+
+        if(error)throw error;
+
+        notify(
+          'success',
+          'Duplicate discharge removed',
+          'The invalid pending duplicate was removed. The completed discharge and released room/bed remain unchanged.'
+        );
+        await load();
+        writeAuditEvent(
+          'Duplicate Discharge Removed',
+          'Discharge',
+          row.id,
+          {patient_id:row.patient_id,reason:'Completed discharge already existed'},
+          'Success'
+        );
+      }catch(error){
+        notify('error','Duplicate not removed',error.message||'Unable to remove the duplicate request.');
+      }finally{
+        setBusy(false);
+      }
+    }
+
     const managementBillingTotals=list=>(list||[]).reduce((totals,row)=>{
       const amount=Number(row.amount||0);
       const type=row.transaction_type||'Charge';
@@ -3331,100 +3380,130 @@ Caring with Compassion. Living with Dignity.`;
         Number(totals.Refund||0)
       );
 
-      if(decision==='Rejected'&&!managementRemarks.trim()){
+      if(decision==='Rejected'&&!String(managementRemarks||'').trim()){
         notify('error','Decision not saved','Reason for rejection is mandatory.');
         return;
       }
-      if(discountAmount<0){
-        notify('error','Discount not saved','Discount cannot be negative.');
+      if(!Number.isFinite(discountAmount)||discountAmount<0){
+        notify('error','Discount not saved','Enter a valid discount amount.');
         return;
       }
       if(discountAmount>currentOutstanding+0.009){
         notify('error','Discount not saved',`Discount cannot exceed the current outstanding amount of ₹${currentOutstanding.toLocaleString('en-IN')}.`);
         return;
       }
-      if(discountAmount>0&&!managementDiscountReason.trim()){
+      if(discountAmount>0&&!String(managementDiscountReason||'').trim()){
         notify('error','Discount not saved','Enter the reason for granting the discount.');
         return;
       }
 
       setBusy(true);
-      let insertedDiscountId=null;
+      try{
+        const {data:{user}}=await client.auth.getUser();
+        const remarks=[
+          String(managementRemarks||'').trim()||decision,
+          discountAmount>0?`Admin-approved discount: ₹${discountAmount.toLocaleString('en-IN')}`:'',
+          discountAmount>0?`Discount reason: ${String(managementDiscountReason||'').trim()}`:''
+        ].filter(Boolean).join(' | ');
 
-      if(decision==='Approved'&&discountAmount>0&&profile?.role==='Admin'){
-        const {data:discountData,error:discountError}=await client.from('billing_transactions')
-          .insert({
+        // Preferred production workflow.
+        let approvalError=null;
+        try{
+          const rpcResult=await client.rpc('approve_patient_discharge_v2',{
+            p_discharge_id:row.id,
+            p_decision:decision,
+            p_remarks:remarks
+          });
+          approvalError=rpcResult.error||null;
+        }catch(error){
+          approvalError=error;
+        }
+
+        // Safe compatibility fallback for deployments where the RPC is unavailable.
+        if(approvalError){
+          const updatePayload={
+            management_status:decision,
+            management_remarks:remarks,
+            management_approved_at:new Date().toISOString(),
+            management_approved_by_name:formalName(profile)||profile?.full_name||profile?.login_id||'Management',
+            updated_at:new Date().toISOString()
+          };
+          if(decision==='Rejected'){
+            updatePayload.status='Returned to Nursing';
+            updatePayload.accounts_status='Pending';
+          }
+          const fallback=await client.from('patient_discharges')
+            .update(updatePayload)
+            .eq('id',row.id)
+            .select('id')
+            .single();
+          if(fallback.error)throw new Error(
+            `${approvalError.message||'Approval service unavailable'}; fallback also failed: ${fallback.error.message}`
+          );
+        }
+
+        // Save discount only after the management approval is successfully recorded.
+        if(decision==='Approved'&&discountAmount>0&&profile?.role==='Admin'){
+          const discountResult=await client.from('billing_transactions')
+            .insert({
+              patient_id:row.patient_id,
+              transaction_type:'Discount',
+              category:'Discharge Discount',
+              amount:discountAmount,
+              payment_mode:'Not applicable',
+              description:[
+                'Approved during discharge management review',
+                `Discharge ID: ${row.id}`,
+                `Reason: ${String(managementDiscountReason||'').trim()}`
+              ].join(' | '),
+              transaction_date:new Date().toISOString(),
+              entered_by:user?.id||profile.id
+            })
+            .select('id')
+            .single();
+
+          if(discountResult.error){
+            notify(
+              'error',
+              'Discharge approved, but discount needs attention',
+              `The discharge approval was saved. The discount was not recorded: ${discountResult.error.message}`
+            );
+            setManagementReviewRow(null);
+            await load();
+            return;
+          }
+        }
+
+        setManagementReviewRow(null);
+        notify(
+          'success',
+          decision==='Approved'?'Discharge approved successfully':'Discharge rejected',
+          decision==='Approved'
+            ?discountAmount>0
+              ?`Approved and forwarded to Accounts. Discount of ₹${discountAmount.toLocaleString('en-IN')} was saved permanently.`
+              :'Forwarded automatically to Accounts for payment clearance.'
+            :'Returned automatically to Nursing.'
+        );
+        await load();
+
+        writeAuditEvent(
+          decision==='Approved'?'Discharge Approved':'Discharge Rejected',
+          'Discharge',
+          row.id,
+          {
             patient_id:row.patient_id,
-            transaction_type:'Discount',
-            category:'Discharge Discount',
-            amount:discountAmount,
-            payment_mode:'Not applicable',
-            description:[
-              `Approved during discharge management review`,
-              `Discharge ID: ${row.id}`,
-              `Reason: ${managementDiscountReason.trim()}`
-            ].join(' | '),
-            transaction_date:new Date().toISOString(),
-            entered_by:profile.id
-          })
-          .select('id')
-          .single();
-
-        if(discountError){
-          setBusy(false);
-          notify('error','Discount not saved',discountError.message);
-          return;
-        }
-        insertedDiscountId=discountData?.id||null;
-      }
-
-      const remarks=[
-        managementRemarks.trim()||decision,
-        discountAmount>0?`Admin-approved discount: ₹${discountAmount.toLocaleString('en-IN')}`:'',
-        discountAmount>0?`Discount reason: ${managementDiscountReason.trim()}`:''
-      ].filter(Boolean).join(' | ');
-
-      const {error}=await client.rpc('approve_patient_discharge_v2',{
-        p_discharge_id:row.id,
-        p_decision:decision,
-        p_remarks:remarks
-      });
-
-      if(error){
-        if(insertedDiscountId){
-          await client.from('billing_transactions').delete().eq('id',insertedDiscountId);
-        }
+            decision,
+            management_remarks:String(managementRemarks||'').trim()||null,
+            discount_amount:discountAmount||0,
+            discount_reason:String(managementDiscountReason||'').trim()||null
+          },
+          'Success'
+        );
+      }catch(error){
+        notify('error','Management decision not saved',error.message||'Unable to save the management decision.');
+      }finally{
         setBusy(false);
-        notify('error','Management decision not saved',error.message);
-        return;
       }
-
-      setBusy(false);
-      setManagementReviewRow(null);
-      notify(
-        'success',
-        decision==='Approved'?'Discharge approved successfully':'Discharge rejected',
-        decision==='Approved'
-          ?discountAmount>0
-            ?`Approved and forwarded to Accounts. Discount of ₹${discountAmount.toLocaleString('en-IN')} has been saved in the permanent patient account history.`
-            :'Forwarded automatically to Accounts for payment clearance.'
-          :'Returned automatically to Nursing.'
-      );
-      await load();
-
-      writeAuditEvent(
-        decision==='Approved'?'Discharge Approved':'Discharge Rejected',
-        'Discharge',
-        row.id,
-        {
-          patient_id:row.patient_id,
-          decision,
-          management_remarks:managementRemarks.trim()||null,
-          discount_amount:discountAmount||0,
-          discount_reason:managementDiscountReason.trim()||null
-        },
-        'Success'
-      );
     }
 
     function openPayments(row){
@@ -3452,7 +3531,7 @@ Caring with Compassion. Living with Dignity.`;
       const {error}=await client.rpc('close_patient_discharge_accounts_v2',{p_discharge_id:row.id,p_remarks:remarks});
       setBusy(false);
       if(error){notify('error','Discharge not closed',error.message);return}
-      notify('success','Discharge closed successfully','All payments are cleared, the room is released and the final status returned automatically to Nursing.');
+      notify('success','Accounts clearance completed','All payments are cleared. The case has returned to Nursing; room and bed will be released only after final patient departure is confirmed.');
       await load();
     }
 
@@ -3533,6 +3612,20 @@ Caring with Compassion. Living with Dignity.`;
         return;
       }
 
+      const otherOpen=rows.find(row=>
+        row.patient_id===finalDischargeRow.patient_id&&
+        row.id!==finalDischargeRow.id&&
+        isOpenDischarge(row)
+      );
+      if(otherOpen){
+        notify(
+          'error',
+          'Room cannot be released',
+          'Another unfinished discharge request exists for the same patient/room. Remove or close that duplicate request first.'
+        );
+        return;
+      }
+
       setBusy(true);
       const {data,error}=await client.rpc('confirm_patient_departure_v3',{
         p_discharge_id:finalDischargeRow.id,
@@ -3602,8 +3695,14 @@ Caring with Compassion. Living with Dignity.`;
       row.accounts_cleared_at?fmt(row.accounts_cleared_at):'—',
       h('span',{className:`badge ${row.status==='Completed'?'':'off'}`},row.status||'Initiated'),
       h('div',{className:'employee-actions'},
-        canInitiate&&row.status==='Initiated'&&(row.management_status||'Pending')==='Pending'&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Update'),
-        canApprove&&(row.management_status||'Pending')==='Pending'&&h('button',{
+        isHistoricalDuplicate(row)&&['Admin','Manager','Nurse'].includes(profile?.role)&&h('button',{
+          type:'button',
+          className:'btn btn-danger',
+          disabled:busy,
+          onClick:()=>removeHistoricalDuplicate(row)
+        },'Remove Duplicate'),
+        canInitiate&&row.status==='Initiated'&&(row.management_status||'Pending')==='Pending'&&!isHistoricalDuplicate(row)&&h('button',{className:'btn btn-secondary',onClick:()=>openEdit(row)},'Update'),
+        canApprove&&(row.management_status||'Pending')==='Pending'&&!isHistoricalDuplicate(row)&&h('button',{
           className:'btn btn-primary',
           onClick:()=>openManagementReview(row)
         },'Review & Decide'),

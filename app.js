@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.7.1';
-  const APP_BUILD_DATE = '05-Aug-2026 04:50 PM IST';
+  const APP_VERSION = '2.7.2';
+  const APP_BUILD_DATE = '05-Aug-2026 05:05 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -1458,6 +1458,29 @@ Caring with Compassion. Living with Dignity.`;
         display:flex;justify-content:flex-end;margin-top:10px;padding-top:8px;
         border-top:1px solid #eef3f1
       }
+      .admission-error-toast{
+        position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
+        z-index:100500;width:min(720px,calc(100vw - 28px));
+        display:flex;align-items:flex-start;gap:12px;padding:14px 16px;
+        border-radius:14px;background:#b42318;color:#fff;
+        box-shadow:0 18px 42px rgba(91,19,15,.34);
+        animation:admissionErrorToastIn .18s ease-out
+      }
+      .admission-error-toast .icon{
+        flex:0 0 34px;width:34px;height:34px;display:grid;place-items:center;
+        border-radius:50%;background:rgba(255,255,255,.18);
+        font-weight:900;font-size:19px
+      }
+      .admission-error-toast strong{display:block;font-size:15px}
+      .admission-error-toast span{display:block;margin-top:3px;color:#ffe7e4;font-size:13px;line-height:1.35}
+      .admission-error-toast button{
+        margin-left:auto;border:0;background:transparent;color:#fff;
+        font-size:22px;cursor:pointer;line-height:1
+      }
+      @keyframes admissionErrorToastIn{
+        from{opacity:0;transform:translate(-50%,12px)}
+        to{opacity:1;transform:translate(-50%,0)}
+      }
       .consent-status-banner{
         padding:12px 14px;border-radius:12px;background:#fff8e8;border:1px solid #efd18a;
         color:#754c00;font-weight:800;margin-bottom:10px
@@ -2827,6 +2850,8 @@ Caring with Compassion. Living with Dignity.`;
     const [consentRecord,setConsentRecord]=React.useState(null);
     const [signedConsentFiles,setSignedConsentFiles]=React.useState([]);
     const [consentBusy,setConsentBusy]=React.useState(false);
+    const [admissionErrorToast,setAdmissionErrorToast]=React.useState('');
+    const admissionErrorTimerRef=React.useRef(null);
     const defaultCarePackages=[
       {
         id:'fallback-one-week',
@@ -3202,6 +3227,61 @@ Caring with Compassion. Living with Dignity.`;
       if(isPhoto){const {error:e}=await client.from('patients').update({photo_storage_path:path}).eq('id',patientId);if(e)throw e}
       return path;
     }
+    function showAdmissionError(message){
+      const text=String(message||'Unable to save the Admission form.');
+      setAdmissionErrorToast(text);
+      if(admissionErrorTimerRef.current)clearTimeout(admissionErrorTimerRef.current);
+      admissionErrorTimerRef.current=setTimeout(()=>setAdmissionErrorToast(''),6500);
+    }
+
+    React.useEffect(()=>{
+      if(!msg)return;
+      const successMessage=
+        msg.includes('completed')||
+        msg.includes('restored')||
+        msg.includes('saved. Print')||
+        msg.includes('formalities are complete')||
+        msg.includes('activated under consent-upload exception');
+      if(!successMessage)showAdmissionError(msg);
+    },[msg]);
+
+    React.useEffect(()=>()=> {
+      if(admissionErrorTimerRef.current)clearTimeout(admissionErrorTimerRef.current);
+    },[]);
+
+    const matchingExistingPatient=React.useMemo(()=>{
+      if(returningPatient)return returningPatient;
+      const mobile=String(form.mobile||'').replace(/\D/g,'');
+      const name=String(form.full_name||'').trim().toLowerCase();
+      if(!mobile&&!name)return null;
+      return previousPatients.find(patient=>{
+        const sameMobile=mobile&&String(patient.mobile||'').replace(/\D/g,'')===mobile;
+        const sameName=name&&String(patient.full_name||'').trim().toLowerCase()===name;
+        return patient.is_active!==false&&(sameMobile||sameName);
+      })||null;
+    },[returningPatient,previousPatients,form.mobile,form.full_name]);
+
+    const currentAdmissionPatientId=matchingExistingPatient?.id||returningPatient?.id||'';
+
+    function bedBelongsToCurrentPatient(bed){
+      if(!bed||!currentAdmissionPatientId)return false;
+      const occupantId=bed.occupant_id||bed.patient_id||'';
+      if(String(occupantId)===String(currentAdmissionPatientId))return true;
+
+      const currentCode=
+        matchingExistingPatient?.patient_code||
+        matchingExistingPatient?.patient_id||
+        returningPatient?.patient_code||
+        returningPatient?.patient_id||
+        '';
+      const occupantCode=bed.occupant_patient_id||bed.patient_code||'';
+      if(currentCode&&occupantCode&&String(currentCode)===String(occupantCode))return true;
+
+      const currentMobile=String(form.mobile||matchingExistingPatient?.mobile||'').replace(/\D/g,'');
+      const occupantMobile=String(bed.occupant_mobile||'').replace(/\D/g,'');
+      return Boolean(currentMobile&&occupantMobile&&currentMobile===occupantMobile);
+    }
+
     function composePatientAddress(source=form){
       const line1=[source.house_no,source.street_name,source.apartment_name,source.flat_no?`Flat ${source.flat_no}`:'']
         .filter(Boolean).join(', ');
@@ -3441,8 +3521,29 @@ Caring with Compassion. Living with Dignity.`;
     async function submit(e){
       e.preventDefault();setBusy(true);setMsg('');
       if(!['Admin','Manager'].includes(profile?.role)){setMsg('Only Admin or Manager can allot a room and complete patient admission.');setBusy(false);return}
-      const selectedBed=roomBeds.find(r=>String(r.room_no)===String(form.room_no)&&String(r.bed_no||r.bed_code||'').toUpperCase()===String(form.bed_no||'').toUpperCase());
-      if(!selectedBed||selectedBed.status!=='Available'||selectedBed.patient_id){setMsg('The selected room/bed is no longer available. Please choose another available bed.');setBusy(false);return}
+      const selectedBed=roomBeds.find(r=>
+        String(r.room_no)===String(form.room_no)&&
+        String(r.bed_no||r.bed_code||'').toUpperCase()===String(form.bed_no||'').toUpperCase()
+      );
+      const selectedBedIsCurrentPatient=bedBelongsToCurrentPatient(selectedBed);
+      const selectedBedOccupiedByOther=Boolean(
+        selectedBed&&(selectedBed.occupant_id||selectedBed.patient_id)&&!selectedBedIsCurrentPatient
+      );
+      const selectedBedStatus=String(selectedBed?.status||'Available');
+
+      if(
+        !selectedBed||
+        selectedBedOccupiedByOther||
+        (!selectedBedIsCurrentPatient&&selectedBedStatus!=='Available')
+      ){
+        setMsg(
+          selectedBedOccupiedByOther
+            ?'This room/bed is occupied by another patient. Please choose an available room/bed.'
+            :'The selected room/bed is no longer available. Please choose another available bed.'
+        );
+        setBusy(false);
+        return;
+      }
       if(isFutureDateIndia(form.admission_date)){setMsg(`Admission date cannot be later than today (${formatDateIN(todayISOIndia())}). Please correct the date.`);setBusy(false);return}
       if(!idFiles.length&&!returningPatient){
         const continueWithoutId=window.confirm(
@@ -3469,12 +3570,14 @@ Caring with Compassion. Living with Dignity.`;
       ['physio_required','therapy_type','physiotherapist_name','physio_frequency','physio_time','physio_precautions'].forEach(k=>delete payload[k]);
 
       if(returningPatient){
-        const {error:roomAssignError}=await client.rpc('assign_patient_room',{
-          p_patient_id:returningPatient.id,
-          p_room_bed_id:selectedBed.id,
-          p_reason:'Re-admission room allotment'
-        });
-        if(roomAssignError){setMsg(roomAssignError.message||'Unable to allot the selected room for re-admission.');setBusy(false);return}
+        if(!selectedBedIsCurrentPatient){
+          const {error:roomAssignError}=await client.rpc('assign_patient_room',{
+            p_patient_id:returningPatient.id,
+            p_room_bed_id:selectedBed.id,
+            p_reason:'Re-admission room allotment'
+          });
+          if(roomAssignError){setMsg(roomAssignError.message||'Unable to allot the selected room for re-admission.');setBusy(false);return}
+        }
 
         const {data:updated,error:updateError}=await client.from('patients')
           .update({...payload,patient_id:patientCode,patient_code:patientCode,created_by:returningPatient.created_by||user.id})
@@ -3505,16 +3608,18 @@ Caring with Compassion. Living with Dignity.`;
           .single();
         if(createError){setMsg(createError.message);setBusy(false);return}
         patient=created;
-        const {error:roomAssignError}=await client.rpc('assign_patient_room',{
-          p_patient_id:patient.id,
-          p_room_bed_id:selectedBed.id,
-          p_reason:'Initial admission room allotment'
-        });
-        if(roomAssignError){
-          await client.from('patients').delete().eq('id',patient.id);
-          setMsg(roomAssignError.message||'Unable to allot the selected room.');
-          setBusy(false);
-          return;
+        if(!selectedBedIsCurrentPatient){
+          const {error:roomAssignError}=await client.rpc('assign_patient_room',{
+            p_patient_id:patient.id,
+            p_room_bed_id:selectedBed.id,
+            p_reason:'Initial admission room allotment'
+          });
+          if(roomAssignError){
+            await client.from('patients').delete().eq('id',patient.id);
+            setMsg(roomAssignError.message||'Unable to allot the selected room.');
+            setBusy(false);
+            return;
+          }
         }
       }
       try{
@@ -3862,7 +3967,14 @@ Caring with Compassion. Living with Dignity.`;
             h('option',{value:''},'Select billing option'),
             h('option',{value:'No Package / Daily Billing'},'No Package / Daily Billing'),
             carePackages.map(pkg=>h('option',{key:pkg.id,value:pkg.package_name},`${pkg.package_name} · ${pkg.duration_value} ${pkg.duration_unit}`)))),
-          roomBedSelect(roomBeds,form.room_no,form.bed_no,(room_no,bed_no)=>setForm({...form,room_no,bed_no}),true),
+          roomBedSelect(
+            roomBeds,
+            form.room_no,
+            form.bed_no,
+            (room_no,bed_no)=>setForm({...form,room_no,bed_no}),
+            true,
+            currentAdmissionPatientId
+          ),
           field('Admission date','admission_date',form,setForm,true,'date')),
         noPackageSelected&&h('div',{
           className:'message success',
@@ -3886,6 +3998,22 @@ Caring with Compassion. Living with Dignity.`;
         busy
           ?returningPatient?'Completing re-admission…':'Completing admission…'
           :returningPatient?'Complete Re-admission and Activate Care Plan':'Complete Admission and Activate Care Plan'
+      ),
+      admissionErrorToast&&h('div',{
+        className:'admission-error-toast',
+        role:'alert',
+        'aria-live':'assertive'
+      },
+        h('span',{className:'icon','aria-hidden':'true'},'!'),
+        h('div',null,
+          h('strong',null,'Admission could not be saved'),
+          h('span',null,admissionErrorToast)
+        ),
+        h('button',{
+          type:'button',
+          'aria-label':'Close error message',
+          onClick:()=>setAdmissionErrorToast('')
+        },'×')
       ),
       consentRecord&&h('div',{className:'modal-backdrop'},
         h('div',{className:'card modal',style:{width:'min(980px,96vw)',maxHeight:'92vh',overflow:'auto'}},

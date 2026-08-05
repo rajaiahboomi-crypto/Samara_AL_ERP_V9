@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.6.0';
-  const APP_BUILD_DATE = '05-Aug-2026 04:05 PM IST';
+  const APP_VERSION = '2.6.1';
+  const APP_BUILD_DATE = '05-Aug-2026 04:28 PM IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -880,7 +880,7 @@ Caring with Compassion. Living with Dignity.`;
 
   const FORM_FIELD_CATALOG = [
     ['Admissions','Patient name'],['Admissions','Age'],['Admissions','Gender'],['Admissions','Mobile'],
-    ['Admissions','Address'],['Admissions','Family / attendant name'],['Admissions','Attendant phone'],
+    ['Admissions','State'],['Admissions','District'],['Admissions','Taluk'],['Admissions','Village / Town / City'],['Admissions','Locality / Area'],['Admissions','Street / Road Name'],['Admissions','Door / House No.'],['Admissions','Apartment / Building'],['Admissions','Flat No.'],['Admissions','Landmark'],['Admissions','PIN Code'],['Admissions','Family / attendant name'],['Admissions','Attendant phone'],
     ['Admissions','Patient category'],['Admissions','Admission date'],['Admissions','Admission source'],
     ['Admissions','Hospital name'],['Admissions','Diagnosis / procedure'],['Admissions','Treating doctor'],
     ['Admissions','Doctor phone'],['Admissions','Known allergies'],['Admissions','Room number'],
@@ -2739,7 +2739,7 @@ Caring with Compassion. Living with Dignity.`;
 
   function Admissions({profile}){
     const today=new Date().toISOString().slice(0,10);
-    const initial={admission_type:'Previous Hospital / Care Centre',patient_category:'Short Stay',title:'',full_name:'',age:'',gender:'Male',mobile:'',address:'',room_no:'',bed_no:'',admission_date:today,hospital_name:'',discharge_date:today,diagnosis:'',treating_doctor:'',doctor_phone:'',referring_doctor:'',referring_source:'',family_doctor:'',attendant_name:'',attendant_phone:'',allergies:'',special_instructions:'',diet_plan:'Normal diet',feeding_instruction:'',billing_package:'',fall_risk:false,pressure_sore_risk:false,aspiration_risk:false,wandering_risk:false,infection_risk:false,seizure_history:false,oxygen_required:false,oxygen_instruction:'',dressing_required:false,dressing_instruction:'',special_nurse_required:false,special_nurse_name:'',special_nurse_shift:'Both shifts / 24-hour coverage',special_nurse_instructions:'',physio_required:false,therapy_type:'',physiotherapist_name:'',physio_frequency:'Daily',physio_time:'10:00',physio_precautions:''};
+    const initial={admission_type:'Previous Hospital / Care Centre',patient_category:'Short Stay',title:'',full_name:'',age:'',gender:'Male',mobile:'',address:'',state:'Tamil Nadu',district:'',taluk:'',village_town:'',locality_area:'',street_name:'',house_no:'',apartment_name:'',flat_no:'',landmark:'',pincode:'',room_no:'',bed_no:'',admission_date:today,hospital_name:'',discharge_date:today,diagnosis:'',treating_doctor:'',doctor_phone:'',referring_doctor:'',referring_source:'',family_doctor:'',attendant_name:'',attendant_phone:'',allergies:'',special_instructions:'',diet_plan:'Normal diet',feeding_instruction:'',billing_package:'',fall_risk:false,pressure_sore_risk:false,aspiration_risk:false,wandering_risk:false,infection_risk:false,seizure_history:false,oxygen_required:false,oxygen_instruction:'',dressing_required:false,dressing_instruction:'',special_nurse_required:false,special_nurse_name:'',special_nurse_shift:'Both shifts / 24-hour coverage',special_nurse_instructions:'',physio_required:false,therapy_type:'',physiotherapist_name:'',physio_frequency:'Daily',physio_time:'10:00',physio_precautions:''};
     const [form,setForm]=React.useState(initial),[meds,setMeds]=React.useState([blankMedicine()]),[care,setCare]=React.useState([blankCare()]),[busy,setBusy]=React.useState(false),[msg,setMsg]=React.useState('');
     const [photoFiles,setPhotoFiles]=React.useState([]),[idFiles,setIdFiles]=React.useState([]),[dischargeFiles,setDischargeFiles]=React.useState([]),[prescriptionFiles,setPrescriptionFiles]=React.useState([]),[reportFiles,setReportFiles]=React.useState([]),[cameraConfig,setCameraConfig]=React.useState(null),[patientPhotoPreview,setPatientPhotoPreview]=React.useState('');
     const [roomBeds,setRoomBeds]=React.useState([]);
@@ -2818,7 +2818,7 @@ Caring with Compassion. Living with Dignity.`;
       const timer=setTimeout(()=>{
         try{
           const hasMeaningfulData=Boolean(
-            form.full_name||form.mobile||form.address||form.attendant_name||
+            form.full_name||form.mobile||form.district||form.village_town||form.street_name||form.house_no||form.attendant_name||
             form.diagnosis||form.room_no||form.billing_package||
             meds.some(m=>m.medicine_name)||care.some(c=>c.task_name)
           );
@@ -2907,7 +2907,7 @@ Caring with Compassion. Living with Dignity.`;
       let alive=true;
       async function loadPreviousPatients(){
         const {data,error}=await client.from('patients')
-          .select('id,patient_id,patient_code,title,full_name,age,gender,mobile,address,attendant_name,attendant_phone,allergies,diagnosis,treating_doctor,doctor_phone,hospital_name,photo_storage_path,is_active,admission_date,discharge_date,patient_category,billing_package,diet_plan,feeding_instruction,special_instructions')
+          .select('id,patient_id,patient_code,title,full_name,age,gender,mobile,address,state,district,taluk,village_town,locality_area,street_name,house_no,apartment_name,flat_no,landmark,pincode,attendant_name,attendant_phone,allergies,diagnosis,treating_doctor,doctor_phone,hospital_name,photo_storage_path,is_active,admission_date,discharge_date,patient_category,billing_package,diet_plan,feeding_instruction,special_instructions')
           .order('full_name',{ascending:true});
         if(!alive)return;
         if(error){
@@ -2967,6 +2967,17 @@ Caring with Compassion. Living with Dignity.`;
         gender:patient.gender||'Male',
         mobile:patient.mobile||'',
         address:patient.address||'',
+        state:patient.state||'Tamil Nadu',
+        district:patient.district||'',
+        taluk:patient.taluk||'',
+        village_town:patient.village_town||'',
+        locality_area:patient.locality_area||'',
+        street_name:patient.street_name||'',
+        house_no:patient.house_no||'',
+        apartment_name:patient.apartment_name||'',
+        flat_no:patient.flat_no||'',
+        landmark:patient.landmark||'',
+        pincode:patient.pincode||'',
         attendant_name:patient.attendant_name||'',
         attendant_phone:patient.attendant_phone||'',
         allergies:patient.allergies||'',
@@ -3030,6 +3041,14 @@ Caring with Compassion. Living with Dignity.`;
       const {error:doc}=await client.from('patient_documents').insert({patient_id:patientId,document_type:type,document_name:file.name||type,storage_path:path,mime_type:file.type||null,file_size:file.size||null,uploaded_by:profile.id,is_verified:true});if(doc)throw doc;
       if(isPhoto){const {error:e}=await client.from('patients').update({photo_storage_path:path}).eq('id',patientId);if(e)throw e}
     }
+    function composePatientAddress(source=form){
+      const line1=[source.house_no,source.street_name,source.apartment_name,source.flat_no?`Flat ${source.flat_no}`:'']
+        .filter(Boolean).join(', ');
+      const line2=[source.locality_area,source.village_town,source.taluk,source.district,source.state,source.pincode]
+        .filter(Boolean).join(', ');
+      return [line1,line2,source.landmark?`Landmark: ${source.landmark}`:''].filter(Boolean).join('\n');
+    }
+
     const noPackageSelected=form.billing_package==='No Package / Daily Billing';
     const selectedPackage=noPackageSelected
       ?null
@@ -3092,7 +3111,7 @@ Caring with Compassion. Living with Dignity.`;
       const {data:{user}}=await client.auth.getUser();
       let patient=null;
       let patientCode=returningPatient?.patient_code||returningPatient?.patient_id||null;
-      const payload={...form,age:Number(form.age)||null,is_active:true,admission_status:'Active',
+      const payload={...form,address:composePatientAddress(form),age:Number(form.age)||null,is_active:true,admission_status:'Active',
         prescription_verified:true,prescription_verified_by:user.id,prescription_verified_at:new Date().toISOString(),
         package_id:selectedPackage?.id||null,package_start_date:selectedPackage?form.admission_date:null,
         package_end_date:selectedPackage?packageEndDate():null,package_fee:selectedPackage?selectedPackageFee():null,
@@ -3285,7 +3304,22 @@ Caring with Compassion. Living with Dignity.`;
           onBlur:autoDetectReturningPatient,
           readOnly:!!returningPatient
         })),
-        textareaField('Address','address',form,setForm,'span-2'),
+        field('State','state',form,setForm,false),
+        field('District','district',form,setForm,true),
+        field('Taluk','taluk',form,setForm,false),
+        field('Village / Town / City','village_town',form,setForm,true),
+        field('Locality / Area','locality_area',form,setForm,false),
+        field('Street / Road Name','street_name',form,setForm,true),
+        field('Door / House No.','house_no',form,setForm,true),
+        field('Apartment / Building','apartment_name',form,setForm,false),
+        field('Flat No.','flat_no',form,setForm,false),
+        field('Landmark','landmark',form,setForm,false),
+        h('div',{className:'field'},h('label',null,'PIN Code'),h('input',{
+          value:form.pincode,inputMode:'numeric',maxLength:6,pattern:'[0-9]{6}',
+          onChange:e=>setForm({...form,pincode:e.target.value.replace(/\D/g,'').slice(0,6)}),
+          placeholder:'6-digit PIN'
+        })),
+        h('div',{className:'small-note span-2'},composePatientAddress(form)||'The complete residential address will be assembled automatically from the above fields.'),
         field('Family / attendant name','attendant_name',form,setForm,true),
         field('Attendant phone','attendant_phone',form,setForm,true,'tel')
       ),
@@ -3794,6 +3828,8 @@ Caring with Compassion. Living with Dignity.`;
     const canEdit=['Admin','Manager'].includes(profile?.role);
     const clinicalView=CLINICAL_ROLES.includes(profile?.role);
     const [rows,setRows]=React.useState([]),[selected,setSelected]=React.useState(null),[details,setDetails]=React.useState(null),[photoUrl,setPhotoUrl]=React.useState(''),[tab,setTab]=React.useState('Overview');
+    const [patientSearch,setPatientSearch]=React.useState('');
+    const [districtFilter,setDistrictFilter]=React.useState('All');
     const [editTarget,setEditTarget]=React.useState(null),[editForm,setEditForm]=React.useState(null),[editBusy,setEditBusy]=React.useState(false),[editMsg,setEditMsg]=React.useState('');
     const [patientToast,setPatientToast]=React.useState(null);
     const patientToastTimer=React.useRef(null);
@@ -3865,6 +3901,9 @@ Caring with Compassion. Living with Dignity.`;
       setEditTarget(row);setEditMsg('');setEditUploads({photo:[],identity:[],prescription:[],discharge:[],reports:[],other:[]});setEditDocs([]);setEditPhotoUrl('');
       setEditForm({...row,
         title:row.title||'',full_name:row.full_name||'',age:row.age||'',gender:row.gender||'Male',mobile:row.mobile||'',address:row.address||'',
+        state:row.state||'Tamil Nadu',district:row.district||'',taluk:row.taluk||'',village_town:row.village_town||'',
+        locality_area:row.locality_area||'',street_name:row.street_name||'',house_no:row.house_no||'',
+        apartment_name:row.apartment_name||'',flat_no:row.flat_no||'',landmark:row.landmark||'',pincode:row.pincode||'',
         attendant_name:row.attendant_name||'',attendant_phone:row.attendant_phone||'',diagnosis:row.diagnosis||'',
         referring_doctor:row.referring_doctor||'',treating_doctor:row.treating_doctor||'',doctor_phone:row.doctor_phone||'',
         hospital_name:row.hospital_name||'',admission_type:row.admission_type||'Direct Admission',patient_category:row.patient_category||'Short Stay',
@@ -3927,8 +3966,10 @@ Caring with Compassion. Living with Dignity.`;
     async function savePatientEdit(e){
       e.preventDefault();setEditBusy(true);setEditMsg('');
       if(isFutureDateIndia(editForm.admission_date)){const text=`Admission date cannot be later than today (${formatDateIN(todayISOIndia())}). Please correct the date.`;setEditMsg(text);showPatientToast('error',text);setEditBusy(false);return}
-      const allowed=['title','full_name','age','gender','mobile','address','attendant_name','attendant_phone','diagnosis','referring_doctor','treating_doctor','doctor_phone','hospital_name','admission_type','patient_category','room_no','bed_no','allergies','special_instructions','admission_date','is_active','diet_plan','feeding_instruction','fall_risk','pressure_sore_risk','aspiration_risk','wandering_risk','infection_risk','seizure_history','special_nurse_required','special_nurse_name','special_nurse_shift'];
-      const payload={};allowed.forEach(k=>payload[k]=editForm[k]===''?null:editForm[k]);payload.age=editForm.age===''?null:Number(editForm.age);
+      const allowed=['title','full_name','age','gender','mobile','address','state','district','taluk','village_town','locality_area','street_name','house_no','apartment_name','flat_no','landmark','pincode','attendant_name','attendant_phone','diagnosis','referring_doctor','treating_doctor','doctor_phone','hospital_name','admission_type','patient_category','room_no','bed_no','allergies','special_instructions','admission_date','is_active','diet_plan','feeding_instruction','fall_risk','pressure_sore_risk','aspiration_risk','wandering_risk','infection_risk','seizure_history','special_nurse_required','special_nurse_name','special_nurse_shift'];
+      const payload={};allowed.forEach(k=>payload[k]=editForm[k]===''?null:editForm[k]);
+      payload.address=composePatientAddress(editForm);
+      payload.age=editForm.age===''?null:Number(editForm.age);
       const {data,error}=await client.from('patients').update(payload).eq('id',editTarget.id).select().single();
       if(error){const text=error.message||'Unable to update patient';setEditMsg(text);showPatientToast('error',text);setEditBusy(false);return}
       try{
@@ -3999,6 +4040,15 @@ Caring with Compassion. Living with Dignity.`;
     function sectionEmpty(text){return h('p',{className:'small-note'},text)}
     const duplicateRows=rows.filter(r=>duplicateCount(r)>0);
     const activeRows=rows.filter(r=>r.is_active!==false);
+    const districtOptions=['All',...Array.from(new Set(rows.map(r=>String(r.district||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b))];
+    const visibleRows=rows.filter(r=>{
+      const q=patientSearch.trim().toLowerCase();
+      const matchesSearch=!q||[
+        r.patient_id,r.patient_code,formalName(r),r.mobile,r.attendant_phone,
+        r.district,r.taluk,r.village_town,r.locality_area,r.street_name,r.pincode
+      ].some(value=>String(value||'').toLowerCase().includes(q));
+      return matchesSearch&&(districtFilter==='All'||String(r.district||'')===districtFilter);
+    });
     return h(React.Fragment,null,
       h('div',{className:'grid stats patient-master-stats'},
         h('div',{className:'card stat'},h('span',null,'Active patients'),h('strong',null,activeRows.length)),
@@ -4008,15 +4058,25 @@ Caring with Compassion. Living with Dignity.`;
       ),
       h('div',{className:'card panel'},
         h('div',{className:'panel-head'},h('div',null,h('h3',null,'Patient Master'),h('small',null,'Single source for identity, admission, nursing, medicines, diet, documents, billing and recovery'))),
+        h('div',{className:'form-grid',style:{marginBottom:'10px'}},
+          h('div',{className:'field'},h('label',null,'Search patient / place'),h('input',{
+            value:patientSearch,onChange:e=>setPatientSearch(e.target.value),
+            placeholder:'Patient ID, name, mobile, district, taluk, town or PIN'
+          })),
+          h('div',{className:'field'},h('label',null,'District'),h('select',{
+            value:districtFilter,onChange:e=>setDistrictFilter(e.target.value)
+          },districtOptions.map(x=>h('option',{key:x,value:x},x))))
+        ),
         duplicateRows.length?h('div',{className:'message warning'},`${duplicateRows.length} record(s) may be duplicates. Review matching names/mobile numbers before entering new care data.`):null,
         h('div',{className:'table-wrap'},
           h('table',{className:'table'},
-            h('thead',null,h('tr',null,['Photo','Patient ID','Patient','Admission Type','Category','Room/Bed','Status','Action'].map(x=>h('th',{key:x},x)))),
+            h('thead',null,h('tr',null,['Photo','Patient ID','Patient','District / Town','Admission Type','Category','Room/Bed','Status','Action'].map(x=>h('th',{key:x},x)))),
             h('tbody',null,
-              rows.map(r=>h('tr',{key:r.id,className:duplicateCount(r)?'duplicate-row':''},
+              visibleRows.map(r=>h('tr',{key:r.id,className:duplicateCount(r)?'duplicate-row':''},
                 h('td',null,r.photo_storage_path?h('span',{className:'photo-dot'},'Photo'):'—'),
                 h('td',null,r.patient_id||'—'),
                 h('td',null,h('button',{type:'button',className:'patient-name-link',onClick:()=>openPatient(r)},formalName(r)),duplicateCount(r)?h('div',{className:'small-note danger-text'},'Possible duplicate'):null),
+                h('td',null,`${r.district||'—'}${r.village_town?` / ${r.village_town}`:''}`),
                 h('td',null,r.admission_type||'—'),
                 h('td',null,r.patient_category||'—'),
                 h('td',null,r.room_no&&r.bed_no?`${r.room_no}-${r.bed_no}`:h('span',{className:'pill warning'},'Unassigned')),
@@ -4027,7 +4087,7 @@ Caring with Compassion. Living with Dignity.`;
                   canEdit?h('button',{className:'btn btn-secondary',onClick:()=>printPatientIdCard(r)},'Print ID Card'):null
                 ))
               )),
-              rows.length===0&&h('tr',null,h('td',{colSpan:8,className:'empty'},'No patients registered'))
+              visibleRows.length===0&&h('tr',null,h('td',{colSpan:9,className:'empty'},'No patients match the selected search or district'))
             )
           )
         )
@@ -4037,7 +4097,7 @@ Caring with Compassion. Living with Dignity.`;
         h('div',{className:'patient-tab-bar'},tabButton('Overview'),tabButton('Documents',details.docs.length),tabButton('Medicines',details.meds.length),tabButton('Nursing',details.careLogs.length),tabButton('Vitals',details.vitals.length),tabButton('Physiotherapy',details.physioSessions.length),tabButton('Diet',details.meals.length),!clinicalView?tabButton('Billing',details.billing.length):null,tabButton('Timeline',details.recovery.length+details.incidents.length)),
         h('div',{className:'patient-tab-content'},
           tab==='Overview'&&h('div',{className:'tabs-grid'},
-            h('div',{className:'section-card'},h('h4',null,'Identity & Contacts'),h('p',null,`Patient ID: ${selected.patient_id||'—'}`),h('p',null,`Gender / Age: ${selected.gender||'—'} / ${selected.age||'—'}`),h('p',null,`Mobile: ${selected.mobile||'—'}`),h('p',null,selected.address||'Address not recorded'),h('p',null,`Attendant: ${selected.attendant_name||'—'} · ${selected.attendant_phone||'—'}`)),
+            h('div',{className:'section-card'},h('h4',null,'Identity & Contacts'),h('p',null,`Patient ID: ${selected.patient_id||'—'}`),h('p',null,`Gender / Age: ${selected.gender||'—'} / ${selected.age||'—'}`),h('p',null,`Mobile: ${selected.mobile||'—'}`),h('p',null,selected.address||composePatientAddress(selected)||'Address not recorded'),h('p',null,`District: ${selected.district||'—'} · Taluk: ${selected.taluk||'—'} · PIN: ${selected.pincode||'—'}`),h('p',null,`Attendant: ${selected.attendant_name||'—'} · ${selected.attendant_phone||'—'}`)),
             h('div',{className:'section-card'},h('h4',null,'Admission & Medical Overview'),h('p',null,`Admission: ${selected.admission_type||'—'} · ${selected.admission_date||'—'}`),h('p',null,`Hospital / Source: ${selected.hospital_name||selected.referring_source||'—'}`),h('p',null,selected.diagnosis||'Diagnosis not recorded'),h('p',null,`Allergies: ${selected.allergies||'None recorded'}`),h('p',null,selected.special_instructions||'No special instructions')),
             h('div',{className:'section-card'},h('h4',null,'Care Plan Summary'),h('p',null,`${details.meds.length} active medicine order(s)`),h('p',null,`${details.care.length} master care task(s)`),h('p',null,`${details.physio.length} physiotherapy order(s)`),h('p',null,`Diet: ${selected.diet_plan||'Not recorded'}`)),
             h('div',{className:'section-card'},h('h4',null,'Risk & Safety'),h('p',null,[selected.fall_risk&&'Fall risk',selected.pressure_sore_risk&&'Pressure sore risk',selected.aspiration_risk&&'Aspiration risk',selected.wandering_risk&&'Wandering risk',selected.oxygen_required&&'Oxygen required',selected.dressing_required&&'Dressing required'].filter(Boolean).join(', ')||'No active risk flags'),h('p',null,`Open incidents: ${details.incidents.filter(x=>x.status==='Open').length}`))
@@ -4069,7 +4129,20 @@ Caring with Compassion. Living with Dignity.`;
             ]),
           selectField('Patient Category','patient_category',editForm,setEditForm,['Short Stay','Respite Care','Post-Surgery','Rehabilitation','Stroke Recovery','Dementia Care','Parkinsonism','Palliative Care','Long-Term Assisted Living','Observation','Elderly Care']),
           roomBedSelect(roomBeds,editForm.room_no,editForm.bed_no,(room_no,bed_no)=>setEditForm({...editForm,room_no,bed_no}),false,editTarget.id),field('Admission Date','admission_date',editForm,setEditForm,false,'date'),
-          field('Known Allergies','allergies',editForm,setEditForm,false),textareaField('Residential Address','address',editForm,setEditForm,'span-2'),textareaField('Special Instructions / Precautions','special_instructions',editForm,setEditForm,'span-2'),
+          field('Known Allergies','allergies',editForm,setEditForm,false),
+          field('State','state',editForm,setEditForm,false),
+          field('District','district',editForm,setEditForm,true),
+          field('Taluk','taluk',editForm,setEditForm,false),
+          field('Village / Town / City','village_town',editForm,setEditForm,true),
+          field('Locality / Area','locality_area',editForm,setEditForm,false),
+          field('Street / Road Name','street_name',editForm,setEditForm,true),
+          field('Door / House No.','house_no',editForm,setEditForm,true),
+          field('Apartment / Building','apartment_name',editForm,setEditForm,false),
+          field('Flat No.','flat_no',editForm,setEditForm,false),
+          field('Landmark','landmark',editForm,setEditForm,false),
+          field('PIN Code','pincode',editForm,setEditForm,false),
+          h('div',{className:'small-note span-2'},composePatientAddress(editForm)||'Complete address will be assembled automatically.'),
+          textareaField('Special Instructions / Precautions','special_instructions',editForm,setEditForm,'span-2'),
           h('label',{className:'check-card span-2'},h('input',{type:'checkbox',checked:editForm.is_active!==false,onChange:e=>setEditForm({...editForm,is_active:e.target.checked})}),h('span',null,'Active Patient Record'))
         ),
         h('div',{className:'section-card'},h('div',{className:'section-title'},h('div',null,h('h4',null,'3. Current and Upcoming Medicines'),h('small',null,'Only active medicines that are current or scheduled for the future are displayed. Expired and replaced prescriptions remain preserved in history.')),h('button',{type:'button',className:'btn btn-secondary',onClick:()=>setEditMeds([...editMeds,blankMedicine()])},'Add medicine')),

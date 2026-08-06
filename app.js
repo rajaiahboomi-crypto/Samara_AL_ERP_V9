@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.14';
-  const APP_BUILD_DATE = '06-Aug-2026 10:30 IST';
+  const APP_VERSION = '2.8.15';
+  const APP_BUILD_DATE = '06-Aug-2026 10:40 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.14';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.15';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -6233,8 +6233,42 @@ Caring with Compassion. Living with Dignity.`;
       return window.SamaraQRCode;
     }
 
-    function patientConsentFilename(row){
-      return admissionConsentFilename(row||{},row||{});
+    function patientConsentFilename(row={}){
+      const patientName=String(formalName(row)||row.full_name||'Patient')
+        .trim()
+        .replace(/[^a-zA-Z0-9]+/g,'_')
+        .replace(/^_+|_+$/g,'');
+      const patientCode=String(row.patient_code||row.patient_id||'Patient_ID')
+        .replace(/[^a-zA-Z0-9-]+/g,'_');
+
+      const explicitTimestamp=
+        row.admission_datetime||
+        row.admission_timestamp||
+        row.admitted_at||
+        row.created_at||
+        '';
+
+      let timestamp=explicitTimestamp?new Date(explicitTimestamp):null;
+      if(!timestamp||Number.isNaN(timestamp.getTime()))timestamp=null;
+
+      const admissionDate=String(row.admission_date||'').slice(0,10);
+      let datePart='Admission-Date-Unavailable';
+      let timePart='Time-Unavailable';
+
+      if(admissionDate){
+        datePart=admissionDate;
+        const timeSource=timestamp||new Date(`${admissionDate}T00:00:00`);
+        timePart=`${String(timeSource.getHours()).padStart(2,'0')}-${String(timeSource.getMinutes()).padStart(2,'0')}`;
+      }else if(timestamp){
+        datePart=[
+          timestamp.getFullYear(),
+          String(timestamp.getMonth()+1).padStart(2,'0'),
+          String(timestamp.getDate()).padStart(2,'0')
+        ].join('-');
+        timePart=`${String(timestamp.getHours()).padStart(2,'0')}-${String(timestamp.getMinutes()).padStart(2,'0')}`;
+      }
+
+      return `${patientName}_${patientCode}_Admission_${datePart}_${timePart}.pdf`;
     }
 
     async function printPatientConsent(row){
@@ -6513,7 +6547,11 @@ Caring with Compassion. Living with Dignity.`;
         setTimeout(()=>frame.remove(),5000);
         showPatientToast('success','Admission Consent opened for printing or Save as PDF.');
       }catch(error){
-        showPatientToast('error',error.message||'Unable to prepare the Admission Consent.');
+        console.error('Print Consent failed:',error);
+        showPatientToast(
+          'error',
+          error?.message||'Unable to prepare the Admission Consent. Please refresh once and try again.'
+        );
       }finally{
         setPatientConsentBusyId(null);
       }

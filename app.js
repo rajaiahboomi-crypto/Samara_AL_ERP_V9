@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.15';
-  const APP_BUILD_DATE = '06-Aug-2026 10:40 IST';
+  const APP_VERSION = '2.8.16';
+  const APP_BUILD_DATE = '06-Aug-2026 10:45 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.15';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.16';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -4645,10 +4645,23 @@ Caring with Compassion. Living with Dignity.`;
               })
         ));
 
+        const previousDocumentTitle=document.title;
+        const printTitle=String(fileBase||'Admission_Consent').replace(/\.pdf$/i,'');
+        document.title=printTitle;
+        frameDocument.title=printTitle;
+
+        const restorePrintTitle=()=>{
+          document.title=previousDocumentTitle;
+        };
+        window.addEventListener('afterprint',restorePrintTitle,{once:true});
+
         frame.contentWindow.focus();
         frame.contentWindow.print();
 
-        setTimeout(()=>frame.remove(),5000);
+        setTimeout(()=>{
+          restorePrintTitle();
+          frame.remove();
+        },5000);
         setMsg('Admission Consent is ready. Use the Print dialog to print it or choose “Save as PDF”, then obtain signatures and upload the signed copy.');
       }catch(error){
         console.error('Consent print generation failed:',error);
@@ -6542,9 +6555,22 @@ Caring with Compassion. Living with Dignity.`;
         const doc=frame.contentDocument||frame.contentWindow.document;
         doc.open();doc.write(html);doc.close();
         await new Promise(resolve=>setTimeout(resolve,400));
+        const previousDocumentTitle=document.title;
+        const printTitle=String(filename||'Admission_Consent').replace(/\.pdf$/i,'');
+        document.title=printTitle;
+        doc.title=printTitle;
+
+        const restorePrintTitle=()=>{
+          document.title=previousDocumentTitle;
+        };
+        window.addEventListener('afterprint',restorePrintTitle,{once:true});
+
         frame.contentWindow.focus();
         frame.contentWindow.print();
-        setTimeout(()=>frame.remove(),5000);
+        setTimeout(()=>{
+          restorePrintTitle();
+          frame.remove();
+        },5000);
         showPatientToast('success','Admission Consent opened for printing or Save as PDF.');
       }catch(error){
         console.error('Print Consent failed:',error);

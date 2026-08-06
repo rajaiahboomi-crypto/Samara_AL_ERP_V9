@@ -1,9 +1,9 @@
-const CACHE = 'samara-erp-2.0.0-clinical-charges';
+const CACHE = 'samara-erp-2.3.0-new-brand-logo';
 const SHELL = [
-  './', './index.html', './styles.css?v=2.0.0', './app.js?v=2.0.0',
-  './bootstrap-error.js?v=2.0.0', './health-check.js?v=2.0.0',
-  './config.js?v=2.0.0', './manifest.webmanifest',
-  './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
+  './', './index.html', './styles.css?v=2.3.0', './app.js?v=2.3.0',
+  './bootstrap-error.js?v=2.3.0', './health-check.js?v=2.3.0',
+  './config.js?v=2.3.0', './manifest.webmanifest',
+  './assets/samara-logo.png?v=2.3.0', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -30,5 +30,3 @@ self.addEventListener('fetch', event => {
     return response;
   })));
 });
-
-self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>list[0]?list[0].focus():clients.openWindow('./')))});

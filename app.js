@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.7';
-  const APP_BUILD_DATE = '06-Aug-2026 09:00 IST';
+  const APP_VERSION = '2.8.8';
+  const APP_BUILD_DATE = '06-Aug-2026 09:20 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.7';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.8';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -444,6 +444,127 @@
 
       .sidebar-footer .user-chip{background:linear-gradient(120deg,#b01264,#d93679)!important;color:#fff!important}
       .sidebar-footer .btn.btn-secondary.full{background:rgba(255,255,255,.94)!important;color:#7a1247!important}
+
+
+      /* Adaptive sidebar contrast and clinical icon system */
+      .sidebar{
+        --sidebar-dark-text:#3f2a38;
+        --sidebar-mid-text:#67143f;
+        --sidebar-light-text:#ffffff;
+      }
+
+      /* Top/light gradient area: dark text */
+      .sidebar .nav-section:nth-of-type(-n+4)>.nav-heading-button,
+      .sidebar .nav-section:nth-of-type(-n+4)>.nav-heading-button *{
+        color:var(--sidebar-dark-text)!important;
+      }
+      .sidebar .nav-section:nth-of-type(-n+4)>.nav-heading-button::before{
+        color:#c21872!important;
+      }
+
+      /* Lower/darker gradient area: white text */
+      .sidebar .nav-section:nth-of-type(n+5)>.nav-heading-button,
+      .sidebar .nav-section:nth-of-type(n+5)>.nav-heading-button *{
+        color:var(--sidebar-light-text)!important;
+        text-shadow:0 1px 2px rgba(83,10,46,.26)!important;
+      }
+      .sidebar .nav-section:nth-of-type(n+5)>.nav-heading-button::before{
+        color:#ffffff!important;
+      }
+
+      /* Expanded section always uses white text for contrast */
+      .sidebar .nav-section.expanded>.nav-heading-button,
+      .sidebar .nav-section.expanded>.nav-heading-button *,
+      .sidebar .nav-section.expanded>.nav-heading-button::before{
+        color:#ffffff!important;
+      }
+
+      /* Remove every legacy bullet/circle from submenu rows */
+      .sidebar .nav-submenu button::after,
+      .sidebar .nav-submenu button span::before,
+      .sidebar .nav-submenu button span::after{
+        display:none!important;
+        content:none!important;
+      }
+      .sidebar .nav-submenu button::before{
+        content:'◇'!important;
+        background:transparent!important;
+        border:0!important;
+        border-radius:0!important;
+        box-shadow:none!important;
+        font-family:'Segoe UI Symbol','Arial Unicode MS',sans-serif!important;
+      }
+
+      /* Innovative submenu icons */
+      .sidebar .nav-submenu button[data-nav='Dashboard']::before{content:'⌂'!important;color:#d81b72!important}
+      .sidebar .nav-submenu button[data-nav='Notifications']::before{content:'🔔'!important;color:#f59b23!important}
+      .sidebar .nav-submenu button[data-nav='Enquiries']::before{content:'✉'!important;color:#b01264!important}
+      .sidebar .nav-submenu button[data-nav='Admissions']::before{content:'❤'!important;color:#e03a7c!important}
+      .sidebar .nav-submenu button[data-nav='Patients']::before{content:'♙'!important;color:#b01264!important}
+      .sidebar .nav-submenu button[data-nav='Discharge']::before{content:'⇥'!important;color:#f36a4c!important}
+      .sidebar .nav-submenu button[data-nav='Documents']::before{content:'▤'!important;color:#8f4bc1!important}
+      .sidebar .nav-submenu button[data-nav='Reports']::before,
+      .sidebar .nav-submenu button[data-nav='Intelligent Reports']::before{content:'▦'!important;color:#8f4bc1!important}
+      .sidebar .nav-submenu button[data-nav='Medication Errors']::before{content:'⚠'!important;color:#f36a4c!important}
+      .sidebar .nav-submenu button[data-nav='Recovery Timeline']::before{content:'↺'!important;color:#1da1a8!important}
+
+      .sidebar .nav-submenu button[data-nav='Clinical Dashboard']::before{content:'⚕'!important;color:#28b9a5!important}
+      .sidebar .nav-submenu button[data-nav='Clinical Alerts']::before{content:'🔔'!important;color:#f6b72d!important}
+      .sidebar .nav-submenu button[data-nav='Shift Tasks']::before{content:'☑'!important;color:#7967d8!important}
+      .sidebar .nav-submenu button[data-nav='Daily Care']::before{content:'♥'!important;color:#ff8aac!important}
+      .sidebar .nav-submenu button[data-nav='Vital Signs']::before{content:'⌁'!important;color:#6ab7ff!important;font-size:25px!important}
+      .sidebar .nav-submenu button[data-nav='Medicines']::before{content:'◒'!important;color:#23c6ae!important}
+      .sidebar .nav-submenu button[data-nav='Physiotherapy']::before{content:'⚝'!important;color:#26c7b2!important}
+      .sidebar .nav-submenu button[data-nav='Special Nurse']::before{content:'✚'!important;color:#00b9e8!important}
+      .sidebar .nav-submenu button[data-nav='Shift Handover']::before{content:'⇄'!important;color:#9b7ee8!important}
+      .sidebar .nav-submenu button[data-nav='Incidents']::before{content:'⚠'!important;color:#ff7a45!important}
+
+      .sidebar .nav-submenu button[data-nav='Food & Diet']::before{content:'♨'!important;color:#f6b72d!important}
+      .sidebar .nav-submenu button[data-nav='Accounts Dashboard']::before{content:'₹'!important;color:#f6b72d!important}
+      .sidebar .nav-submenu button[data-nav='Charge Approvals']::before{content:'✓'!important;color:#43c59e!important}
+      .sidebar .nav-submenu button[data-nav='Payments']::before{content:'₹'!important;color:#f6b72d!important}
+      .sidebar .nav-submenu button[data-nav='Final Billing']::before{content:'▧'!important;color:#f59b23!important}
+      .sidebar .nav-submenu button[data-nav='Discharge Clearance']::before{content:'⇥'!important;color:#f36a4c!important}
+      .sidebar .nav-submenu button[data-nav='Refunds']::before{content:'↶'!important;color:#37b3c8!important}
+      .sidebar .nav-submenu button[data-nav='Accounts Reports']::before{content:'▦'!important;color:#8f4bc1!important}
+
+      /* Expanded submenu sits over a darker translucent panel */
+      .sidebar .nav-section.expanded .nav-submenu{
+        margin:7px 7px 10px!important;
+        padding:8px 5px!important;
+        border-radius:16px!important;
+        background:linear-gradient(180deg,rgba(189,31,106,.18),rgba(124,17,72,.36))!important;
+        border:1px solid rgba(255,255,255,.15)!important;
+        backdrop-filter:blur(4px)!important;
+      }
+      .sidebar .nav-section.expanded .nav-submenu button{
+        color:#ffffff!important;
+        font-weight:700!important;
+        text-shadow:0 1px 2px rgba(70,8,38,.28)!important;
+        border-bottom:1px solid rgba(255,255,255,.12)!important;
+      }
+      .sidebar .nav-section.expanded .nav-submenu button:last-child{
+        border-bottom:0!important;
+      }
+      .sidebar .nav-section.expanded .nav-submenu button:hover,
+      .sidebar .nav-section.expanded .nav-submenu button:focus{
+        background:rgba(255,255,255,.12)!important;
+      }
+      .sidebar .nav-section.expanded .nav-submenu button.active{
+        background:rgba(255,255,255,.20)!important;
+        color:#ffffff!important;
+        box-shadow:inset 3px 0 0 #f6b72d!important;
+      }
+
+      /* Footer contrast adapts to the darkest gradient */
+      .sidebar-footer .user-chip,
+      .sidebar-footer .user-chip *{
+        color:#ffffff!important;
+      }
+      .sidebar-footer .btn.btn-secondary.full,
+      .sidebar-footer .btn.btn-secondary.full *{
+        color:#7a1247!important;
+      }
     `;
     document.head.appendChild(style);
   })();

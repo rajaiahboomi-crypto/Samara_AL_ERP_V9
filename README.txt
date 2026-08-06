@@ -1,18 +1,19 @@
-SAMARA CARE ERP V9 – SIDEBAR ICONS, TOP GRADIENT & NUMBER SPACING
-Version 2.8.7
+SAMARA CARE ERP V9 – ADAPTIVE SIDEBAR ICONS
+Version 2.8.8
 
-UPLOAD / REPLACE
-1. app.js
-2. index.html
-3. manifest.webmanifest
-4. service-worker.js
+ONLY ONE FILE HAS CHANGED:
+- app.js
 
-COMPLETED
-- Left panel starts white at the top and gradually moves through pale pink and rose into magenta.
-- Samara logo is clear on the white upper area.
-- Tiny submenu bullets are replaced with larger meaningful symbols.
-- Admissions and Nursing use heart symbols; Manager uses report symbol; Admin uses settings; Food & Diet uses food; Accounts uses rupee.
-- Icons have proper spacing and no longer touch submenu text.
-- Medicine and master-care-plan number badges now sit in their own top strip and cannot overlap labels.
+CORRECTIONS
+- Removed the large green circular bullets.
+- Added meaningful coloured symbols for every nursing submenu item.
+- Added specific symbols for Admission, Manager, Admin, Food & Diet and Accounts items.
+- Text colour now adapts to the fixed sidebar gradient:
+  • dark text on the white/light upper area;
+  • white text on the darker lower area;
+  • expanded submenu always uses white text on a darker translucent panel.
+- Increased spacing between icons and text.
+- Improved hover, active and focus contrast.
 
-No SQL required. Commit the four files and press Ctrl + Shift + R once.
+No SQL required.
+Replace app.js, commit, and press Ctrl + Shift + R once.

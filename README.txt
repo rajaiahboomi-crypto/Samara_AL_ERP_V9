@@ -1,14 +1,26 @@
-SAMARA CARE ERP v2.8.1
+SAMARA CARE ERP V9 – COMPLETE LOGO AND NO-GREEN THEME
+Version 2.8.2
+
+THIS PACKAGE IS BUILT DIRECTLY ON THE PROVIDED app.js VERSION 2.8.1.
+No older app.js has been used.
 
 UPLOAD / REPLACE:
 1. app.js
-2. vendor/qrcode.bundle.js
+2. Upload the complete assets folder
+
+NEW FILE:
+assets/samara-logo.png
+
+COMPLETED:
+- Version advanced correctly from 2.8.1 to 2.8.2.
+- Replaced remaining green colours inside the actual app.js.
+- Login, sidebar, splash, dashboard banners, buttons, messages and form controls use the Samara gradient palette.
+- Consent form uses the new Samara Assisted Living logo.
+- Consent headings, borders, tables and signature document styling use plum, magenta, rose, coral and gold shades.
+- Final bill and other embedded printable documents also use the new logo and branding.
 
 NO SQL REQUIRED.
 
-CORRECTIONS:
-1. Patient Master Print Consent uses the complete previous legal consent format.
-2. Package / daily fee particulars are added under Section 4.
-3. Duplicate review now provides Merge & Delete Duplicate.
-4. Clinical, billing and document records are transferred to the retained Patient ID before deleting the duplicate.
-5. Room assignment remains with the retained patient.
+After upload and commit:
+1. Press Ctrl + Shift + R.
+2. Close and reopen the installed PWA where applicable.

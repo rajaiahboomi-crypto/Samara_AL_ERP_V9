@@ -13,7 +13,7 @@
         html, body {
           margin: 0;
           min-height: 100%;
-          background: #0f6f5d !important;
+          background: #a91360 !important;
         }
 
         html.samara-preboot body {
@@ -35,7 +35,7 @@
           background:
             radial-gradient(circle at 100% 0%, rgba(255,255,255,.10) 0 130px, transparent 132px),
             radial-gradient(circle at 0% 100%, rgba(255,255,255,.10) 0 105px, transparent 107px),
-            linear-gradient(135deg, #075b4d 0%, #168873 100%) !important;
+            linear-gradient(135deg, #5d1039 0%, #d93679 100%) !important;
           opacity: 1 !important;
           visibility: visible !important;
           transition: opacity .38s ease, visibility .38s ease !important;
@@ -54,7 +54,7 @@
 
         #root {
           min-height: 100vh;
-          background: #edf5f2;
+          background: #fff5fa;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.1';
-  const APP_BUILD_DATE = '05-Aug-2026 07:20 PM IST';
+  const APP_VERSION = '2.8.2';
+  const APP_BUILD_DATE = '06-Aug-2026 07:50 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,6 +81,99 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.2';
+  const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
+  const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
+    h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
+
+  (()=>{
+    if(document.getElementById('samara-final-brand-theme'))return;
+    const style=document.createElement('style');
+    style.id='samara-final-brand-theme';
+    style.textContent=`
+      :root{
+        --samara-plum:#5d1039;
+        --samara-wine:#7a1247;
+        --samara-magenta:#b01264;
+        --samara-rose:#e03a7c;
+        --samara-coral:#f36a4c;
+        --samara-gold:#f6b72d;
+        --samara-pale:#fff3f8;
+        --samara-border:#ead0de;
+        --samara-ink:#382333;
+      }
+      html,body,#root,.app-shell,.app-main,main,.content,.content-area{
+        background:linear-gradient(145deg,#fffafd 0%,#fff3f8 52%,#fffaf2 100%)!important;
+        color:var(--samara-ink)!important;
+      }
+      #app-splash,.app-splash,
+      .sidebar,.side-nav,.app-sidebar,
+      .login-v3-hero,.login-v3-left,.login-brand-panel{
+        background:
+          radial-gradient(circle at 91% 8%,rgba(246,183,45,.24),transparent 24%),
+          radial-gradient(circle at 8% 92%,rgba(224,58,124,.29),transparent 34%),
+          linear-gradient(150deg,#5d1039 0%,#811248 31%,#b01264 66%,#df3d7c 100%)!important;
+      }
+      .samara-brand-logo{display:block;object-fit:contain;max-width:100%}
+      .side-brand-logo{width:180px;height:68px;object-fit:contain;object-position:left center}
+      .mobile-header-brand-logo{width:116px;height:42px;object-fit:contain;object-position:left center}
+      .mobile-drawer-brand-logo{width:145px;height:54px;object-fit:contain;object-position:left center}
+      .login-main-brand-logo{width:min(410px,88%);max-height:205px;object-fit:contain;margin:0 auto 18px}
+      .auth-brand-logo{width:210px;height:82px;object-fit:contain}
+      .side-brand{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:2px!important}
+      .side-brand>div:last-child{display:block!important;width:100%!important}
+      .side-brand>div:last-child strong{display:none!important}
+      .side-brand>div:last-child small{display:block!important;color:#ffe8f2!important;font-size:11px!important;font-weight:800!important;padding-left:4px!important}
+      .sidebar,.side-nav,.app-sidebar,.sidebar *{color:#fff}
+      .nav-item.active,.sidebar .active,.side-nav .active{
+        background:linear-gradient(90deg,#c3166d 0%,#e23e80 100%)!important;
+        box-shadow:inset 3px 0 0 #f6b72d!important;color:#fff!important;
+      }
+      .sidebar button:hover,.sidebar a:hover,.side-nav button:hover{background:rgba(255,255,255,.12)!important}
+      .dashboard-banner,.shift-banner,.hero-banner,.accounts-hero,.clinical-banner{
+        background:linear-gradient(110deg,#741243 0%,#a91360 44%,#dc397a 77%,#ef8054 100%)!important;
+        color:#fff!important;
+      }
+      .btn-primary,.button-primary,button.primary,.login-v3-button,.primary-action{
+        background:linear-gradient(100deg,#7a1247 0%,#b01264 54%,#e03a7c 100%)!important;
+        border-color:#9f1459!important;color:#fff!important;
+        box-shadow:0 7px 18px rgba(176,18,100,.20)!important;
+      }
+      .btn-primary:hover,.button-primary:hover,button.primary:hover{
+        background:linear-gradient(100deg,#64103b 0%,#961151 54%,#cb2a70 100%)!important;
+      }
+      .btn-secondary{background:#f8e7ef!important;border-color:#e4bfd2!important;color:#751243!important}
+      .card,.panel,.section-card,.dashboard-card,.metric-card,.accounts-workflow-card{
+        background:linear-gradient(145deg,#fff 0%,#fffafd 100%)!important;
+        border-color:var(--samara-border)!important;
+      }
+      .dashboard-card::before,.metric-card::before,.accounts-workflow-card::before{
+        background:linear-gradient(90deg,#7a1247 0%,#b01264 42%,#f36a4c 76%,#f6b72d 100%)!important;
+      }
+      input:focus,select:focus,textarea:focus{border-color:#c21872!important;box-shadow:0 0 0 3px rgba(194,24,114,.14)!important}
+      a,.link,.text-link{color:#a50e5b!important}
+      .message.success,.samara-toast.success,.toast.success,[data-toast-type='success']{
+        background:linear-gradient(100deg,#7a1247,#b01264 56%,#d93679)!important;color:#fff!important;border-color:#a5135d!important;
+      }
+      .badge.success,.status-badge.success,.pill.success{background:#fae7f0!important;color:#781345!important;border-color:#e2adc7!important}
+      .field-toggle-button.make-required{background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c)!important;color:#fff!important}
+      .field-setting-status.optional{background:#fae7f0!important;color:#781345!important}
+      .field-settings-autosave{color:#ffe5f1!important}
+      .app-splash-progress span,.login-v3-progress span,
+      #app-splash .splash-progress::after,#app-splash [class*='progress']::after{
+        background:linear-gradient(90deg,transparent,#b01264,#f36a4c,#f6b72d,transparent)!important;
+      }
+      @media(max-width:720px){
+        .side-brand-logo{width:145px;height:56px}.login-main-brand-logo{width:min(325px,92%);max-height:160px}
+      }
+      @media print{
+        h1,h2,h3,h4{color:#791345!important}
+        table th{background:#f9e4ee!important;color:#5d1039!important}
+        table,th,td{border-color:#c99caf!important}
+      }
+    `;
+    document.head.appendChild(style);
+  })();
   const cfg = window.SAMARA_CONFIG;
   const sdk = window.supabase;
   if (!cfg || !sdk) {
@@ -316,9 +409,9 @@
         padding: 14px 16px !important;
         border: 0 !important;
         border-radius: 13px !important;
-        background: #11884f !important;
+        background: #b01264 !important;
         color: #ffffff !important;
-        box-shadow: 0 14px 34px rgba(4,78,46,.30) !important;
+        box-shadow: 0 14px 34px rgba(103,16,61,.30) !important;
         font-weight: 700 !important;
       }
 
@@ -394,9 +487,9 @@
       }
 
       .message.success {
-        border: 1px solid #8dd8b1 !important;
-        background: #eaf9f1 !important;
-        color: #075c36 !important;
+        border: 1px solid #e4afc8 !important;
+        background: #fff0f6 !important;
+        color: #7a1247 !important;
         font-weight: 700 !important;
       }
 
@@ -717,7 +810,7 @@ Caring with Compassion. Living with Dignity.`;
     const style=document.createElement('style');
     style.id='samara-smooth-refresh-style';
     style.textContent=`
-      html,body,#root{min-height:100%;background:#edf5f2}
+      html,body,#root{min-height:100%;background:#fff5fa}
       #app-splash{
         opacity:1;
         visibility:visible;
@@ -748,7 +841,7 @@ Caring with Compassion. Living with Dignity.`;
         height:100%;
         width:34%;
         border-radius:inherit;
-        background:linear-gradient(90deg,transparent,rgba(18,139,105,.9),transparent);
+        background:linear-gradient(90deg,transparent,rgba(224,58,124,.95),transparent);
         animation:samaraSplashMove 1.15s ease-in-out infinite;
       }
       @keyframes samaraSplashMove{
@@ -994,31 +1087,31 @@ Caring with Compassion. Living with Dignity.`;
       .field-setting-grid{display:grid;gap:10px}
       .field-setting-row{
         display:grid;grid-template-columns:minmax(240px,1fr) 165px 170px;
-        gap:14px;align-items:center;padding:14px 16px;border:1px solid #dce8e4;
+        gap:14px;align-items:center;padding:14px 16px;border:1px solid #ead0de;
         border-radius:14px;background:#fff;transition:.18s ease
       }
-      .field-setting-row:hover{border-color:#9fcfc2;box-shadow:0 8px 18px rgba(9,82,67,.08)}
-      .field-setting-row small{display:block;margin-top:4px;color:#697873}
+      .field-setting-row:hover{border-color:#dda9c2;box-shadow:0 8px 18px rgba(176,18,100,.08)}
+      .field-setting-row small{display:block;margin-top:4px;color:#7b6571}
       .field-setting-status{
         display:inline-flex;align-items:center;justify-content:center;gap:7px;
         min-height:34px;padding:7px 11px;border-radius:999px;
         font-size:12px;font-weight:900
       }
       .field-setting-status.mandatory{background:#ffeded;color:#b42318}
-      .field-setting-status.optional{background:#e8f7ed;color:#067333}
-      .field-setting-status.locked{background:#eef2f1;color:#4f625d}
+      .field-setting-status.optional{background:#fae7f0;color:#7a1247}
+      .field-setting-status.locked{background:#f7e7ef;color:#705966}
       .field-toggle-button{
         min-height:42px;border:0;border-radius:12px;padding:9px 14px;
         font:inherit;font-weight:900;cursor:pointer;transition:.18s ease
       }
-      .field-toggle-button.make-required{background:#0b6d59;color:#fff}
+      .field-toggle-button.make-required{background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c);color:#fff}
       .field-toggle-button.make-optional{background:#fff4df;color:#9a5c00;border:1px solid #f4c66b}
-      .field-toggle-button.locked{background:#edf3f1;color:#78908a;cursor:not-allowed}
-      .field-toggle-button:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 7px 15px rgba(9,82,67,.12)}
+      .field-toggle-button.locked{background:#f7e7ef;color:#8c7180;cursor:not-allowed}
+      .field-toggle-button:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 7px 15px rgba(176,18,100,.12)}
       .field-setting-saving{opacity:.68;pointer-events:none}
       .field-settings-autosave{
         display:flex;align-items:center;gap:8px;margin-top:8px;
-        color:#dff7ef;font-size:12px;font-weight:800
+        color:#ffe5f1;font-size:12px;font-weight:800
       }
       @media(max-width:720px){
         .field-setting-row{grid-template-columns:1fr}
@@ -1437,17 +1530,17 @@ Caring with Compassion. Living with Dignity.`;
             .admission-numbered-row{position:relative;padding-left:54px!important}
       .admission-row-number{
         position:absolute;left:12px;top:12px;width:30px;height:30px;border-radius:50%;
-        display:grid;place-items:center;background:#0b6d59;color:#fff;font-weight:900
+        display:grid;place-items:center;background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c);color:#fff;font-weight:900
       }
       .admission-locked-row{
         display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:start;
-        padding:9px 2px;margin:0;border:0;border-bottom:1px solid #dce8e4;
+        padding:9px 2px;margin:0;border:0;border-bottom:1px solid #ead0de;
         border-radius:0;background:transparent
       }
       .admission-locked-row:last-of-type{border-bottom:0}
       .admission-locked-row .number{
         width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
-        background:#0b6d59;color:#fff;font-weight:900;font-size:13px
+        background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c);color:#fff;font-weight:900;font-size:13px
       }
       .admission-locked-row .summary{display:grid;gap:2px;min-width:0;padding-top:2px}
       .admission-locked-row .summary strong{font-size:15px;line-height:1.3}
@@ -1485,7 +1578,7 @@ Caring with Compassion. Living with Dignity.`;
         padding:12px 14px;border-radius:12px;background:#fff8e8;border:1px solid #efd18a;
         color:#754c00;font-weight:800;margin-bottom:10px
       }
-      .consent-upload-panel{padding:12px;border:1px dashed #9fcfc2;border-radius:12px;background:#f7fcfa}
+      .consent-upload-panel{padding:12px;border:1px dashed #dda9c2;border-radius:12px;background:#f7fcfa}
       @media(max-width:700px){
         .admission-locked-row{grid-template-columns:36px 1fr}
         .admission-row-actions{grid-column:1/-1}
@@ -1499,7 +1592,7 @@ Caring with Compassion. Living with Dignity.`;
         border:1px solid #b9dfd3;
         border-radius:10px;
         background:#edf9f5;
-        color:#075c4d;
+        color:#7a1247;
         font-size:12px;
         font-weight:800;
       }
@@ -1720,7 +1813,7 @@ Caring with Compassion. Living with Dignity.`;
       h('main',{className:'main'},
         h('header',{className:'topbar'},
           h('div',{className:'mobile-brand-header'},
-            h('div',{className:'mobile-brand-logo'},'SC'),
+            h(BrandLogo,{className:'mobile-header-brand-logo'}),
             h('strong',null,'Samara Care ERP')
           ),
           h('button',{type:'button',className:'mobile-home-button','aria-label':'Go to dashboard',title:'Dashboard',onClick:()=>setPage(ROLE_HOME[profile.role]||allowed[0])},'⌂'),
@@ -1814,7 +1907,7 @@ Caring with Compassion. Living with Dignity.`;
       setBusy(false);onComplete();
     }
     return h('div',{className:'login-shell'},h('form',{className:'card login-card first-login-card',onSubmit:submit},
-      h('div',{className:'brand'},h('div',{className:'logo'},'SC'),h('div',null,h('h1',null,`Welcome to the Samara Family, ${displayName(profile)} 👋`),h('p',null,'We are delighted that you are joining our Assisted Living Team.'))),
+      h('div',{className:'brand'},h(BrandLogo,{className:'auth-brand-logo'}),h('div',null,h('h1',null,`Welcome to the Samara Family, ${displayName(profile)} 👋`),h('p',null,'We are delighted that you are joining our Assisted Living Team.'))),
       h('p',null,'Before you begin, please create your own secure password. This protects resident information and ensures that only you can access your account.'),
       message&&h('div',{className:'message error'},message),
       h('div',{className:'field'},h('label',null,'Create New Password'),h('input',{type:'password',value:password,onChange:e=>setPassword(e.target.value),minLength:8,required:true,autoComplete:'new-password',name:'samara-new-secure-password'})),
@@ -1881,8 +1974,8 @@ Caring with Compassion. Living with Dignity.`;
     return h('div',{className:'login-shell login-v3-shell'},
       h('div',{className:'login-v3-frame'},
         h('section',{className:'login-v3-hero'},
-          h('div',{className:'login-v3-logo'},'SC'),
-          h('div',{className:'login-v3-kicker'},'SAMARA HEALTH CARE LLP'),
+          h(BrandLogo,{className:'login-main-brand-logo'}),
+          h('div',{className:'login-v3-kicker'},'SECURE ASSISTED LIVING MANAGEMENT'),
           h('h1',null,'Samara Care ERP'),
           h('p',{className:'login-v3-description'},'Resident care, clinical operations, billing and documents in one secure workspace.'),
           h('div',{className:'login-v3-features'},
@@ -1929,7 +2022,7 @@ Caring with Compassion. Living with Dignity.`;
       setBusy(false);await onComplete();
     }
     return h('div',{className:'login-shell'},h('form',{className:'card login-card first-login-card',onSubmit:submit},
-      h('div',{className:'brand'},h('div',{className:'logo'},'SC'),h('div',null,h('h1',null,'Create a New Password'),h('p',null,'Your secure recovery link has been verified.'))),
+      h('div',{className:'brand'},h(BrandLogo,{className:'auth-brand-logo'}),h('div',null,h('h1',null,'Create a New Password'),h('p',null,'Your secure recovery link has been verified.'))),
       h('p',null,'Enter a new password for your Samara Care ERP account.'),
       message&&h('div',{className:'message error'},message),
       h('div',{className:'field'},h('label',null,'New Password'),h('input',{type:'password',value:password,onChange:e=>setPassword(e.target.value),minLength:8,required:true,autoComplete:'new-password'})),
@@ -1949,7 +2042,7 @@ Caring with Compassion. Living with Dignity.`;
     },[page,allowed.join('|')]);
     function toggle(title){setOpenSection(current=>current===title?'':title)}
     return h('aside',{className:'sidebar'},
-      h('div',{className:'side-brand'},h('div',{className:'side-logo'},'SC'),h('div',null,h('strong',null,'Samara Care'),h('small',null,`Assisted Living ERP ${APP_VERSION}`))),
+      h('div',{className:'side-brand'},h(BrandLogo,{className:'side-brand-logo'}),h('div',null,h('strong',null,'Samara Care'),h('small',null,`Assisted Living ERP ${APP_VERSION}`))),
       h('nav',{className:'nav-scroll'},sections.map(section=>{
         const expanded=openSection===section.title;
         return h('div',{className:`nav-section ${expanded?'expanded':''}`,key:section.title},
@@ -2020,7 +2113,7 @@ Caring with Compassion. Living with Dignity.`;
     return h('div',{className:'mobile-drawer-layer',role:'presentation',onClick:e=>{if(e.target===e.currentTarget)onClose()}},
       h('aside',{className:'mobile-nav-drawer',role:'dialog','aria-modal':'true','aria-label':'Samara Care mobile menu'},
         h('div',{className:'mobile-drawer-head'},
-          h('div',{className:'mobile-drawer-brand'},h('div',{className:'mobile-brand-logo'},'SC'),h('div',null,h('strong',null,'Samara Care ERP'),h('small',null,`Version ${APP_VERSION}`))),
+          h('div',{className:'mobile-drawer-brand'},h(BrandLogo,{className:'mobile-header-brand-logo'}),h('div',null,h('strong',null,'Samara Care ERP'),h('small',null,`Version ${APP_VERSION}`))),
           h('button',{type:'button',className:'mobile-drawer-close',onClick:onClose,'aria-label':'Close menu'},'×')
         ),
         h('div',{className:'mobile-drawer-user'},h('strong',null,formalName(profile)),h('span',{className:'badge'},profile.role)),
@@ -2448,41 +2541,41 @@ Caring with Compassion. Living with Dignity.`;
 <title>Final Bill - ${escapeHtml(formalName(patient)||patient.full_name||'Patient')}</title>
 <style>
   *{box-sizing:border-box}
-  body{margin:0;background:#eef4f2;font-family:Arial,Helvetica,sans-serif;color:#16352e}
+  body{margin:0;background:#fff5fa;font-family:Arial,Helvetica,sans-serif;color:#382333}
   .sheet{width:210mm;min-height:297mm;margin:12px auto;background:#fff;padding:11mm 12mm;box-shadow:0 10px 32px #0002}
-  .head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;padding-bottom:12px;border-bottom:3px solid #0b6d59}
+  .head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;padding-bottom:12px;border-bottom:3px solid #b01264}
   .brand-wrap{display:flex;gap:12px;align-items:flex-start}
-  .logo{display:grid;place-items:center;width:54px;height:54px;border-radius:15px;background:#0b6d59;color:#fff;font-weight:900;font-size:22px}
-  .brand h1{margin:0;color:#075c4d;font-size:24px}
-  .brand p{margin:3px 0;color:#596b66;font-size:11px}
+  .brand-logo{display:block;width:190px;max-height:72px;object-fit:contain;object-position:left center}
+  .brand h1{margin:0;color:#7a1247;font-size:24px}
+  .brand p{margin:3px 0;color:#735d69;font-size:11px}
   .invoice{text-align:right}
-  .invoice strong{display:block;font-size:17px;color:#0b6d59}
+  .invoice strong{display:block;font-size:17px;color:#b01264}
   .invoice span{display:block;margin-top:4px;font-size:11px}
   .title{text-align:center;margin:14px 0 10px}
   .title h2{margin:0;font-size:21px;letter-spacing:.05em}
-  .title p{margin:4px 0;color:#667772;font-size:10px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;padding:10px;border:1px solid #d7e4e0;border-radius:10px;background:#f7faf9}
+  .title p{margin:4px 0;color:#735d69;font-size:10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;padding:10px;border:1px solid #ead0de;border-radius:10px;background:#fffafd}
   .field{display:grid;grid-template-columns:122px 1fr;gap:8px;font-size:10.5px;padding:2px 0}
-  .field b{color:#455b55}
-  h3{margin:15px 0 7px;font-size:13px;color:#075c4d}
+  .field b{color:#624858}
+  h3{margin:15px 0 7px;font-size:13px;color:#7a1247}
   table{width:100%;border-collapse:collapse;font-size:9.7px}
-  th{background:#0b6d59;color:#fff;text-align:left;padding:7px;border:1px solid #0b6d59}
-  td{padding:7px;border:1px solid #dbe6e3;vertical-align:top}
+  th{background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c);color:#fff;text-align:left;padding:7px;border:1px solid #b01264}
+  td{padding:7px;border:1px solid #ecd5e1;vertical-align:top}
   .amount{text-align:right;white-space:nowrap;font-weight:bold}
-  .detail{margin-top:3px;color:#697873;font-size:9px;line-height:1.3}
-  .empty{text-align:center;color:#73817d;padding:15px}
-  .summary{width:48%;margin:14px 0 0 auto;border:1px solid #d7e4e0;border-radius:10px;overflow:hidden}
-  .summary-row{display:flex;justify-content:space-between;padding:7px 9px;border-bottom:1px solid #e3ebe8;font-size:10.5px}
+  .detail{margin-top:3px;color:#7b6571;font-size:9px;line-height:1.3}
+  .empty{text-align:center;color:#7b6571;padding:15px}
+  .summary{width:48%;margin:14px 0 0 auto;border:1px solid #ead0de;border-radius:10px;overflow:hidden}
+  .summary-row{display:flex;justify-content:space-between;padding:7px 9px;border-bottom:1px solid #f0dce7;font-size:10.5px}
   .summary-row:last-child{border-bottom:0}
-  .summary-row.total{background:#075c4d;color:#fff;font-size:13px;font-weight:bold}
-  .status{margin-top:11px;padding:9px;text-align:center;border-radius:8px;font-weight:bold;background:${netPayable<=0.009?'#e8f7ed':receipts>0?'#fff4df':'#ffeded'};color:${netPayable<=0.009?'#067333':receipts>0?'#9a6700':'#b42318'}}
-  .payment-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin-top:12px;padding:9px;border:1px solid #dbe6e3;border-radius:9px;background:#fafcfc;font-size:10px}
+  .summary-row.total{background:#7a1247;color:#fff;font-size:13px;font-weight:bold}
+  .status{margin-top:11px;padding:9px;text-align:center;border-radius:8px;font-weight:bold;background:${netPayable<=0.009?'#fae7f0':receipts>0?'#fff4df':'#ffeded'};color:${netPayable<=0.009?'#7a1247':receipts>0?'#9a6700':'#b42318'}}
+  .payment-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin-top:12px;padding:9px;border:1px solid #ecd5e1;border-radius:9px;background:#fffafd;font-size:10px}
   .payment-summary div{display:grid;grid-template-columns:118px 1fr;gap:7px}
-  .notes{margin-top:13px;padding:9px;border:1px solid #dbe6e3;border-radius:9px;font-size:9.7px;color:#586963;line-height:1.4}
+  .notes{margin-top:13px;padding:9px;border:1px solid #ecd5e1;border-radius:9px;font-size:9.7px;color:#735d69;line-height:1.4}
   .signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:32px;text-align:center;font-size:10px}
-  .signatures div{padding-top:24px;border-top:1px solid #63736e}
-  .footer{margin-top:22px;padding-top:8px;border-top:1px solid #dbe6e3;text-align:center;font-size:9px;color:#6c7b77}
-  .print{display:block;margin:16px auto;padding:11px 22px;border:0;border-radius:8px;background:#0b6d59;color:#fff;font-weight:bold;cursor:pointer}
+  .signatures div{padding-top:24px;border-top:1px solid #735d69}
+  .footer{margin-top:22px;padding-top:8px;border-top:1px solid #ecd5e1;text-align:center;font-size:9px;color:#7b6571}
+  .print{display:block;margin:16px auto;padding:11px 22px;border:0;border-radius:8px;background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c);color:#fff;font-weight:bold;cursor:pointer}
   @media print{
     body{background:#fff}
     .sheet{width:auto;min-height:auto;margin:0;box-shadow:none;padding:7mm}
@@ -2495,7 +2588,7 @@ Caring with Compassion. Living with Dignity.`;
 <div class="sheet">
   <div class="head">
     <div class="brand-wrap">
-      <div class="logo">SC</div>
+      <img class="brand-logo" src="${escapeHtml(BRAND_LOGO_URL)}" alt="Samara Assisted Living">
       <div class="brand">
         <h1>SAMARA HEALTH CARE LLP</h1>
         <p>Samara Care Assisted Living</p>
@@ -2634,8 +2727,8 @@ Caring with Compassion. Living with Dignity.`;
 
     const uploadFields=()=>h('div',{className:'employee-upload-section span-2'},h('h4',null,'Employee Photo, Documents and Certificates'),h('p',{className:'small-note'},'Each item provides separate Upload File, Mobile Camera and Webcam options.'),h('div',{className:'modal-grid'},fileInput('Employee Photo',setPhotoFiles,'image/*',true),fileInput('ID Card / Identity Proof',setIdFiles),fileInput('Qualification Certificates',setQualificationFiles),fileInput('Experience / Previous Employment Certificates',setExperienceFiles),fileInput('Other Certificates',setOtherFiles)));
 
-    const personnelPhotoPreview=()=>h('div',{className:'employee-form-photo',style:{width:'116px',height:'136px',borderRadius:'16px',overflow:'hidden',border:'2px solid #d7e7e2',background:'#eef6f4',display:'flex',alignItems:'center',justifyContent:'center',flex:'0 0 auto'}},
-      photoPreview?h('img',{src:photoPreview,alt:'Employee photo preview',style:{width:'100%',height:'100%',objectFit:'cover'}}):h('div',{style:{fontSize:'34px',fontWeight:'700',color:'#086b58'}},'SC')
+    const personnelPhotoPreview=()=>h('div',{className:'employee-form-photo',style:{width:'116px',height:'136px',borderRadius:'16px',overflow:'hidden',border:'2px solid #ead0de',background:'#fff5fa',display:'flex',alignItems:'center',justifyContent:'center',flex:'0 0 auto'}},
+      photoPreview?h('img',{src:photoPreview,alt:'Employee photo preview',style:{width:'100%',height:'100%',objectFit:'cover'}}):h('div',{style:{fontSize:'34px',fontWeight:'700',color:'#b01264'}},'SC')
     );
 
     const createModal=show?h('div',{className:'modal-backdrop'},h('form',{className:'card modal employee-modal',onSubmit:create},
@@ -3574,32 +3667,32 @@ Caring with Compassion. Living with Dignity.`;
 <style>
   @page{size:A4;margin:12mm}
   *{box-sizing:border-box}
-  body{margin:0;font-family:Arial,sans-serif;color:#17302a;font-size:10.5px;line-height:1.4;background:#fff}
+  body{margin:0;font-family:Arial,sans-serif;color:#382333;font-size:10.5px;line-height:1.4;background:#fff}
   .page{width:100%;background:#fff}
-  .header{display:grid;grid-template-columns:72px 1fr 94px;gap:14px;align-items:center;border-bottom:3px solid #086a57;padding-bottom:10px;margin-bottom:12px}
-  .logo{width:64px;height:64px;border-radius:15px;background:#086a57;color:#fff;display:grid;place-items:center;font-size:26px;font-weight:900}
-  .brand{text-align:center}.brand-name{font-size:22px;font-weight:900;color:#064f42}.brand-sub{font-size:12px;font-weight:700}.document-title{font-size:16px;font-weight:900;margin-top:6px}
+  .header{display:grid;grid-template-columns:220px 1fr 94px;gap:14px;align-items:center;border-bottom:3px solid #b01264;padding-bottom:10px;margin-bottom:12px}
+  .brand-logo{display:block;width:210px;max-height:78px;object-fit:contain;object-position:left center}
+  .brand{text-align:center}.brand-name{font-size:22px;font-weight:900;color:#86144d}.brand-sub{font-size:12px;font-weight:700}.document-title{font-size:16px;font-weight:900;margin-top:6px}
   .qr{text-align:center}.qr img{width:88px;height:88px}.qr small{display:block;font-size:7px;color:#536a64}
   .identity{display:grid;grid-template-columns:${photoDataUrl?'1fr 100px':'1fr'};gap:12px;margin-bottom:10px}
-  .identity-grid{border:1px solid #829b94;border-radius:7px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:5px 16px}
-  .photo{border:1px solid #829b94;border-radius:7px;padding:4px;height:120px;display:grid;place-items:center;overflow:hidden}.photo img{max-width:100%;max-height:110px;object-fit:cover}
-  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #8fa9a2;padding-bottom:3px}
+  .identity-grid{border:1px solid #c59bae;border-radius:7px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:5px 16px}
+  .photo{border:1px solid #c59bae;border-radius:7px;padding:4px;height:120px;display:grid;place-items:center;overflow:hidden}.photo img{max-width:100%;max-height:110px;object-fit:cover}
+  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #c7a0b3;padding-bottom:3px}
   h3{font-size:11px;margin:8px 0 4px}
   p{margin:5px 0;text-align:justify}
   table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px;page-break-inside:auto}
   tr{page-break-inside:avoid;page-break-after:auto}
-  th,td{border:1px solid #829b94;padding:4px;text-align:left;vertical-align:top}
-  th{background:#e9f3f0}.fee-table th{width:34%;font-weight:800}.fee-table td{font-weight:600}
+  th,td{border:1px solid #c59bae;padding:4px;text-align:left;vertical-align:top}
+  th{background:linear-gradient(90deg,#f9e4ee,#fff0dc)}.fee-table th{width:34%;font-weight:800}.fee-table td{font-weight:600}
   .signatures{display:grid;grid-template-columns:1fr 1fr;gap:16px 25px;margin-top:22px;page-break-inside:avoid}
   .signature{min-height:72px}.line{border-top:1px solid #222;padding-top:4px;margin-top:27px;font-weight:700}
-  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #b7c8c3;font-size:7.5px;color:#526660}
+  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #d8b6c7;font-size:7.5px;color:#526660}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none!important}}
 </style>
 </head>
 <body>
 <div class="page">
   <div class="header">
-    <div class="logo">SC</div>
+    <img class="brand-logo" src="${escapeHtml(BRAND_LOGO_URL)}" alt="Samara Assisted Living">
     <div class="brand">
       <div class="brand-name">SAMARA CARE</div>
       <div class="brand-sub">ASSISTED LIVING</div>
@@ -5009,7 +5102,7 @@ Caring with Compassion. Living with Dignity.`;
       const url=await resolvePatientPhoto(row);const win=window.open('','_blank','width=760,height=820');if(!win){alert('Please allow pop-ups to print the Patient ID card.');return}
       const doctor=row.referring_doctor||row.treating_doctor||row.family_doctor||'—';
       const emergencyName=row.attendant_name||'—';const emergencyPhone=row.attendant_phone||row.mobile||'—';
-      win.document.write(`<!doctype html><html><head><title>Patient ID Card</title><style>body{font-family:Arial;margin:0;padding:24px;background:#eef6f4}.card{width:390px;min-height:650px;margin:auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 35px #0002;border:2px solid #086b58}.head{background:#086b58;color:white;text-align:center;padding:20px}.head h1{margin:0;font-size:24px}.head p{margin:6px 0 0}.photo{width:125px;height:145px;border:4px solid white;border-radius:16px;object-fit:cover;background:#ddd;margin:14px auto 10px;display:block;box-shadow:0 4px 15px #0003}.body{padding:10px 26px 24px;text-align:center}.name{font-size:25px;font-weight:bold;color:#063f36}.category{font-size:16px;color:#086b58;margin:4px 0 12px}.grid{text-align:left;line-height:1.55;font-size:15px}.row{padding:4px 0;border-bottom:1px solid #eef2f1}.label{font-weight:bold;color:#444}.emergency{margin-top:12px;padding:10px;background:#fff4e5;border:1px solid #f2c87d;border-radius:10px}.barcode{margin-top:14px;padding:9px;border-top:1px dashed #aaa;font-family:monospace}.print{display:block;margin:20px auto;padding:12px 24px}@media print{.print{display:none}body{background:white;padding:0}}</style></head><body><div class="card"><div class="head"><h1>SAMARA HEALTH CARE LLP</h1><p>Assisted Living Patient Identity & Emergency Card</p></div><div class="body">${url?`<img class="photo" src="${url}">`:`<div class="photo" style="display:flex;align-items:center;justify-content:center;font-size:48px">SC</div>`}<div class="name">${escapeHtml(formalName(row))}</div><div class="category">${escapeHtml(row.patient_category||'Patient')}</div><div class="grid"><div class="row"><span class="label">Patient ID:</span> ${escapeHtml(row.patient_id||'—')}</div><div class="row"><span class="label">Main Diagnosis:</span> ${escapeHtml(row.diagnosis||'—')}</div><div class="row"><span class="label">Referred / Treating Doctor:</span> ${escapeHtml(doctor)}</div><div class="row"><span class="label">Doctor Mobile:</span> ${escapeHtml(row.doctor_phone||'—')}</div><div class="row"><span class="label">Room / Bed:</span> ${escapeHtml(`${row.room_no||'—'} / ${row.bed_no||'—'}`)}</div><div class="row"><span class="label">Gender / Age:</span> ${escapeHtml(`${row.gender||'—'} / ${row.age||'—'}`)}</div><div class="row"><span class="label">Patient Mobile:</span> ${escapeHtml(row.mobile||'—')}</div><div class="row"><span class="label">Allergies:</span> ${escapeHtml(row.allergies||'None recorded')}</div><div class="emergency"><div><span class="label">Emergency Contact:</span> ${escapeHtml(emergencyName)}</div><div><span class="label">Emergency Mobile:</span> ${escapeHtml(emergencyPhone)}</div></div></div><div class="barcode">${escapeHtml(row.patient_id||row.id)}</div></div></div><button class="print" onclick="window.print()">Print Patient ID Card</button></body></html>`);win.document.close();
+      win.document.write(`<!doctype html><html><head><title>Patient ID Card</title><style>body{font-family:Arial;margin:0;padding:24px;background:#fff5fa}.card{width:390px;min-height:650px;margin:auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 35px #0002;border:2px solid #b01264}.head{background:#b01264;color:white;text-align:center;padding:20px}.head h1{margin:0;font-size:24px}.head p{margin:6px 0 0}.photo{width:125px;height:145px;border:4px solid white;border-radius:16px;object-fit:cover;background:#ddd;margin:14px auto 10px;display:block;box-shadow:0 4px 15px #0003}.body{padding:10px 26px 24px;text-align:center}.name{font-size:25px;font-weight:bold;color:#5d1039}.category{font-size:16px;color:#b01264;margin:4px 0 12px}.grid{text-align:left;line-height:1.55;font-size:15px}.row{padding:4px 0;border-bottom:1px solid #f7e7ef}.label{font-weight:bold;color:#444}.emergency{margin-top:12px;padding:10px;background:#fff4e5;border:1px solid #f2c87d;border-radius:10px}.barcode{margin-top:14px;padding:9px;border-top:1px dashed #aaa;font-family:monospace}.print{display:block;margin:20px auto;padding:12px 24px}@media print{.print{display:none}body{background:white;padding:0}}</style></head><body><div class="card"><div class="head"><h1>SAMARA HEALTH CARE LLP</h1><p>Assisted Living Patient Identity & Emergency Card</p></div><div class="body">${url?`<img class="photo" src="${url}">`:`<div class="photo" style="display:flex;align-items:center;justify-content:center;font-size:48px">SC</div>`}<div class="name">${escapeHtml(formalName(row))}</div><div class="category">${escapeHtml(row.patient_category||'Patient')}</div><div class="grid"><div class="row"><span class="label">Patient ID:</span> ${escapeHtml(row.patient_id||'—')}</div><div class="row"><span class="label">Main Diagnosis:</span> ${escapeHtml(row.diagnosis||'—')}</div><div class="row"><span class="label">Referred / Treating Doctor:</span> ${escapeHtml(doctor)}</div><div class="row"><span class="label">Doctor Mobile:</span> ${escapeHtml(row.doctor_phone||'—')}</div><div class="row"><span class="label">Room / Bed:</span> ${escapeHtml(`${row.room_no||'—'} / ${row.bed_no||'—'}`)}</div><div class="row"><span class="label">Gender / Age:</span> ${escapeHtml(`${row.gender||'—'} / ${row.age||'—'}`)}</div><div class="row"><span class="label">Patient Mobile:</span> ${escapeHtml(row.mobile||'—')}</div><div class="row"><span class="label">Allergies:</span> ${escapeHtml(row.allergies||'None recorded')}</div><div class="emergency"><div><span class="label">Emergency Contact:</span> ${escapeHtml(emergencyName)}</div><div><span class="label">Emergency Mobile:</span> ${escapeHtml(emergencyPhone)}</div></div></div><div class="barcode">${escapeHtml(row.patient_id||row.id)}</div></div></div><button class="print" onclick="window.print()">Print Patient ID Card</button></body></html>`);win.document.close();
     }
     function duplicateMatches(row){
       const name=String(row.full_name||'').trim().toLowerCase().replace(/\s+/g,' ');
@@ -5437,31 +5530,31 @@ Caring with Compassion. Living with Dignity.`;
 <style>
   @page{size:A4;margin:12mm}
   *{box-sizing:border-box}
-  body{margin:0;font-family:Arial,sans-serif;color:#17302a;font-size:10.5px;line-height:1.4;background:#fff}
+  body{margin:0;font-family:Arial,sans-serif;color:#382333;font-size:10.5px;line-height:1.4;background:#fff}
   .page{width:100%;background:#fff}
-  .header{display:grid;grid-template-columns:72px 1fr 94px;gap:14px;align-items:center;border-bottom:3px solid #086a57;padding-bottom:10px;margin-bottom:12px}
-  .logo{width:64px;height:64px;border-radius:15px;background:#086a57;color:#fff;display:grid;place-items:center;font-size:26px;font-weight:900}
-  .brand{text-align:center}.brand-name{font-size:22px;font-weight:900;color:#064f42}.brand-sub{font-size:12px;font-weight:700}.document-title{font-size:16px;font-weight:900;margin-top:6px}
+  .header{display:grid;grid-template-columns:220px 1fr 94px;gap:14px;align-items:center;border-bottom:3px solid #b01264;padding-bottom:10px;margin-bottom:12px}
+  .brand-logo{display:block;width:210px;max-height:78px;object-fit:contain;object-position:left center}
+  .brand{text-align:center}.brand-name{font-size:22px;font-weight:900;color:#86144d}.brand-sub{font-size:12px;font-weight:700}.document-title{font-size:16px;font-weight:900;margin-top:6px}
   .qr{text-align:center}.qr img{width:88px;height:88px}.qr small{display:block;font-size:7px;color:#536a64}
-  .identity{border:1px solid #829b94;border-radius:7px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;margin-bottom:10px}
-  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #8fa9a2;padding-bottom:3px}
+  .identity{border:1px solid #c59bae;border-radius:7px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;margin-bottom:10px}
+  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #c7a0b3;padding-bottom:3px}
   h3{font-size:11px;margin:8px 0 4px}
   p{margin:5px 0;text-align:justify}
   table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px;page-break-inside:auto}
   tr{page-break-inside:avoid;page-break-after:auto}
-  th,td{border:1px solid #829b94;padding:4px;text-align:left;vertical-align:top}
-  th{background:#e9f3f0}
+  th,td{border:1px solid #c59bae;padding:4px;text-align:left;vertical-align:top}
+  th{background:linear-gradient(90deg,#f9e4ee,#fff0dc)}
   .fee-table th{width:34%;font-weight:800}.fee-table td{font-weight:600}
   .signatures{display:grid;grid-template-columns:1fr 1fr;gap:16px 25px;margin-top:22px;page-break-inside:avoid}
   .signature{min-height:72px}.line{border-top:1px solid #222;padding-top:4px;margin-top:27px;font-weight:700}
-  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #b7c8c3;font-size:7.5px;color:#526660}
+  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #d8b6c7;font-size:7.5px;color:#526660}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style>
 </head>
 <body>
 <div class="page">
   <div class="header">
-    <div class="logo">SC</div>
+    <img class="brand-logo" src="${escapeHtml(BRAND_LOGO_URL)}" alt="Samara Assisted Living">
     <div class="brand">
       <div class="brand-name">SAMARA CARE</div>
       <div class="brand-sub">ASSISTED LIVING</div>
@@ -5671,7 +5764,7 @@ Caring with Compassion. Living with Dignity.`;
                 className:'section-card',
                 key:record.id,
                 style:{
-                  border:record.id===duplicateReview.recommendedKeepId?'2px solid #0b6d59':'1px solid #d9e5e1',
+                  border:record.id===duplicateReview.recommendedKeepId?'2px solid #b01264':'1px solid #d9e5e1',
                   background:record.id===duplicateReview.recommendedKeepId?'#f1faf7':'#fff'
                 }
               },
@@ -5886,7 +5979,7 @@ Caring with Compassion. Living with Dignity.`;
         disabled:!isCurrent&&status!=='Available',
         text:`Room ${r.room_no}-${r.bed_no} · ${type} · ${status}${occupant}${tariff?` · ${tariff}/day`:''}`,
         background:status==='Available'?'#dff7e8':status==='Occupied'?'#ffe1e1':status==='Reserved'?'#e3eeff':status==='Current'?'#e8f7ee':'#f1f1f1',
-        color:status==='Available'||status==='Current'?'#087a3d':status==='Occupied'?'#b42318':status==='Reserved'?'#175cd3':'#555'
+        color:status==='Available'||status==='Current'?'#a91360':status==='Occupied'?'#b42318':status==='Reserved'?'#175cd3':'#555'
       };
     }
 
@@ -5900,7 +5993,7 @@ Caring with Compassion. Living with Dignity.`;
           const [r,b]=String(e.target.value||'').split('|||');
           onChange(r||'',b||'');
         },
-        style:{backgroundColor:value?'#e8f7ee':'#ffffff',color:value?'#087a3d':'#344054',fontWeight:'700'}
+        style:{backgroundColor:value?'#e8f7ee':'#ffffff',color:value?'#a91360':'#344054',fontWeight:'700'}
       },
         h('option',{value:''},availableCount?`Select available room / bed (${availableCount})`:'No available rooms / beds'),
         sorted.map(r=>{
@@ -8276,7 +8369,7 @@ function RoomsBeds({profile}){
       const report=document.getElementById('medication-safety-report');
       if(!report)return;
       const win=window.open('','_blank');if(!win)return alert('Please allow pop-ups to print the report.');
-      win.document.write(`<!doctype html><html><head><title>Medication Safety Report</title><style>body{font-family:Arial;padding:24px;color:#183b35}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #bbb;padding:6px;text-align:left;vertical-align:top}th{background:#e7f3f0}.no-print{display:none}.card{border:1px solid #d7e7e2;border-radius:12px;padding:14px;margin:12px 0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat strong{display:block;font-size:24px;color:#087565}h1,h2{color:#087565}</style></head><body>${report.innerHTML}</body></html>`);
+      win.document.write(`<!doctype html><html><head><title>Medication Safety Report</title><style>body{font-family:Arial;padding:24px;color:#4c263c}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #bbb;padding:6px;text-align:left;vertical-align:top}th{background:#e7f3f0}.no-print{display:none}.card{border:1px solid #ead0de;border-radius:12px;padding:14px;margin:12px 0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat strong{display:block;font-size:24px;color:#a91360}h1,h2{color:#a91360}</style></head><body>${report.innerHTML}</body></html>`);
       win.document.close();setTimeout(()=>{win.focus();win.print()},250);
     }
 
@@ -9265,7 +9358,7 @@ function ShiftHandover({profile,onNavigate}){
       .accounts-hero{
         display:flex;align-items:center;justify-content:space-between;gap:18px;
         padding:22px;border-radius:20px;
-        background:linear-gradient(135deg,#075c4d,#148973);
+        background:linear-gradient(135deg,#7a1247,#148973);
         color:#fff;box-shadow:0 14px 32px rgba(7,92,77,.18);
       }
       .accounts-hero small{font-weight:800;letter-spacing:.12em;opacity:.78}
@@ -9279,7 +9372,7 @@ function ShiftHandover({profile,onNavigate}){
       }
       .accounts-kpi{
         position:relative;overflow:hidden;display:grid;gap:8px;min-height:112px;
-        padding:17px;border:1px solid #dce8e4;border-radius:17px;background:#fff;
+        padding:17px;border:1px solid #ead0de;border-radius:17px;background:#fff;
         text-align:left;font:inherit;cursor:pointer;
         transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
       }
@@ -9302,7 +9395,7 @@ function ShiftHandover({profile,onNavigate}){
         gap:14px;margin-top:14px
       }
       .accounts-panel{
-        padding:18px;border:1px solid #dce8e4;border-radius:18px;background:#fff
+        padding:18px;border:1px solid #ead0de;border-radius:18px;background:#fff
       }
       .accounts-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
       .accounts-panel-head h3{margin:0;font-size:20px}
@@ -9310,8 +9403,8 @@ function ShiftHandover({profile,onNavigate}){
       .accounts-bars{display:grid;gap:12px}
       .accounts-bar-row{display:grid;grid-template-columns:125px 1fr 110px;gap:10px;align-items:center}
       .accounts-bar-row span{font-size:13px;color:#53645f}
-      .accounts-bar-track{height:13px;border-radius:20px;background:#edf3f1;overflow:hidden}
-      .accounts-bar-fill{height:100%;min-width:3px;border-radius:inherit;background:linear-gradient(90deg,#0b6d59,#20a786)}
+      .accounts-bar-track{height:13px;border-radius:20px;background:#f7e7ef;overflow:hidden}
+      .accounts-bar-fill{height:100%;min-width:3px;border-radius:inherit;background:linear-gradient(90deg,#b01264,#20a786)}
       .accounts-bar-row strong{text-align:right;font-size:13px}
       .accounts-workflow-grid{
         display:grid;
@@ -9327,7 +9420,7 @@ function ShiftHandover({profile,onNavigate}){
         justify-content:space-between;
         min-height:178px;
         padding:18px;
-        border:1px solid #dce8e4;
+        border:1px solid #ead0de;
         border-top:4px solid var(--workflow-accent,#0f8b73);
         border-radius:18px;
         background:linear-gradient(155deg,#ffffff 0%,var(--workflow-soft,#f2faf7) 100%);
@@ -9444,8 +9537,8 @@ function ShiftHandover({profile,onNavigate}){
       .accounts-mode-grid{
         display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px
       }
-      .accounts-mode-card{padding:13px;border-radius:14px;border:1px solid #dce8e4;background:#fff}
-      .accounts-mode-card span{display:block;color:#697873;font-size:12px}
+      .accounts-mode-card{padding:13px;border-radius:14px;border:1px solid #ead0de;background:#fff}
+      .accounts-mode-card span{display:block;color:#7b6571;font-size:12px}
       .accounts-mode-card strong{display:block;margin-top:7px;font-size:20px}
       @media(max-width:1150px){
         .accounts-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -9461,7 +9554,7 @@ function ShiftHandover({profile,onNavigate}){
       }
       .complete-bill-toolbar{
         display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
-        padding:14px 16px;border:1px solid #dce8e4;border-radius:16px;background:#fff
+        padding:14px 16px;border:1px solid #ead0de;border-radius:16px;background:#fff
       }
       .complete-bill-toolbar strong{font-size:18px;color:#0b5d4b}
       .complete-bill-toolbar small{display:block;margin-top:4px;color:#6a7975}
@@ -9469,7 +9562,7 @@ function ShiftHandover({profile,onNavigate}){
         display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;
         border-radius:999px;font-size:12px;font-weight:900
       }
-      .complete-bill-status.paid{background:#e8f7ed;color:#067333}
+      .complete-bill-status.paid{background:#fae7f0;color:#7a1247}
       .complete-bill-status.partial{background:#fff4df;color:#9a6700}
       .complete-bill-status.pending{background:#ffeded;color:#b42318}
       @media print{
@@ -9771,37 +9864,37 @@ function ShiftHandover({profile,onNavigate}){
 <title>Complete Bill - ${escapeHtml(formalName(patient)||patient.full_name||'Patient')}</title>
 <style>
   *{box-sizing:border-box}
-  body{margin:0;background:#eef4f2;font-family:Arial,sans-serif;color:#16352e}
+  body{margin:0;background:#fff5fa;font-family:Arial,sans-serif;color:#382333}
   .sheet{width:210mm;min-height:297mm;margin:12px auto;background:#fff;padding:14mm;box-shadow:0 10px 32px #0002}
-  .head{display:flex;justify-content:space-between;gap:20px;padding-bottom:14px;border-bottom:3px solid #0b6d59}
-  .brand h1{margin:0;color:#075c4d;font-size:26px}
-  .brand p{margin:4px 0;color:#596b66}
+  .head{display:flex;justify-content:space-between;gap:20px;padding-bottom:14px;border-bottom:3px solid #b01264}
+  .brand h1{margin:0;color:#7a1247;font-size:26px}
+  .brand p{margin:4px 0;color:#735d69}
   .invoice{text-align:right}
-  .invoice strong{display:block;font-size:19px;color:#0b6d59}
+  .invoice strong{display:block;font-size:19px;color:#b01264}
   .invoice span{display:block;margin-top:5px;font-size:12px}
   .title{text-align:center;margin:18px 0 12px}
   .title h2{margin:0;font-size:22px}
-  .title p{margin:5px 0;color:#667772;font-size:12px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;padding:12px;border:1px solid #d7e4e0;border-radius:10px;background:#f7faf9}
+  .title p{margin:5px 0;color:#735d69;font-size:12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;padding:12px;border:1px solid #ead0de;border-radius:10px;background:#fffafd}
   .field{display:grid;grid-template-columns:130px 1fr;gap:8px;font-size:12px;padding:3px 0}
-  .field b{color:#455b55}
-  h3{margin:19px 0 8px;font-size:15px;color:#075c4d}
+  .field b{color:#624858}
+  h3{margin:19px 0 8px;font-size:15px;color:#7a1247}
   table{width:100%;border-collapse:collapse;font-size:11px}
-  th{background:#0b6d59;color:#fff;text-align:left;padding:8px;border:1px solid #0b6d59}
-  td{padding:8px;border:1px solid #dbe6e3;vertical-align:top}
+  th{background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c);color:#fff;text-align:left;padding:8px;border:1px solid #b01264}
+  td{padding:8px;border:1px solid #ecd5e1;vertical-align:top}
   .amount{text-align:right;white-space:nowrap;font-weight:bold}
-  .detail{margin-top:4px;color:#697873;font-size:10px;line-height:1.35}
-  .empty{text-align:center;color:#73817d;padding:18px}
-  .summary{width:44%;margin:16px 0 0 auto;border:1px solid #d7e4e0;border-radius:10px;overflow:hidden}
-  .summary-row{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #e3ebe8;font-size:12px}
+  .detail{margin-top:4px;color:#7b6571;font-size:10px;line-height:1.35}
+  .empty{text-align:center;color:#7b6571;padding:18px}
+  .summary{width:44%;margin:16px 0 0 auto;border:1px solid #ead0de;border-radius:10px;overflow:hidden}
+  .summary-row{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #f0dce7;font-size:12px}
   .summary-row:last-child{border-bottom:0}
-  .summary-row.total{background:#075c4d;color:#fff;font-size:15px;font-weight:bold}
-  .status{margin-top:14px;padding:10px;text-align:center;border-radius:9px;font-weight:bold;background:${netPayable<=0.009?'#e8f7ed':'#fff2e2'};color:${netPayable<=0.009?'#067333':'#a65300'}}
-  .notes{margin-top:18px;padding:10px;border:1px solid #dbe6e3;border-radius:9px;font-size:11px;color:#586963}
+  .summary-row.total{background:#7a1247;color:#fff;font-size:15px;font-weight:bold}
+  .status{margin-top:14px;padding:10px;text-align:center;border-radius:9px;font-weight:bold;background:${netPayable<=0.009?'#fae7f0':'#fff2e2'};color:${netPayable<=0.009?'#7a1247':'#a65300'}}
+  .notes{margin-top:18px;padding:10px;border:1px solid #ecd5e1;border-radius:9px;font-size:11px;color:#735d69}
   .signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:38px;text-align:center;font-size:11px}
-  .signatures div{padding-top:28px;border-top:1px solid #63736e}
-  .footer{margin-top:30px;padding-top:10px;border-top:1px solid #dbe6e3;text-align:center;font-size:10px;color:#6c7b77}
-  .print{display:block;margin:16px auto;padding:11px 22px;border:0;border-radius:8px;background:#0b6d59;color:#fff;font-weight:bold;cursor:pointer}
+  .signatures div{padding-top:28px;border-top:1px solid #735d69}
+  .footer{margin-top:30px;padding-top:10px;border-top:1px solid #ecd5e1;text-align:center;font-size:10px;color:#7b6571}
+  .print{display:block;margin:16px auto;padding:11px 22px;border:0;border-radius:8px;background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c);color:#fff;font-weight:bold;cursor:pointer}
   @media print{
     body{background:#fff}
     .sheet{width:auto;min-height:auto;margin:0;box-shadow:none;padding:8mm}
@@ -10047,7 +10140,7 @@ function ShiftHandover({profile,onNavigate}){
         align-content:center;
         gap:7px;
         padding:15px;
-        border:1px solid #dce8e4;
+        border:1px solid #ead0de;
         border-radius:15px;
         background:#fff;
       }
@@ -10057,7 +10150,7 @@ function ShiftHandover({profile,onNavigate}){
         background:#fff0f0;border-color:#f3b2b2;color:#b42318
       }
       .payment-summary-card.summary-green{
-        background:#eaf8ef;border-color:#a8dfbb;color:#067333
+        background:#eaf8ef;border-color:#a8dfbb;color:#7a1247
       }
       .payment-summary-card.summary-orange{
         background:#fff6e7;border-color:#f4c475;color:#b54708
@@ -11602,7 +11695,7 @@ function Reports(){
         row.patient.room_no?`${row.patient.room_no}${row.patient.bed_no?`-${row.patient.bed_no}`:''}`:'—',
         money(row.charges),money(row.paid),money(row.discount),money(row.refund),
         money(Math.max(0,row.balance)),
-        h('span',{className:'badge',style:row.balance<=0.009?{background:'#e8f7ed',color:'#067333'}:row.paid>0?{background:'#fff4df',color:'#9a6700'}:{background:'#ffeded',color:'#b42318'}},
+        h('span',{className:'badge',style:row.balance<=0.009?{background:'#fae7f0',color:'#7a1247'}:row.paid>0?{background:'#fff4df',color:'#9a6700'}:{background:'#ffeded',color:'#b42318'}},
           row.balance<=0.009?'Paid':row.paid>0?'Partially Paid':'Outstanding'
         )
       ])

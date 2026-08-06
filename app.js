@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.9';
-  const APP_BUILD_DATE = '06-Aug-2026 09:35 IST';
+  const APP_VERSION = '2.8.10';
+  const APP_BUILD_DATE = '06-Aug-2026 09:55 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.9';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.10';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -565,6 +565,118 @@
       .sidebar .nav-section:nth-of-type(-n+4).expanded .nav-submenu button:hover,
       .sidebar .nav-section:nth-of-type(-n+4).expanded .nav-submenu button:focus{
         background:rgba(255,255,255,.34)!important;
+      }
+
+
+      /* Final distinct icon palette matching the approved sidebar design */
+      .sidebar .nav-submenu button::before{
+        opacity:1!important;
+        filter:none!important;
+        text-shadow:none!important;
+        font-weight:900!important;
+      }
+
+      .sidebar .nav-submenu button[data-nav='Clinical Dashboard']::before{
+        content:'⚕'!important;
+        color:#1fc7b6!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Clinical Alerts']::before{
+        content:'●'!important;
+        color:#f6b72d!important;
+        font-size:17px!important;
+        box-shadow:0 0 0 3px rgba(246,183,45,.12)!important;
+        border-radius:50%!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Shift Tasks']::before{
+        content:'☷'!important;
+        color:#6f63d9!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Daily Care']::before{
+        content:'♡'!important;
+        color:#f58bb0!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Vital Signs']::before{
+        content:'∿'!important;
+        color:#67b8ff!important;
+        font-size:25px!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Medicines']::before{
+        content:'◐'!important;
+        color:#2bc7b0!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Physiotherapy']::before{
+        content:'⚘'!important;
+        color:#21c6b0!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Special Nurse']::before{
+        content:'✣'!important;
+        color:#08b9e8!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Shift Handover']::before{
+        content:'⇄'!important;
+        color:#9b7ce8!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Incidents']::before{
+        content:'⚠'!important;
+        color:#ff8a48!important;
+      }
+
+      .sidebar .nav-submenu button[data-nav='Enquiries']::before{
+        content:'☎'!important;
+        color:#e81f77!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Admissions']::before{
+        content:'✚'!important;
+        color:#df1d73!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Patients']::before{
+        content:'♟'!important;
+        color:#d61a70!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Discharge']::before{
+        content:'⇥'!important;
+        color:#ee4e70!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Documents']::before{
+        content:'□'!important;
+        color:#d61a70!important;
+      }
+
+      .sidebar .nav-submenu button[data-nav='Accounts Dashboard']::before{
+        content:'₹'!important;
+        color:#3bcf85!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Charge Approvals']::before{
+        content:'✓'!important;
+        color:#3bcf85!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Payments']::before{
+        content:'₹'!important;
+        color:#f6b72d!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Final Billing']::before{
+        content:'▧'!important;
+        color:#f59b23!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Discharge Clearance']::before{
+        content:'⇥'!important;
+        color:#f36a4c!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Refunds']::before{
+        content:'↶'!important;
+        color:#31b8cd!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Accounts Reports']::before{
+        content:'▦'!important;
+        color:#8e62d8!important;
+      }
+
+      /* Keep icon colours visible even when row is active or hovered */
+      .sidebar .nav-submenu button.active::before,
+      .sidebar .nav-submenu button:hover::before,
+      .sidebar .nav-submenu button:focus::before{
+        opacity:1!important;
+        filter:none!important;
       }
 
       /* Footer contrast adapts to the darkest gradient */

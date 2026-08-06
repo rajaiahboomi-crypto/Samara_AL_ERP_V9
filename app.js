@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.13';
-  const APP_BUILD_DATE = '06-Aug-2026 10:20 IST';
+  const APP_VERSION = '2.8.14';
+  const APP_BUILD_DATE = '06-Aug-2026 10:30 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.13';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.14';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -4285,18 +4285,62 @@ Caring with Compassion. Living with Dignity.`;
         .replace(/"/g,'&quot;');
     }
 
-    function consentFileBase(record){
-      const patient=record?.patient||{};
-      const admission=record?.form||{};
+    function admissionTimestampParts(patient={},admission={}){
+      const explicitTimestamp=
+        admission.admission_datetime||
+        admission.admission_timestamp||
+        admission.admitted_at||
+        patient.admission_datetime||
+        patient.admission_timestamp||
+        patient.admitted_at||
+        patient.created_at||
+        admission.created_at||
+        '';
+
+      let timestamp=explicitTimestamp?new Date(explicitTimestamp):null;
+      if(!timestamp||Number.isNaN(timestamp.getTime()))timestamp=null;
+
+      const admissionDate=String(
+        admission.admission_date||
+        patient.admission_date||
+        ''
+      ).slice(0,10);
+
+      // Preserve the recorded admission date, while taking the time from the
+      // immutable admission/record creation timestamp when no dedicated
+      // admission datetime column exists.
+      if(admissionDate){
+        const timeSource=timestamp||new Date(`${admissionDate}T00:00:00`);
+        const hours=String(timeSource.getHours()).padStart(2,'0');
+        const minutes=String(timeSource.getMinutes()).padStart(2,'0');
+        return {date:admissionDate,time:`${hours}-${minutes}`};
+      }
+
+      if(timestamp){
+        const year=timestamp.getFullYear();
+        const month=String(timestamp.getMonth()+1).padStart(2,'0');
+        const day=String(timestamp.getDate()).padStart(2,'0');
+        const hours=String(timestamp.getHours()).padStart(2,'0');
+        const minutes=String(timestamp.getMinutes()).padStart(2,'0');
+        return {date:`${year}-${month}-${day}`,time:`${hours}-${minutes}`};
+      }
+
+      return {date:'Admission-Date-Unavailable',time:'Time-Unavailable'};
+    }
+
+    function admissionConsentFilename(patient={},admission={}){
       const patientName=String(formalName(patient)||patient.full_name||'Patient')
         .trim()
         .replace(/[^a-zA-Z0-9]+/g,'_')
         .replace(/^_+|_+$/g,'');
       const patientCode=String(patient.patient_code||patient.patient_id||'Patient_ID')
         .replace(/[^a-zA-Z0-9-]+/g,'_');
-      const date=formatDateIN(admission.admission_date||todayISOIndia())
-        .replace(/[^0-9-]/g,'');
-      return `${patientName}_${patientCode}_${date}`;
+      const stamp=admissionTimestampParts(patient,admission);
+      return `${patientName}_${patientCode}_Admission_${stamp.date}_${stamp.time}.pdf`;
+    }
+
+    function consentFileBase(record){
+      return admissionConsentFilename(record?.patient||{},record?.form||{});
     }
 
     async function ensureOfflineQrGenerator(){
@@ -6190,12 +6234,7 @@ Caring with Compassion. Living with Dignity.`;
     }
 
     function patientConsentFilename(row){
-      const name=String(formalName(row)||row.full_name||'Patient')
-        .trim().replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-      const code=String(row.patient_code||row.patient_id||'Patient_ID')
-        .replace(/[^a-zA-Z0-9-]+/g,'_');
-      const date=formatDateIN(row.admission_date||todayISOIndia()).replace(/[^0-9-]/g,'');
-      return `${name}_${code}_${date}`;
+      return admissionConsentFilename(row||{},row||{});
     }
 
     async function printPatientConsent(row){

@@ -1,9 +1,9 @@
-const CACHE = 'samara-erp-2.3.0-new-brand-logo';
+const CACHE = 'samara-erp-2.3.1-logo-colour-theme';
 const SHELL = [
-  './', './index.html', './styles.css?v=2.3.0', './app.js?v=2.3.0',
-  './bootstrap-error.js?v=2.3.0', './health-check.js?v=2.3.0',
-  './config.js?v=2.3.0', './manifest.webmanifest',
-  './assets/samara-logo.png?v=2.3.0', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
+  './', './index.html', './styles.css?v=2.3.1', './app.js?v=2.3.1',
+  './bootstrap-error.js?v=2.3.1', './health-check.js?v=2.3.1',
+  './config.js?v=2.3.1', './manifest.webmanifest',
+  './assets/samara-logo.png?v=2.3.1', './icons/favicon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -13,7 +13,7 @@
         html, body {
           margin: 0;
           min-height: 100%;
-          background: #0f6f5d !important;
+          background: #9a0c55 !important;
         }
 
         html.samara-preboot body {
@@ -35,7 +35,7 @@
           background:
             radial-gradient(circle at 100% 0%, rgba(255,255,255,.10) 0 130px, transparent 132px),
             radial-gradient(circle at 0% 100%, rgba(255,255,255,.10) 0 105px, transparent 107px),
-            linear-gradient(135deg, #075b4d 0%, #168873 100%) !important;
+            linear-gradient(135deg, #741444 0%, #c21872 100%) !important;
           opacity: 1 !important;
           visibility: visible !important;
           transition: opacity .38s ease, visibility .38s ease !important;
@@ -54,7 +54,7 @@
 
         #root {
           min-height: 100vh;
-          background: #edf5f2;
+          background: #fff7fb;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.0';
-  const APP_BUILD_DATE = '06-Aug-2026 07:15 IST';
+  const APP_VERSION = '2.3.1';
+  const APP_BUILD_DATE = '06-Aug-2026 07:25 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -106,6 +106,130 @@
         .side-brand-logo{width:145px;height:54px}
         .login-main-brand-logo{width:min(330px,92%);max-height:160px}
         .mobile-header-brand-logo{width:105px;height:38px}
+      }
+
+      /* Samara logo colour system */
+      :root{
+        --samara-primary:#b20b62;
+        --samara-primary-dark:#7b164b;
+        --samara-primary-deep:#5f123c;
+        --samara-accent:#f59b23;
+        --samara-accent-light:#ffd166;
+        --samara-soft:#fff3f8;
+        --samara-soft-2:#f8e5ef;
+        --samara-border:#ead0de;
+        --samara-text:#382f38;
+        --samara-muted:#67616a;
+      }
+
+      html,body,#root{background:#fff7fb!important;color:var(--samara-text)}
+      .app-shell,.app-main,main,.content-area{background:#fff7fb!important}
+
+      .sidebar,.side-nav,.app-sidebar{
+        background:linear-gradient(180deg,#741444 0%,#971253 54%,#651138 100%)!important;
+      }
+      .side-brand{
+        display:flex!important;
+        flex-direction:column!important;
+        align-items:flex-start!important;
+        gap:2px!important;
+        padding-bottom:12px!important;
+      }
+      .side-brand>div:last-child{
+        display:block!important;
+        width:100%!important;
+        margin-top:0!important;
+      }
+      .side-brand>div:last-child strong{display:none!important}
+      .side-brand>div:last-child small{
+        display:block!important;
+        color:#ffe7f2!important;
+        font-size:11px!important;
+        font-weight:700!important;
+        letter-spacing:.25px!important;
+        padding-left:4px!important;
+      }
+      .side-brand-logo{width:180px!important;height:66px!important}
+
+      .sidebar button,.sidebar a,.side-nav button,.side-nav a{color:#fff!important}
+      .nav-section-title,.side-section-title{color:#ffe8f2!important}
+      .nav-item.active,.side-nav .active,.sidebar .active{
+        background:#c51b70!important;color:#fff!important;
+        box-shadow:inset 3px 0 0 #ffbd43!important;
+      }
+      .nav-item:hover,.side-nav button:hover,.sidebar button:hover{
+        background:rgba(255,255,255,.12)!important;
+      }
+
+      .topbar,.app-header,.page-header{
+        background:#fff!important;
+        border-bottom-color:var(--samara-border)!important;
+      }
+      .topbar h1,.app-header h1,.page-header h1,
+      h1,h2,h3,h4{color:#301f2b!important}
+
+      .btn-primary,.button-primary,button.primary,
+      .accounts-workflow-card .open-action,
+      .alert-sound-button,.enable-alert-sound{
+        background:linear-gradient(135deg,#a8075b,#c91b73)!important;
+        border-color:#9a0c55!important;color:#fff!important;
+      }
+      .btn-primary:hover,.button-primary:hover,button.primary:hover{
+        background:linear-gradient(135deg,#8b094d,#b40e63)!important;
+      }
+      .btn-secondary{
+        background:#f7e7ef!important;
+        border-color:#e4c4d5!important;
+        color:#751243!important;
+      }
+
+      input:focus,select:focus,textarea:focus{
+        border-color:#c21872!important;
+        box-shadow:0 0 0 3px rgba(194,24,114,.13)!important;
+      }
+
+      .card,.section-card,.panel,.dashboard-card,.metric-card,
+      .accounts-workflow-card,.accounts-status-item{
+        border-color:var(--samara-border)!important;
+      }
+      .dashboard-card::before,.metric-card::before,
+      .accounts-workflow-card::before{
+        background:linear-gradient(90deg,#b20b62,#f59b23)!important;
+      }
+
+      .badge,.status-badge,.pill{
+        border-color:#e5bfd2!important;
+      }
+      .badge.success,.status-badge.success,.pill.success,
+      .samara-toast.success{
+        background:#f8e5ef!important;color:#7a1548!important;
+        border-color:#dfa9c3!important;
+      }
+
+      a,.link,.text-link{color:#a40c59!important}
+      .message.warning{border-color:#f1b443!important}
+      .message.success{
+        background:#fff0f6!important;
+        color:#7b164b!important;
+        border-color:#e8b7ce!important;
+      }
+
+      .app-splash-card,.login-v3-card{
+        border-color:#e9c9d9!important;
+      }
+      .app-splash-progress span,.login-v3-progress span{
+        background:linear-gradient(90deg,#b20b62,#f59b23,#ffd166)!important;
+      }
+
+      /* Printable reports and consent forms */
+      @media print{
+        body{background:#fff!important;color:#2e2530!important}
+        h1,h2,h3,h4{color:#6f123f!important}
+        table th{background:#f8e5ef!important;color:#51102f!important}
+        table,th,td{border-color:#cda8ba!important}
+        .print-header,.report-header,.consent-header{
+          border-color:#b20b62!important;
+        }
       }
       @media print{
         .report-brand-logo{display:block!important}
@@ -348,7 +472,7 @@
         padding: 14px 16px !important;
         border: 0 !important;
         border-radius: 13px !important;
-        background: #11884f !important;
+        background: #b20b62 !important;
         color: #ffffff !important;
         box-shadow: 0 14px 34px rgba(4,78,46,.30) !important;
         font-weight: 700 !important;
@@ -426,9 +550,9 @@
       }
 
       .message.success {
-        border: 1px solid #8dd8b1 !important;
-        background: #eaf9f1 !important;
-        color: #075c36 !important;
+        border: 1px solid #efb4cf !important;
+        background: #fff1f7 !important;
+        color: #7b164b !important;
         font-weight: 700 !important;
       }
 
@@ -749,7 +873,7 @@ Caring with Compassion. Living with Dignity.`;
     const style=document.createElement('style');
     style.id='samara-smooth-refresh-style';
     style.textContent=`
-      html,body,#root{min-height:100%;background:#edf5f2}
+      html,body,#root{min-height:100%;background:#fff7fb}
       #app-splash{
         opacity:1;
         visibility:visible;
@@ -1786,7 +1910,7 @@ Caring with Compassion. Living with Dignity.`;
       const win=window.open('','_blank','width=760,height=700');
       if(!win){alert('Please allow pop-ups to print the ID card.');return}
       const validUntil=currentRow.date_of_joining?formatDateIN(new Date(new Date(currentRow.date_of_joining).setFullYear(new Date(currentRow.date_of_joining).getFullYear()+3))):'As per employment';
-      win.document.write(`<!doctype html><html><head><title>Employee ID Card</title><style>body{font-family:Arial;margin:0;padding:30px;background:#eef6f4}.card{width:360px;height:570px;margin:auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 35px #0002;border:2px solid #086b58}.head{background:#086b58;color:white;text-align:center;padding:22px}.head h1{margin:0;font-size:25px}.head p{margin:6px 0 0}.photo{width:130px;height:150px;border:4px solid white;border-radius:16px;object-fit:cover;background:#ddd;margin:-4px auto 16px;display:block;box-shadow:0 4px 15px #0003}.body{padding:16px 28px;text-align:center}.name{font-size:25px;font-weight:bold;color:#063f36}.role{font-size:18px;color:#086b58;margin:5px}.grid{text-align:left;margin-top:18px;line-height:1.75}.label{font-weight:bold;color:#555}.foot{position:absolute}.barcode{margin-top:15px;padding:10px;border-top:1px dashed #aaa;font-family:monospace}.print{display:block;margin:20px auto;padding:12px 24px}@media print{.print{display:none}body{background:white;padding:0}}</style></head><body><div class="card"><div class="head"><h1>SAMARA HEALTH CARE LLP</h1><p>Assisted Living Management System</p></div><div class="body">${photoUrl?`<img class="photo" src="${photoUrl}">`:`<div class="photo" style="display:flex;align-items:center;justify-content:center;font-size:48px">SC</div>`}<div class="name">${escapeHtml(formalName(currentRow))}</div><div class="role">${escapeHtml(currentRow.designation||currentRow.role)}</div><div class="grid"><div><span class="label">Employee ID:</span> ${escapeHtml(currentRow.employee_id||'—')}</div><div><span class="label">Role:</span> ${escapeHtml(currentRow.role||'—')}</div><div><span class="label">Mobile:</span> ${escapeHtml(currentRow.mobile||'—')}</div><div><span class="label">Blood Group:</span> ${escapeHtml(currentRow.blood_group||'—')}</div><div><span class="label">Date of Joining:</span> ${escapeHtml(currentRow.date_of_joining||'—')}</div><div><span class="label">Valid:</span> ${escapeHtml(validUntil)}</div></div><div class="barcode">${escapeHtml(currentRow.login_id||currentRow.id)}</div></div></div><button class="print" onclick="window.print()">Print ID Card</button></body></html>`);
+      win.document.write(`<!doctype html><html><head><title>Employee ID Card</title><style>body{font-family:Arial;margin:0;padding:30px;background:#fff7fb}.card{width:360px;height:570px;margin:auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 35px #0002;border:2px solid #a40c59}.head{background:#a40c59;color:white;text-align:center;padding:22px}.head h1{margin:0;font-size:25px}.head p{margin:6px 0 0}.photo{width:130px;height:150px;border:4px solid white;border-radius:16px;object-fit:cover;background:#ddd;margin:-4px auto 16px;display:block;box-shadow:0 4px 15px #0003}.body{padding:16px 28px;text-align:center}.name{font-size:25px;font-weight:bold;color:#641039}.role{font-size:18px;color:#a40c59;margin:5px}.grid{text-align:left;margin-top:18px;line-height:1.75}.label{font-weight:bold;color:#555}.foot{position:absolute}.barcode{margin-top:15px;padding:10px;border-top:1px dashed #aaa;font-family:monospace}.print{display:block;margin:20px auto;padding:12px 24px}@media print{.print{display:none}body{background:white;padding:0}}</style></head><body><div class="card"><div class="head"><h1>SAMARA HEALTH CARE LLP</h1><p>Assisted Living Management System</p></div><div class="body">${photoUrl?`<img class="photo" src="${photoUrl}">`:`<div class="photo" style="display:flex;align-items:center;justify-content:center;font-size:48px">SC</div>`}<div class="name">${escapeHtml(formalName(currentRow))}</div><div class="role">${escapeHtml(currentRow.designation||currentRow.role)}</div><div class="grid"><div><span class="label">Employee ID:</span> ${escapeHtml(currentRow.employee_id||'—')}</div><div><span class="label">Role:</span> ${escapeHtml(currentRow.role||'—')}</div><div><span class="label">Mobile:</span> ${escapeHtml(currentRow.mobile||'—')}</div><div><span class="label">Blood Group:</span> ${escapeHtml(currentRow.blood_group||'—')}</div><div><span class="label">Date of Joining:</span> ${escapeHtml(currentRow.date_of_joining||'—')}</div><div><span class="label">Valid:</span> ${escapeHtml(validUntil)}</div></div><div class="barcode">${escapeHtml(currentRow.login_id||currentRow.id)}</div></div></div><button class="print" onclick="window.print()">Print ID Card</button></body></html>`);
       win.document.close();
     }
 
@@ -1824,8 +1948,8 @@ Caring with Compassion. Living with Dignity.`;
 
     const uploadFields=()=>h('div',{className:'employee-upload-section span-2'},h('h4',null,'Employee Photo, Documents and Certificates'),h('p',{className:'small-note'},'Each item provides separate Upload File, Mobile Camera and Webcam options.'),h('div',{className:'modal-grid'},fileInput('Employee Photo',setPhotoFiles,'image/*',true),fileInput('ID Card / Identity Proof',setIdFiles),fileInput('Qualification Certificates',setQualificationFiles),fileInput('Experience / Previous Employment Certificates',setExperienceFiles),fileInput('Other Certificates',setOtherFiles)));
 
-    const personnelPhotoPreview=()=>h('div',{className:'employee-form-photo',style:{width:'116px',height:'136px',borderRadius:'16px',overflow:'hidden',border:'2px solid #d7e7e2',background:'#eef6f4',display:'flex',alignItems:'center',justifyContent:'center',flex:'0 0 auto'}},
-      photoPreview?h('img',{src:photoPreview,alt:'Employee photo preview',style:{width:'100%',height:'100%',objectFit:'cover'}}):h('div',{style:{fontSize:'34px',fontWeight:'700',color:'#086b58'}},'SC')
+    const personnelPhotoPreview=()=>h('div',{className:'employee-form-photo',style:{width:'116px',height:'136px',borderRadius:'16px',overflow:'hidden',border:'2px solid #ead0de',background:'#fff7fb',display:'flex',alignItems:'center',justifyContent:'center',flex:'0 0 auto'}},
+      photoPreview?h('img',{src:photoPreview,alt:'Employee photo preview',style:{width:'100%',height:'100%',objectFit:'cover'}}):h('div',{style:{fontSize:'34px',fontWeight:'700',color:'#a40c59'}},'SC')
     );
 
     const createModal=show?h('div',{className:'modal-backdrop'},h('form',{className:'card modal employee-modal',onSubmit:create},
@@ -2702,7 +2826,7 @@ Caring with Compassion. Living with Dignity.`;
       const url=await resolvePatientPhoto(row);const win=window.open('','_blank','width=760,height=820');if(!win){alert('Please allow pop-ups to print the Patient ID card.');return}
       const doctor=row.referring_doctor||row.treating_doctor||row.family_doctor||'—';
       const emergencyName=row.attendant_name||'—';const emergencyPhone=row.attendant_phone||row.mobile||'—';
-      win.document.write(`<!doctype html><html><head><title>Patient ID Card</title><style>body{font-family:Arial;margin:0;padding:24px;background:#eef6f4}.card{width:390px;min-height:650px;margin:auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 35px #0002;border:2px solid #086b58}.head{background:#086b58;color:white;text-align:center;padding:20px}.head h1{margin:0;font-size:24px}.head p{margin:6px 0 0}.photo{width:125px;height:145px;border:4px solid white;border-radius:16px;object-fit:cover;background:#ddd;margin:14px auto 10px;display:block;box-shadow:0 4px 15px #0003}.body{padding:10px 26px 24px;text-align:center}.name{font-size:25px;font-weight:bold;color:#063f36}.category{font-size:16px;color:#086b58;margin:4px 0 12px}.grid{text-align:left;line-height:1.55;font-size:15px}.row{padding:4px 0;border-bottom:1px solid #eef2f1}.label{font-weight:bold;color:#444}.emergency{margin-top:12px;padding:10px;background:#fff4e5;border:1px solid #f2c87d;border-radius:10px}.barcode{margin-top:14px;padding:9px;border-top:1px dashed #aaa;font-family:monospace}.print{display:block;margin:20px auto;padding:12px 24px}@media print{.print{display:none}body{background:white;padding:0}}</style></head><body><div class="card"><div class="head"><h1>SAMARA HEALTH CARE LLP</h1><p>Assisted Living Patient Identity & Emergency Card</p></div><div class="body">${url?`<img class="photo" src="${url}">`:`<div class="photo" style="display:flex;align-items:center;justify-content:center;font-size:48px">SC</div>`}<div class="name">${escapeHtml(formalName(row))}</div><div class="category">${escapeHtml(row.patient_category||'Patient')}</div><div class="grid"><div class="row"><span class="label">Patient ID:</span> ${escapeHtml(row.patient_id||'—')}</div><div class="row"><span class="label">Main Diagnosis:</span> ${escapeHtml(row.diagnosis||'—')}</div><div class="row"><span class="label">Referred / Treating Doctor:</span> ${escapeHtml(doctor)}</div><div class="row"><span class="label">Doctor Mobile:</span> ${escapeHtml(row.doctor_phone||'—')}</div><div class="row"><span class="label">Room / Bed:</span> ${escapeHtml(`${row.room_no||'—'} / ${row.bed_no||'—'}`)}</div><div class="row"><span class="label">Gender / Age:</span> ${escapeHtml(`${row.gender||'—'} / ${row.age||'—'}`)}</div><div class="row"><span class="label">Patient Mobile:</span> ${escapeHtml(row.mobile||'—')}</div><div class="row"><span class="label">Allergies:</span> ${escapeHtml(row.allergies||'None recorded')}</div><div class="emergency"><div><span class="label">Emergency Contact:</span> ${escapeHtml(emergencyName)}</div><div><span class="label">Emergency Mobile:</span> ${escapeHtml(emergencyPhone)}</div></div></div><div class="barcode">${escapeHtml(row.patient_id||row.id)}</div></div></div><button class="print" onclick="window.print()">Print Patient ID Card</button></body></html>`);win.document.close();
+      win.document.write(`<!doctype html><html><head><title>Patient ID Card</title><style>body{font-family:Arial;margin:0;padding:24px;background:#fff7fb}.card{width:390px;min-height:650px;margin:auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 35px #0002;border:2px solid #a40c59}.head{background:#a40c59;color:white;text-align:center;padding:20px}.head h1{margin:0;font-size:24px}.head p{margin:6px 0 0}.photo{width:125px;height:145px;border:4px solid white;border-radius:16px;object-fit:cover;background:#ddd;margin:14px auto 10px;display:block;box-shadow:0 4px 15px #0003}.body{padding:10px 26px 24px;text-align:center}.name{font-size:25px;font-weight:bold;color:#641039}.category{font-size:16px;color:#a40c59;margin:4px 0 12px}.grid{text-align:left;line-height:1.55;font-size:15px}.row{padding:4px 0;border-bottom:1px solid #eef2f1}.label{font-weight:bold;color:#444}.emergency{margin-top:12px;padding:10px;background:#fff4e5;border:1px solid #f2c87d;border-radius:10px}.barcode{margin-top:14px;padding:9px;border-top:1px dashed #aaa;font-family:monospace}.print{display:block;margin:20px auto;padding:12px 24px}@media print{.print{display:none}body{background:white;padding:0}}</style></head><body><div class="card"><div class="head"><h1>SAMARA HEALTH CARE LLP</h1><p>Assisted Living Patient Identity & Emergency Card</p></div><div class="body">${url?`<img class="photo" src="${url}">`:`<div class="photo" style="display:flex;align-items:center;justify-content:center;font-size:48px">SC</div>`}<div class="name">${escapeHtml(formalName(row))}</div><div class="category">${escapeHtml(row.patient_category||'Patient')}</div><div class="grid"><div class="row"><span class="label">Patient ID:</span> ${escapeHtml(row.patient_id||'—')}</div><div class="row"><span class="label">Main Diagnosis:</span> ${escapeHtml(row.diagnosis||'—')}</div><div class="row"><span class="label">Referred / Treating Doctor:</span> ${escapeHtml(doctor)}</div><div class="row"><span class="label">Doctor Mobile:</span> ${escapeHtml(row.doctor_phone||'—')}</div><div class="row"><span class="label">Room / Bed:</span> ${escapeHtml(`${row.room_no||'—'} / ${row.bed_no||'—'}`)}</div><div class="row"><span class="label">Gender / Age:</span> ${escapeHtml(`${row.gender||'—'} / ${row.age||'—'}`)}</div><div class="row"><span class="label">Patient Mobile:</span> ${escapeHtml(row.mobile||'—')}</div><div class="row"><span class="label">Allergies:</span> ${escapeHtml(row.allergies||'None recorded')}</div><div class="emergency"><div><span class="label">Emergency Contact:</span> ${escapeHtml(emergencyName)}</div><div><span class="label">Emergency Mobile:</span> ${escapeHtml(emergencyPhone)}</div></div></div><div class="barcode">${escapeHtml(row.patient_id||row.id)}</div></div></div><button class="print" onclick="window.print()">Print Patient ID Card</button></body></html>`);win.document.close();
     }
     function duplicateCount(row){const name=String(row.full_name||'').trim().toLowerCase();const mobile=String(row.mobile||row.attendant_phone||'').replace(/\D/g,'');return rows.filter(x=>x.id!==row.id&&String(x.full_name||'').trim().toLowerCase()===name&&(!mobile||String(x.mobile||x.attendant_phone||'').replace(/\D/g,'')===mobile)).length}
     function billingSummary(list){return (list||[]).reduce((a,x)=>{const n=Number(x.amount||0);if(x.transaction_type==='Charge')a.charges+=n;else if(x.transaction_type==='Payment')a.payments+=n;else if(x.transaction_type==='Discount')a.discounts+=n;else if(x.transaction_type==='Refund')a.refunds+=n;return a},{charges:0,payments:0,discounts:0,refunds:0})}
@@ -2865,7 +2989,7 @@ Caring with Compassion. Living with Dignity.`;
         disabled:!isCurrent&&status!=='Available',
         text:`Room ${r.room_no}-${r.bed_no} · ${type} · ${status}${occupant}${tariff?` · ${tariff}/day`:''}`,
         background:status==='Available'?'#dff7e8':status==='Occupied'?'#ffe1e1':status==='Reserved'?'#e3eeff':status==='Current'?'#e8f7ee':'#f1f1f1',
-        color:status==='Available'||status==='Current'?'#087a3d':status==='Occupied'?'#b42318':status==='Reserved'?'#175cd3':'#555'
+        color:status==='Available'||status==='Current'?'#a40c59':status==='Occupied'?'#b42318':status==='Reserved'?'#175cd3':'#555'
       };
     }
 
@@ -2879,7 +3003,7 @@ Caring with Compassion. Living with Dignity.`;
           const [r,b]=String(e.target.value||'').split('|||');
           onChange(r||'',b||'');
         },
-        style:{backgroundColor:value?'#e8f7ee':'#ffffff',color:value?'#087a3d':'#344054',fontWeight:'700'}
+        style:{backgroundColor:value?'#e8f7ee':'#ffffff',color:value?'#a40c59':'#344054',fontWeight:'700'}
       },
         h('option',{value:''},availableCount?`Select available room / bed (${availableCount})`:'No available rooms / beds'),
         sorted.map(r=>{
@@ -4477,7 +4601,7 @@ function RoomsBeds({profile}){
       const report=document.getElementById('medication-safety-report');
       if(!report)return;
       const win=window.open('','_blank');if(!win)return alert('Please allow pop-ups to print the report.');
-      win.document.write(`<!doctype html><html><head><title>Medication Safety Report</title><style>body{font-family:Arial;padding:24px;color:#183b35}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #bbb;padding:6px;text-align:left;vertical-align:top}th{background:#e7f3f0}.no-print{display:none}.card{border:1px solid #d7e7e2;border-radius:12px;padding:14px;margin:12px 0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat strong{display:block;font-size:24px;color:#087565}h1,h2{color:#087565}</style></head><body>${report.innerHTML}</body></html>`);
+      win.document.write(`<!doctype html><html><head><title>Medication Safety Report</title><style>body{font-family:Arial;padding:24px;color:#4c263c}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #bbb;padding:6px;text-align:left;vertical-align:top}th{background:#e7f3f0}.no-print{display:none}.card{border:1px solid #ead0de;border-radius:12px;padding:14px;margin:12px 0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat strong{display:block;font-size:24px;color:#9a0c55}h1,h2{color:#9a0c55}</style></head><body>${report.innerHTML}</body></html>`);
       win.document.close();setTimeout(()=>{win.focus();win.print()},250);
     }
 
@@ -5483,7 +5607,7 @@ function ShiftHandover({profile,onNavigate}){
         gap:7px;
         min-height:115px;
         padding:16px;
-        border:1px solid #dce8e4;
+        border:1px solid #f0dce7;
         border-radius:13px;
         background:#fff;
         text-align:left;
@@ -5494,7 +5618,7 @@ function ShiftHandover({profile,onNavigate}){
         border-color:#75b5a4;
         background:#f3faf7;
       }
-      .management-card strong{font-size:16px;color:#0b5d4b}
+      .management-card strong{font-size:16px;color:#8e124f}
       .management-card span{font-size:13px;line-height:1.45;color:#667085}
     `;
     document.head.appendChild(style);
@@ -5701,7 +5825,7 @@ function ShiftHandover({profile,onNavigate}){
         align-content:center;
         gap:7px;
         padding:15px;
-        border:1px solid #dce8e4;
+        border:1px solid #f0dce7;
         border-radius:15px;
         background:#fff;
       }

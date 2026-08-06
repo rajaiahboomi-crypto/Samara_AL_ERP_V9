@@ -1,34 +1,23 @@
-SAMARA CARE ERP V9 – NEW LOGO ACROSS APP
-Version 2.3.0
+SAMARA CARE ERP V9 – LOGO COLOUR THEME
+Version 2.3.1
 
 UPLOAD / REPLACE:
 1. app.js
 2. index.html
 3. service-worker.js
-4. Upload the complete assets folder
-5. Upload/replace the complete icons folder
+4. assets/samara-logo.png
+5. the complete icons folder
 
-NEW FILE:
-assets/samara-logo.png
+CHANGES:
+- Sidebar version is visible below the new logo.
+- Green application branding is replaced with magenta, plum, pink and gold shades from the Samara logo.
+- Buttons, selected menus, links, focus states, cards, splash screen and login are coordinated.
+- Print styling for reports and consent forms uses the same Samara colour theme.
+- PWA/browser theme colour updated.
 
-APPLIED TO:
-- Login screen
-- Sidebar branding
-- Mobile top header
-- Mobile navigation drawer
-- First-login password page
-- Password recovery/change page
-- Loading display
-- Medication Safety printable report
-- PWA splash screen
-- Browser favicon and installed-app icons
+No SQL required.
 
-The logo PNG has a genuinely transparent background.
-
-After uploading:
-1. Commit the files.
-2. Open the ERP.
-3. Press Ctrl + Shift + R once.
-4. If installed as a PWA, close and reopen it after refresh.
-
-No SQL is required.
+After upload:
+- Commit the changes.
+- Press Ctrl + Shift + R once.
+- Close and reopen the installed PWA if applicable.

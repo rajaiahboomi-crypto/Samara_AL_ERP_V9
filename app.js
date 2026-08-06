@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.12';
-  const APP_BUILD_DATE = '06-Aug-2026 10:25 IST';
+  const APP_VERSION = '2.8.13';
+  const APP_BUILD_DATE = '06-Aug-2026 10:20 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.12';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.13';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -2323,7 +2323,7 @@ Caring with Compassion. Living with Dignity.`;
       }
       .admission-locked-row .summary{display:grid;gap:2px;min-width:0;padding-top:2px}
       .admission-locked-row .summary strong{font-size:15px;line-height:1.3}
-      .admission-locked-row .summary small{color:#526660;white-space:normal;line-height:1.35}
+      .admission-locked-row .summary small{color:#7a1247;white-space:normal;line-height:1.35}
       .admission-row-actions{display:flex;gap:6px;flex-wrap:wrap;padding-top:1px}
       .admission-row-actions .btn{min-height:30px;padding:5px 10px;font-size:12px}
       .admission-add-bottom{
@@ -4453,21 +4453,21 @@ Caring with Compassion. Living with Dignity.`;
   .page{width:100%;background:#fff}
   .header{display:grid;grid-template-columns:220px 1fr 94px;gap:14px;align-items:center;border-bottom:3px solid #b01264;padding-bottom:10px;margin-bottom:12px}
   .brand-logo{display:block;width:210px;max-height:78px;object-fit:contain;object-position:left center}
-  .brand{text-align:center}.brand-name{font-size:22px;font-weight:900;color:#86144d}.brand-sub{font-size:12px;font-weight:700}.document-title{font-size:16px;font-weight:900;margin-top:6px}
-  .qr{text-align:center}.qr img{width:88px;height:88px}.qr small{display:block;font-size:7px;color:#536a64}
+  .brand{text-align:center}.document-title{font-size:17px;font-weight:800;line-height:1.25;color:#8a124f;margin:0}
+  .qr{text-align:center}.qr img{width:88px;height:88px}.qr small{display:block;font-size:7px;color:#7a1247}
   .identity{display:grid;grid-template-columns:${photoDataUrl?'1fr 100px':'1fr'};gap:12px;margin-bottom:10px}
   .identity-grid{border:1px solid #c59bae;border-radius:7px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:5px 16px}
   .photo{border:1px solid #c59bae;border-radius:7px;padding:4px;height:120px;display:grid;place-items:center;overflow:hidden}.photo img{max-width:100%;max-height:110px;object-fit:cover}
-  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #c7a0b3;padding-bottom:3px}
-  h3{font-size:11px;margin:8px 0 4px}
+  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #d9a9c0;padding-bottom:3px;color:#8a124f}
+  h3{font-size:11px;margin:8px 0 4px;color:#8a124f}
   p{margin:5px 0;text-align:justify}
   table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px;page-break-inside:auto}
   tr{page-break-inside:avoid;page-break-after:auto}
   th,td{border:1px solid #c59bae;padding:4px;text-align:left;vertical-align:top}
-  th{background:linear-gradient(90deg,#f9e4ee,#fff0dc)}.fee-table th{width:34%;font-weight:800}.fee-table td{font-weight:600}
+  th{background:linear-gradient(90deg,#f9e4ee,#fff1f7)}.fee-table th{width:34%;font-weight:800}.fee-table td{font-weight:600}
   .signatures{display:grid;grid-template-columns:1fr 1fr;gap:16px 25px;margin-top:22px;page-break-inside:avoid}
   .signature{min-height:72px}.line{border-top:1px solid #222;padding-top:4px;margin-top:27px;font-weight:700}
-  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #d8b6c7;font-size:7.5px;color:#526660}
+  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #d8b6c7;font-size:7.5px;color:#7a1247}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none!important}}
 </style>
 </head>
@@ -4476,9 +4476,7 @@ Caring with Compassion. Living with Dignity.`;
   <div class="header">
     <img class="brand-logo" src="${escapeHtml(BRAND_LOGO_URL)}" alt="Samara Assisted Living">
     <div class="brand">
-      <div class="brand-name">SAMARA CARE</div>
-      <div class="brand-sub">ASSISTED LIVING</div>
-      <div class="document-title">RESIDENT ADMISSION, CARE CONSENT AND ACKNOWLEDGEMENT</div>
+      <div class="document-title">Resident Admission, Care Consent and Acknowledgement</div>
     </div>
     <div class="qr">
       <img src="${qrDataUrl}" alt="Admission verification QR code">
@@ -6348,20 +6346,20 @@ Caring with Compassion. Living with Dignity.`;
   .page{width:100%;background:#fff}
   .header{display:grid;grid-template-columns:220px 1fr 94px;gap:14px;align-items:center;border-bottom:3px solid #b01264;padding-bottom:10px;margin-bottom:12px}
   .brand-logo{display:block;width:210px;max-height:78px;object-fit:contain;object-position:left center}
-  .brand{text-align:center}.brand-name{font-size:22px;font-weight:900;color:#86144d}.brand-sub{font-size:12px;font-weight:700}.document-title{font-size:16px;font-weight:900;margin-top:6px}
-  .qr{text-align:center}.qr img{width:88px;height:88px}.qr small{display:block;font-size:7px;color:#536a64}
+  .brand{text-align:center}.document-title{font-size:17px;font-weight:800;line-height:1.25;color:#8a124f;margin:0}
+  .qr{text-align:center}.qr img{width:88px;height:88px}.qr small{display:block;font-size:7px;color:#7a1247}
   .identity{border:1px solid #c59bae;border-radius:7px;padding:9px;display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;margin-bottom:10px}
-  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #c7a0b3;padding-bottom:3px}
-  h3{font-size:11px;margin:8px 0 4px}
+  h2{font-size:13px;margin:11px 0 4px;border-bottom:1px solid #d9a9c0;padding-bottom:3px;color:#8a124f}
+  h3{font-size:11px;margin:8px 0 4px;color:#8a124f}
   p{margin:5px 0;text-align:justify}
   table{width:100%;border-collapse:collapse;font-size:8.5px;margin:5px 0 8px;page-break-inside:auto}
   tr{page-break-inside:avoid;page-break-after:auto}
   th,td{border:1px solid #c59bae;padding:4px;text-align:left;vertical-align:top}
-  th{background:linear-gradient(90deg,#f9e4ee,#fff0dc)}
+  th{background:linear-gradient(90deg,#f9e4ee,#fff1f7)}
   .fee-table th{width:34%;font-weight:800}.fee-table td{font-weight:600}
   .signatures{display:grid;grid-template-columns:1fr 1fr;gap:16px 25px;margin-top:22px;page-break-inside:avoid}
   .signature{min-height:72px}.line{border-top:1px solid #222;padding-top:4px;margin-top:27px;font-weight:700}
-  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #d8b6c7;font-size:7.5px;color:#526660}
+  .footer{margin-top:14px;padding-top:6px;border-top:1px solid #d8b6c7;font-size:7.5px;color:#7a1247}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style>
 </head>
@@ -6370,9 +6368,7 @@ Caring with Compassion. Living with Dignity.`;
   <div class="header">
     <img class="brand-logo" src="${escapeHtml(BRAND_LOGO_URL)}" alt="Samara Assisted Living">
     <div class="brand">
-      <div class="brand-name">SAMARA CARE</div>
-      <div class="brand-sub">ASSISTED LIVING</div>
-      <div class="document-title">RESIDENT ADMISSION, CARE CONSENT AND ACKNOWLEDGEMENT</div>
+      <div class="document-title">Resident Admission, Care Consent and Acknowledgement</div>
     </div>
     <div class="qr">
       <img src="${qrDataUrl}" alt="Admission verification QR code">

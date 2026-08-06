@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.3';
-  const APP_BUILD_DATE = '06-Aug-2026 08:05 IST';
+  const APP_VERSION = '2.8.4';
+  const APP_BUILD_DATE = '06-Aug-2026 08:30 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -157,6 +157,9 @@
       }
       .badge.success,.status-badge.success,.pill.success{background:#fae7f0!important;color:#781345!important;border-color:#e2adc7!important}
       .field-toggle-button.make-required{background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c)!important;color:#fff!important}
+      .medication-declaration{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:14px;align-items:end;margin:10px 0 14px;padding:14px;border:1px solid #ead0de;border-radius:14px;background:linear-gradient(135deg,#fffafd,#fff1f7)}
+      .medicine-order-row{grid-template-columns:38px minmax(170px,1.15fr) minmax(145px,1fr) minmax(110px,.75fr) minmax(150px,1fr) minmax(120px,.8fr) minmax(190px,1.2fr) minmax(135px,.9fr)!important}
+      @media(max-width:1100px){.medication-declaration{grid-template-columns:1fr}.medicine-order-row{grid-template-columns:1fr 1fr!important}.admission-row-number{grid-column:1/-1}}
       .field-setting-status.optional{background:#fae7f0!important;color:#781345!important}
       .field-settings-autosave{color:#ffe5f1!important}
       .app-splash-progress span,.login-v3-progress span,
@@ -2906,6 +2909,7 @@ Caring with Compassion. Living with Dignity.`;
 
   function blankMedicine(){
     return {
+      prescribed_by_doctor:'',
       medicine_name:'',
       strength:'',
       dose:'',
@@ -3012,7 +3016,7 @@ Caring with Compassion. Living with Dignity.`;
 
   function Admissions({profile,onNavigate}){
     const today=new Date().toISOString().slice(0,10);
-    const initial={admission_type:'Previous Hospital / Care Centre',patient_category:'Short Stay',title:'',full_name:'',age:'',gender:'Male',mobile:'',address:'',state:'Tamil Nadu',district:'',taluk:'',village_town:'',locality_area:'',street_name:'',house_no:'',apartment_name:'',flat_no:'',landmark:'',pincode:'',room_no:'',bed_no:'',admission_date:today,hospital_name:'',discharge_date:today,diagnosis:'',treating_doctor:'',doctor_phone:'',referring_doctor:'',referring_source:'',family_doctor:'',attendant_name:'',attendant_phone:'',allergies:'',special_instructions:'',diet_plan:'Normal diet',feeding_instruction:'',billing_package:'',fall_risk:false,pressure_sore_risk:false,aspiration_risk:false,wandering_risk:false,infection_risk:false,seizure_history:false,oxygen_required:false,oxygen_instruction:'',dressing_required:false,dressing_instruction:'',special_nurse_required:false,special_nurse_name:'',special_nurse_shift:'Both shifts / 24-hour coverage',special_nurse_instructions:'',physio_required:false,therapy_type:'',physiotherapist_name:'',physio_frequency:'Daily',physio_time:'10:00',physio_precautions:''};
+    const initial={admission_type:'Previous Hospital / Care Centre',patient_category:'Short Stay',title:'',full_name:'',age:'',gender:'Male',mobile:'',address:'',state:'Tamil Nadu',district:'',taluk:'',village_town:'',locality_area:'',street_name:'',house_no:'',apartment_name:'',flat_no:'',landmark:'',pincode:'',room_no:'',bed_no:'',admission_date:today,hospital_name:'',discharge_date:today,diagnosis:'',treating_doctor:'',doctor_phone:'',referring_doctor:'',referring_source:'',family_doctor:'',attendant_name:'',attendant_phone:'',allergies:'',special_instructions:'',diet_plan:'Normal diet',feeding_instruction:'',billing_package:'',fall_risk:false,pressure_sore_risk:false,aspiration_risk:false,wandering_risk:false,infection_risk:false,seizure_history:false,oxygen_required:false,oxygen_instruction:'',dressing_required:false,dressing_instruction:'',special_nurse_required:false,special_nurse_name:'',special_nurse_shift:'Both shifts / 24-hour coverage',special_nurse_instructions:'',physio_required:false,therapy_type:'',physiotherapist_name:'',physio_frequency:'Daily',physio_time:'10:00',physio_precautions:'',undergoing_prescribed_medication:'Yes'};
     const [form,setForm]=React.useState(initial),[meds,setMeds]=React.useState([blankMedicine()]),[care,setCare]=React.useState([blankCare()]),[busy,setBusy]=React.useState(false),[msg,setMsg]=React.useState('');
     const [photoFiles,setPhotoFiles]=React.useState([]),[idFiles,setIdFiles]=React.useState([]),[dischargeFiles,setDischargeFiles]=React.useState([]),[prescriptionFiles,setPrescriptionFiles]=React.useState([]),[reportFiles,setReportFiles]=React.useState([]),[cameraConfig,setCameraConfig]=React.useState(null),[patientPhotoPreview,setPatientPhotoPreview]=React.useState('');
     const [roomBeds,setRoomBeds]=React.useState([]);
@@ -3268,6 +3272,7 @@ Caring with Compassion. Living with Dignity.`;
         diet_plan:patient.diet_plan||'Normal diet',
         feeding_instruction:patient.feeding_instruction||'',
         billing_package:patient.billing_package||'Standard Assisted Care',
+        undergoing_prescribed_medication:patient.undergoing_prescribed_medication===false?'No':'Yes',
         special_instructions:patient.special_instructions||'',
         diagnosis:'',
         room_no:'',
@@ -3299,6 +3304,7 @@ Caring with Compassion. Living with Dignity.`;
     }
     function medicineRowComplete(row){
       return Boolean(
+        String(row.prescribed_by_doctor||'').trim()&&
         String(row.medicine_name||'').trim()&&
         String(row.strength||'').trim()&&
         String(row.times||'').trim()
@@ -3312,7 +3318,7 @@ Caring with Compassion. Living with Dignity.`;
       if(editableIndex>=0){
         const row=meds[editableIndex];
         if(!medicineRowComplete(row)){
-          setMsg('Complete Medicine, Strength and Time before adding the next medicine.');
+          setMsg('Complete Prescribed Doctor, Medicine, Strength and Time before adding the next medicine.');
           return;
         }
         setMeds([
@@ -3819,6 +3825,7 @@ Caring with Compassion. Living with Dignity.`;
     <tbody>${careHtml}</tbody>
   </table>
 
+  <p><b>Prescribed medication status:</b> ${row.undergoing_prescribed_medication===false?'No prescribed medication declared at admission':'Prescribed medication list recorded below'}</p>
   <p><b>Risks / special arrangements:</b> ${consentEscape(risks)}</p>
   <p><b>Diet / feeding instructions:</b> ${consentEscape(admission.diet_plan)}; ${consentEscape(admission.feeding_instruction||'No additional instruction')}</p>
 
@@ -4026,10 +4033,10 @@ Caring with Compassion. Living with Dignity.`;
         );
         if(!continueWithoutId){setBusy(false);return}
       }
-      const effectiveMeds=meds.filter(m=>String(m.medicine_name||'').trim()||String(m.strength||'').trim());
+      const effectiveMeds=form.undergoing_prescribed_medication==='Yes'?meds.filter(m=>String(m.medicine_name||'').trim()||String(m.strength||'').trim()||String(m.prescribed_by_doctor||'').trim()):[];
       const effectiveCare=care.filter(c=>String(c.care_type||'').trim());
-      if(!effectiveMeds.length||effectiveMeds.some(m=>!medicineRowComplete(m))){
-        setMsg('Enter and complete every current medicine, including Strength and Time.');
+      if(form.undergoing_prescribed_medication==='Yes'&&(!effectiveMeds.length||effectiveMeds.some(m=>!medicineRowComplete(m)))){
+        setMsg('Enter and complete every prescribed medicine, including Prescribed Doctor, Strength and Time.');
         setBusy(false);
         return;
       }
@@ -4039,6 +4046,7 @@ Caring with Compassion. Living with Dignity.`;
       const admissionExistingPatient=effectiveExistingPatient;
       let patientCode=admissionExistingPatient?.patient_code||admissionExistingPatient?.patient_id||null;
       const payload={...form,address:composePatientAddress(form),age:Number(form.age)||null,is_active:true,admission_status:'Active',
+        undergoing_prescribed_medication:form.undergoing_prescribed_medication==='Yes',
         prescription_verified:true,prescription_verified_by:user.id,prescription_verified_at:new Date().toISOString(),
         package_id:selectedPackage?.id||null,package_start_date:selectedPackage?form.admission_date:null,
         package_end_date:selectedPackage?packageEndDate():null,package_fee:selectedPackage?selectedPackageFee():null,
@@ -4115,8 +4123,11 @@ Caring with Compassion. Living with Dignity.`;
           });
           if(packageChargeError)throw packageChargeError;
         }
-        const medRows=effectiveMeds.map(m=>{const start=m.start_date||new Date().toISOString().slice(0,10);const durationDays=m.duration==='Custom'?Number(m.custom_duration_days||0):({'Single Dose':0,'1 Day':1,'3 Days':3,'5 Days':5,'7 Days':7,'10 Days':10,'14 Days':14,'21 Days':21,'30 Days':30}[m.duration]??null);let endDate=null;if(durationDays!==null){const d=new Date(`${start}T00:00:00`);d.setDate(d.getDate()+Math.max(durationDays-1,0));endDate=d.toISOString().slice(0,10)}return {patient_id:patient.id,medicine_name:m.medicine_name,strength:m.strength,dose:m.strength,route:m.route,food_instruction:m.food_instruction,special_instruction:m.special_instruction,scheduled_times:m.times.split(',').map(x=>x.trim()).filter(Boolean),frequency:m.frequency,duration:m.duration,duration_days:m.duration==='Custom'?Number(m.custom_duration_days||0):durationDays,start_date:start,end_date:endDate,entered_by:user.id,verified_by:user.id}});
-        await client.from('medication_orders').insert(medRows);
+        if(effectiveMeds.length){
+          const medRows=effectiveMeds.map(m=>{const start=m.start_date||new Date().toISOString().slice(0,10);const durationDays=m.duration==='Custom'?Number(m.custom_duration_days||0):({'Single Dose':0,'1 Day':1,'3 Days':3,'5 Days':5,'7 Days':7,'10 Days':10,'14 Days':14,'21 Days':21,'30 Days':30}[m.duration]??null);let endDate=null;if(durationDays!==null){const d=new Date(`${start}T00:00:00`);d.setDate(d.getDate()+Math.max(durationDays-1,0));endDate=d.toISOString().slice(0,10)}return {patient_id:patient.id,prescribed_by_doctor:m.prescribed_by_doctor,medicine_name:m.medicine_name,strength:m.strength,dose:m.strength,route:m.route,food_instruction:m.food_instruction,special_instruction:m.special_instruction,scheduled_times:m.times.split(',').map(x=>x.trim()).filter(Boolean),frequency:m.frequency,duration:m.duration,duration_days:m.duration==='Custom'?Number(m.custom_duration_days||0):durationDays,start_date:start,end_date:endDate,entered_by:user.id,verified_by:user.id}});
+          const {error:medicationInsertError}=await client.from('medication_orders').insert(medRows);
+          if(medicationInsertError)throw medicationInsertError;
+        }
         const careRows=effectiveCare.map(c=>({...c,is_locked:undefined,patient_id:patient.id,entered_by:user.id}));if(careRows.length)await client.from('care_orders').insert(careRows);
         if(form.physio_required&&form.therapy_type)await client.from('physiotherapy_plans').insert({patient_id:patient.id,advised_by:form.treating_doctor||form.referring_doctor,therapy_type:form.therapy_type,physiotherapist_name:form.physiotherapist_name||null,frequency:form.physio_frequency,preferred_time:form.physio_time,precautions:form.physio_precautions,start_date:form.admission_date,entered_by:user.id});
         await client.from('audit_log').insert({
@@ -4259,7 +4270,7 @@ Caring with Compassion. Living with Dignity.`;
           required:true,value:form.full_name,
           onChange:e=>setForm({...form,full_name:e.target.value}),
           onBlur:autoDetectReturningPatient,
-          readOnly:!!returningPatient
+          readOnly:false
         })),
         field('Age','age',form,setForm,false,'number'),
         selectField('Gender','gender',form,setForm,['Male','Female','Other']),
@@ -4267,7 +4278,7 @@ Caring with Compassion. Living with Dignity.`;
           type:'tel',value:form.mobile,
           onChange:e=>setForm({...form,mobile:e.target.value}),
           onBlur:autoDetectReturningPatient,
-          readOnly:!!returningPatient
+          readOnly:false
         })),
         field('State','state',form,setForm,false),
         h('div',{className:'field'},
@@ -4389,14 +4400,38 @@ Caring with Compassion. Living with Dignity.`;
         h('div',{className:'section-title'},
           h('div',null,
             h('h4',null,'3. Current medicines and prescription verification'),
-            h('small',null,`${meds.filter(m=>String(m.medicine_name||'').trim()).length} medicine(s) entered`)
+            h('small',null,form.undergoing_prescribed_medication==='Yes'
+              ?`${meds.filter(m=>String(m.medicine_name||'').trim()).length} medicine(s) entered`
+              :'No prescribed medication declared at admission')
           )
         ),
+        h('div',{className:'medication-declaration'},
+          h('div',{className:'field'},
+            h('label',null,'Undergoing any prescribed medication?'),
+            h('select',{
+              required:true,
+              value:form.undergoing_prescribed_medication,
+              onChange:e=>{
+                const value=e.target.value;
+                setForm({...form,undergoing_prescribed_medication:value});
+                if(value==='No')setMeds([blankMedicine()]);
+              }
+            },
+              h('option',{value:'Yes'},'Yes — prescribed medication is being taken'),
+              h('option',{value:'No'},'No — no prescribed medication at present')
+            )
+          ),
+          form.undergoing_prescribed_medication==='No'&&h('div',{className:'message success'},
+            'No medicine entry is required. The consent form will record that no prescribed medication was declared at admission.'
+          )
+        ),
+        form.undergoing_prescribed_medication==='Yes'&&h(React.Fragment,null,
         meds.map((m,i)=>m.is_locked
           ?h('div',{className:'admission-locked-row',key:`med-${i}`},
             h('span',{className:'number'},i+1),
             h('div',{className:'summary'},
               h('strong',null,`${m.medicine_name} ${m.strength}`),
+              h('small',null,`Prescribed by: ${m.prescribed_by_doctor||'Not recorded'}`),
               h('small',null,`${m.frequency} · ${m.route} · ${String(m.times||'').split(',').map(x=>medicationTimeLabel(x.trim())).join(', ')} · ${m.food_instruction} · ${m.duration}`),
               m.special_instruction&&h('small',null,`Instruction: ${m.special_instruction}`)
             ),
@@ -4407,6 +4442,7 @@ Caring with Compassion. Living with Dignity.`;
           )
           :h('div',{className:'repeat-row medicine-order-row admission-numbered-row',key:`med-${i}`},
             h('span',{className:'admission-row-number'},i+1),
+            miniInput('Prescribed Doctor',m.prescribed_by_doctor,v=>updateRow(setMeds,meds,i,'prescribed_by_doctor',v),true),
             miniInput('Medicine',m.medicine_name,v=>updateRow(setMeds,meds,i,'medicine_name',v),true),
             miniInput('Strength',m.strength,v=>updateRow(setMeds,meds,i,'strength',v),true),
             miniSelect('Frequency',m.frequency,['Once Daily (OD)','Twice Daily (BD)','Three Times Daily (TDS)','Four Times Daily (QID)','HS','STAT','SOS / PRN','Weekly','Monthly'],v=>{const next=meds.map((row,n)=>n===i?{...row,frequency:v,times:(MEDICATION_FREQUENCY_TIMES[v]||String(row.times||'').split(',').map(normalizeMedicationTime).filter(Boolean)).join(', ')}:row);setMeds(next)}),
@@ -4422,6 +4458,7 @@ Caring with Compassion. Living with Dignity.`;
         ),
         h('div',{className:'admission-add-bottom'},
           h('button',{type:'button',className:'btn btn-secondary',onClick:addMedicineEntry},'+ Add Medicine')
+        )
         )
       ),
       h('div',{className:'section-card'},
@@ -5561,6 +5598,7 @@ Caring with Compassion. Living with Dignity.`;
         const medRows=medicines.length
           ?medicines.map((medicine,index)=>`<tr>
               <td>${index+1}</td>
+              <td>${escapeHtml(medicine.prescribed_by_doctor||'—')}</td>
               <td><strong>${escapeHtml(medicine.medicine_name||'')}</strong></td>
               <td>${escapeHtml(medicine.strength||'')}</td>
               <td>${escapeHtml(medicine.frequency||'')}</td>
@@ -5568,7 +5606,7 @@ Caring with Compassion. Living with Dignity.`;
               <td>${escapeHtml((medicine.scheduled_times||[]).map(medicationTimeLabel).join(', '))}</td>
               <td>${escapeHtml(medicine.food_instruction||'')}</td>
             </tr>`).join('')
-          :'<tr><td colspan="7">No current medicine recorded.</td></tr>';
+          :'<tr><td colspan="8">No prescribed medication declared at admission.</td></tr>';
 
         const careRows=care.length
           ?care.map((item,index)=>`<tr>
@@ -5668,7 +5706,7 @@ Caring with Compassion. Living with Dignity.`;
 
   <h3>Current Medicines Recorded at Admission</h3>
   <table>
-    <thead><tr><th>No.</th><th>Medicine</th><th>Strength</th><th>Frequency</th><th>Route</th><th>Time</th><th>Food</th></tr></thead>
+    <thead><tr><th>No.</th><th>Prescribed Doctor</th><th>Medicine</th><th>Strength</th><th>Frequency</th><th>Route</th><th>Time</th><th>Food</th></tr></thead>
     <tbody>${medRows}</tbody>
   </table>
 

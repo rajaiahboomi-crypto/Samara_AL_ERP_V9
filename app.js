@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.10';
-  const APP_BUILD_DATE = '06-Aug-2026 09:55 IST';
+  const APP_VERSION = '2.8.11';
+  const APP_BUILD_DATE = '06-Aug-2026 10:10 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.10';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.11';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -677,6 +677,87 @@
       .sidebar .nav-submenu button:focus::before{
         opacity:1!important;
         filter:none!important;
+      }
+
+
+      /* Replace font glyphs with clean line-art SVG icons */
+      .sidebar .nav-submenu button::before{
+        content:''!important;
+        width:24px!important;
+        height:24px!important;
+        background-color:currentColor!important;
+        -webkit-mask-repeat:no-repeat!important;
+        mask-repeat:no-repeat!important;
+        -webkit-mask-position:center!important;
+        mask-position:center!important;
+        -webkit-mask-size:22px 22px!important;
+        mask-size:22px 22px!important;
+        border:0!important;
+        box-shadow:none!important;
+      }
+
+      .sidebar .nav-submenu button[data-nav='Clinical Dashboard']::before{
+        color:#21c6b3!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3v5a6 6 0 0 0 12 0V3'/%3E%3Cpath d='M8 3h-2M18 3h-2'/%3E%3Ccircle cx='18' cy='14' r='3'/%3E%3Cpath d='M18 17v4'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3v5a6 6 0 0 0 12 0V3'/%3E%3Cpath d='M8 3h-2M18 3h-2'/%3E%3Ccircle cx='18' cy='14' r='3'/%3E%3Cpath d='M18 17v4'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Clinical Alerts']::before{
+        color:#f6b72d!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 0 1-3.46 0'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 0 1-3.46 0'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Shift Tasks']::before{
+        color:#7769dc!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='4' width='14' height='17' rx='2'/%3E%3Cpath d='M9 4V2h6v2M8 9h8M8 13h8M8 17h5'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='4' width='14' height='17' rx='2'/%3E%3Cpath d='M9 4V2h6v2M8 9h8M8 13h8M8 17h5'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Daily Care']::before{
+        color:#ff8eb2!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 5.65-7 10-7 10Z'/%3E%3Cpath d='M4 19c2-1 3-1 5 0M20 19c-2-1-3-1-5 0'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 5.65-7 10-7 10Z'/%3E%3Cpath d='M4 19c2-1 3-1 5 0M20 19c-2-1-3-1-5 0'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Vital Signs']::before{
+        color:#6ab8ff!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12h4l2-5 4 10 2-5h6'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12h4l2-5 4 10 2-5h6'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Medicines']::before{
+        color:#27c5ad!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10.5 20.5 10-10a4.24 4.24 0 0 0-6-6l-10 10a4.24 4.24 0 0 0 6 6Z'/%3E%3Cpath d='m8.5 8.5 7 7'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10.5 20.5 10-10a4.24 4.24 0 0 0-6-6l-10 10a4.24 4.24 0 0 0 6 6Z'/%3E%3Cpath d='m8.5 8.5 7 7'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Physiotherapy']::before{
+        color:#24c8b3!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='4' r='2'/%3E%3Cpath d='m7 21 3-7-2-3M17 21l-3-7 2-3M8 11l4-3 4 3'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='4' r='2'/%3E%3Cpath d='m7 21 3-7-2-3M17 21l-3-7 2-3M8 11l4-3 4 3'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Special Nurse']::before{
+        color:#08bae8!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16v10H4z'/%3E%3Cpath d='M9 7V5h6v2M12 10v4M10 12h4'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16v10H4z'/%3E%3Cpath d='M9 7V5h6v2M12 10v4M10 12h4'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Shift Handover']::before{
+        color:#9b7ce8!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 7h11l-3-3M17 17H6l3 3M18 7v4M6 17v-4'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 7h11l-3-3M17 17H6l3 3M18 7v4M6 17v-4'/%3E%3C/svg%3E")!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Incidents']::before{
+        color:#ff8748!important;
+        -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3 9 16H3L12 3Z'/%3E%3Cpath d='M12 9v4M12 16h.01'/%3E%3C/svg%3E")!important;
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3 9 16H3L12 3Z'/%3E%3Cpath d='M12 9v4M12 16h.01'/%3E%3C/svg%3E")!important;
+      }
+
+      /* Replace the remaining green scrollbar with the Samara gradient */
+      .sidebar-scrollbar,
+      .sidebar .custom-scrollbar,
+      .sidebar::-webkit-scrollbar-thumb,
+      .side-nav::-webkit-scrollbar-thumb{
+        background:linear-gradient(180deg,#7a1247 0%,#b01264 55%,#e03a7c 100%)!important;
+        border-color:transparent!important;
+      }
+      .sidebar::-webkit-scrollbar-track,
+      .side-nav::-webkit-scrollbar-track{
+        background:rgba(176,18,100,.08)!important;
       }
 
       /* Footer contrast adapts to the darkest gradient */

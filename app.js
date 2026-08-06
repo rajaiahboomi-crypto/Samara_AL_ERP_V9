@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.2';
-  const APP_BUILD_DATE = '06-Aug-2026 07:50 IST';
+  const APP_VERSION = '2.8.3';
+  const APP_BUILD_DATE = '06-Aug-2026 08:05 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -170,6 +170,82 @@
         h1,h2,h3,h4{color:#791345!important}
         table th{background:#f9e4ee!important;color:#5d1039!important}
         table,th,td{border-color:#c99caf!important}
+      }
+
+      /* Prevent legacy green from returning on click, focus or expanded states */
+      .sidebar .nav-heading-button,
+      .sidebar .nav-heading-button:link,
+      .sidebar .nav-heading-button:visited,
+      .sidebar .nav-heading-button:hover,
+      .sidebar .nav-heading-button:focus,
+      .sidebar .nav-heading-button:focus-visible,
+      .sidebar .nav-heading-button:active,
+      .sidebar .nav-section.expanded > .nav-heading-button,
+      .sidebar .nav-section.expanded > .nav-heading-button:hover,
+      .sidebar .nav-section.expanded > .nav-heading-button:focus,
+      .sidebar .nav-section.expanded > .nav-heading-button:active{
+        background:transparent!important;
+        color:#ffffff!important;
+        border-color:transparent!important;
+        outline:none!important;
+        box-shadow:none!important;
+        -webkit-tap-highlight-color:transparent!important;
+      }
+      .sidebar .nav-section.expanded > .nav-heading-button{
+        background:linear-gradient(90deg,rgba(195,22,109,.96),rgba(226,62,128,.96))!important;
+        box-shadow:inset 3px 0 0 #f6b72d!important;
+      }
+      .sidebar .nav-heading-button .nav-chevron,
+      .sidebar .nav-heading-button:hover .nav-chevron,
+      .sidebar .nav-heading-button:focus .nav-chevron,
+      .sidebar .nav-heading-button:active .nav-chevron{
+        background:rgba(255,255,255,.15)!important;
+        color:#ffffff!important;
+        border-color:rgba(255,255,255,.12)!important;
+      }
+
+      .sidebar .nav-submenu button,
+      .sidebar .nav-submenu button:hover,
+      .sidebar .nav-submenu button:focus,
+      .sidebar .nav-submenu button:focus-visible,
+      .sidebar .nav-submenu button:active{
+        color:#ffffff!important;
+        outline:none!important;
+        -webkit-tap-highlight-color:transparent!important;
+      }
+      .sidebar .nav-submenu button:not(.active):hover,
+      .sidebar .nav-submenu button:not(.active):focus,
+      .sidebar .nav-submenu button:not(.active):active{
+        background:rgba(255,255,255,.11)!important;
+      }
+      .sidebar .nav-submenu button.active,
+      .sidebar .nav-submenu button.active:hover,
+      .sidebar .nav-submenu button.active:focus,
+      .sidebar .nav-submenu button.active:active{
+        background:linear-gradient(90deg,#c3166d 0%,#e23e80 100%)!important;
+        color:#ffffff!important;
+        box-shadow:inset 3px 0 0 #f6b72d!important;
+      }
+
+      .sidebar-footer .btn.btn-secondary.full,
+      .sidebar-footer .btn.btn-secondary.full:hover,
+      .sidebar-footer .btn.btn-secondary.full:focus,
+      .sidebar-footer .btn.btn-secondary.full:focus-visible,
+      .sidebar-footer .btn.btn-secondary.full:active{
+        background:linear-gradient(100deg,#fff5fa 0%,#ffe3ef 100%)!important;
+        color:#7a1247!important;
+        border:1px solid rgba(255,255,255,.75)!important;
+        outline:none!important;
+        box-shadow:none!important;
+        -webkit-tap-highlight-color:transparent!important;
+      }
+      .sidebar-footer .user-chip,
+      .sidebar-footer .user-chip:hover,
+      .sidebar-footer .user-chip:focus,
+      .sidebar-footer .user-chip:active{
+        background:linear-gradient(120deg,rgba(93,16,57,.82),rgba(176,18,100,.76))!important;
+        border-color:rgba(255,255,255,.15)!important;
+        color:#ffffff!important;
       }
     `;
     document.head.appendChild(style);

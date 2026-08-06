@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.3.1';
-  const APP_BUILD_DATE = '06-Aug-2026 07:25 IST';
+  const APP_VERSION = '2.8.3';
+  const APP_BUILD_DATE = '06-Aug-2026 07:35 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -116,7 +116,7 @@
         --samara-accent:#f59b23;
         --samara-accent-light:#ffd166;
         --samara-soft:#fff3f8;
-        --samara-soft-2:#f8e5ef;
+        --samara-soft-2:#fae7f0;
         --samara-border:#ead0de;
         --samara-text:#382f38;
         --samara-muted:#67616a;
@@ -126,7 +126,7 @@
       .app-shell,.app-main,main,.content-area{background:#fff7fb!important}
 
       .sidebar,.side-nav,.app-sidebar{
-        background:linear-gradient(180deg,#741444 0%,#971253 54%,#651138 100%)!important;
+        background:linear-gradient(155deg,#5d1039 0%,#8d1454 35%,#bd176c 70%,#e04b7f 100%)!important;
       }
       .side-brand{
         display:flex!important;
@@ -171,11 +171,11 @@
       .btn-primary,.button-primary,button.primary,
       .accounts-workflow-card .open-action,
       .alert-sound-button,.enable-alert-sound{
-        background:linear-gradient(135deg,#a8075b,#c91b73)!important;
+        background:linear-gradient(135deg,#7a1247 0%,#b01264 52%,#e03a7c 100%)!important;
         border-color:#9a0c55!important;color:#fff!important;
       }
       .btn-primary:hover,.button-primary:hover,button.primary:hover{
-        background:linear-gradient(135deg,#8b094d,#b40e63)!important;
+        background:linear-gradient(135deg,#651039 0%,#981153 55%,#c72870 100%)!important;
       }
       .btn-secondary{
         background:#f7e7ef!important;
@@ -194,15 +194,15 @@
       }
       .dashboard-card::before,.metric-card::before,
       .accounts-workflow-card::before{
-        background:linear-gradient(90deg,#b20b62,#f59b23)!important;
+        background:linear-gradient(90deg,#7a1247 0%,#b01264 42%,#f36a4c 76%,#f6b72d 100%)!important;
       }
 
       .badge,.status-badge,.pill{
-        border-color:#e5bfd2!important;
+        border-color:#e7b9cf!important;
       }
       .badge.success,.status-badge.success,.pill.success,
       .samara-toast.success{
-        background:#f8e5ef!important;color:#7a1548!important;
+        background:#fae7f0!important;color:#7a1548!important;
         border-color:#dfa9c3!important;
       }
 
@@ -218,14 +218,14 @@
         border-color:#e9c9d9!important;
       }
       .app-splash-progress span,.login-v3-progress span{
-        background:linear-gradient(90deg,#b20b62,#f59b23,#ffd166)!important;
+        background:linear-gradient(90deg,#7a1247 0%,#b01264 38%,#f36a4c 72%,#f6b72d 100%)!important;
       }
 
       /* Printable reports and consent forms */
       @media print{
         body{background:#fff!important;color:#2e2530!important}
         h1,h2,h3,h4{color:#6f123f!important}
-        table th{background:#f8e5ef!important;color:#51102f!important}
+        table th{background:#fae7f0!important;color:#51102f!important}
         table,th,td{border-color:#cda8ba!important}
         .print-header,.report-header,.consent-header{
           border-color:#b20b62!important;
@@ -233,6 +233,41 @@
       }
       @media print{
         .report-brand-logo{display:block!important}
+      }
+
+      /* Final Samara gradient theme */
+      body,.app-shell,.app-main,main,.content-area{
+        background:linear-gradient(145deg,#fffafd 0%,#fff3f8 48%,#fff9f2 100%)!important;
+      }
+      .sidebar,.side-nav,.app-sidebar,
+      .login-v3-left,.login-brand-panel,.app-splash{
+        background:
+          radial-gradient(circle at 92% 8%,rgba(246,183,45,.22),transparent 25%),
+          radial-gradient(circle at 15% 88%,rgba(224,58,124,.25),transparent 32%),
+          linear-gradient(155deg,#5d1039 0%,#85124e 32%,#b01264 66%,#dc3b7b 100%)!important;
+      }
+      .dashboard-banner,.shift-banner,.hero-banner,.accounts-hero{
+        background:linear-gradient(110deg,#781345 0%,#ae1262 46%,#df3d7c 78%,#ef8054 100%)!important;
+        color:#fff!important;
+      }
+      .nav-item.active,.side-nav .active,.sidebar .active{
+        background:linear-gradient(90deg,#c3166d 0%,#e23e80 100%)!important;
+      }
+      .btn-primary,.button-primary,button.primary,.login-v3-submit{
+        background:linear-gradient(100deg,#8b114f 0%,#be176c 55%,#e23e80 100%)!important;
+        box-shadow:0 7px 18px rgba(176,18,100,.20)!important;
+      }
+      .btn-primary:hover,.button-primary:hover,button.primary:hover,.login-v3-submit:hover{
+        background:linear-gradient(100deg,#721043 0%,#a91360 55%,#ce2b72 100%)!important;
+      }
+      .metric-card,.dashboard-card,.card,.panel,.section-card{
+        background:linear-gradient(145deg,#ffffff 0%,#fffafd 100%)!important;
+      }
+      .metric-card::before,.dashboard-card::before,.accounts-workflow-card::before{
+        background:linear-gradient(90deg,#781345 0%,#b01264 45%,#f36a4c 78%,#f6b72d 100%)!important;
+      }
+      .app-splash-progress span,.login-v3-progress span{
+        background:linear-gradient(90deg,#7a1247 0%,#b01264 38%,#f36a4c 72%,#f6b72d 100%)!important;
       }
     `;
     document.head.appendChild(style);

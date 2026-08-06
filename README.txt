@@ -1,23 +1,24 @@
-SAMARA CARE ERP V9 – LOGO COLOUR THEME
-Version 2.3.1
+SAMARA CARE ERP V9 – FINAL GRADIENT BRAND THEME
+Version 2.8.3
 
 UPLOAD / REPLACE:
 1. app.js
 2. index.html
 3. service-worker.js
-4. assets/samara-logo.png
-5. the complete icons folder
+4. samara-gradient-theme.css
+5. assets/samara-logo.png
+6. Complete icons folder
 
 CHANGES:
-- Sidebar version is visible below the new logo.
-- Green application branding is replaced with magenta, plum, pink and gold shades from the Samara logo.
-- Buttons, selected menus, links, focus states, cards, splash screen and login are coordinated.
-- Print styling for reports and consent forms uses the same Samara colour theme.
-- PWA/browser theme colour updated.
-
-No SQL required.
+- Correct version sequence: 2.8.3.
+- Replaces remaining green surfaces throughout the application.
+- Uses a premium plum → magenta → rose gradient.
+- Adds coral and gold highlights from the logo feather.
+- Applies the gradient to login, sidebar, splash, banners, active navigation and primary buttons.
+- Consent forms and printable reports use coordinated magenta, rose and gold styling.
+- No SQL is required.
 
 After upload:
-- Commit the changes.
-- Press Ctrl + Shift + R once.
-- Close and reopen the installed PWA if applicable.
+1. Commit all files.
+2. Press Ctrl + Shift + R.
+3. Close and reopen the installed PWA, where applicable.

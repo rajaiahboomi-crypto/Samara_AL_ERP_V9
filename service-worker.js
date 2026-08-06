@@ -1,12 +1,12 @@
-const CACHE = 'samara-erp-2.8.5-number-layout-new-icon';
+const CACHE = 'samara-erp-2.8.6-login-white-magenta-gradient';
 const SHELL = [
-  './', './index.html', './styles.css?v=2.8.5', './app.js?v=2.8.5',
-  './bootstrap-error.js?v=2.8.5', './health-check.js?v=2.8.5',
-  './config.js?v=2.8.5', './manifest.webmanifest?v=2.8.5',
-  './assets/samara-logo.png?v=2.8.5',
-  './icons/favicon.png?v=2.8.5', './icons/icon-192.png?v=2.8.5',
-  './icons/icon-512.png?v=2.8.5', './icons/icon-maskable-512.png?v=2.8.5',
-  './icons/apple-touch-icon.png?v=2.8.5'
+  './', './index.html', './styles.css?v=2.8.6', './app.js?v=2.8.6',
+  './bootstrap-error.js?v=2.8.6', './health-check.js?v=2.8.6',
+  './config.js?v=2.8.6', './manifest.webmanifest?v=2.8.6',
+  './assets/samara-logo.png?v=2.8.6',
+  './icons/favicon.png?v=2.8.6', './icons/icon-192.png?v=2.8.6',
+  './icons/icon-512.png?v=2.8.6', './icons/icon-maskable-512.png?v=2.8.6',
+  './icons/apple-touch-icon.png?v=2.8.6'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

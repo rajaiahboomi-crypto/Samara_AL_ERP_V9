@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.5';
-  const APP_BUILD_DATE = '06-Aug-2026 08:50 IST';
+  const APP_VERSION = '2.8.6';
+  const APP_BUILD_DATE = '06-Aug-2026 08:40 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.2';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.6';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -250,6 +250,96 @@
         background:linear-gradient(120deg,rgba(93,16,57,.82),rgba(176,18,100,.76))!important;
         border-color:rgba(255,255,255,.15)!important;
         color:#ffffff!important;
+      }
+
+
+      /* Login hero: white at the logo, gradually flowing into Samara magenta */
+      .login-v3-hero{
+        position:relative!important;
+        overflow:hidden!important;
+        isolation:isolate!important;
+        background:
+          radial-gradient(circle at 84% 5%,rgba(246,183,45,.16),transparent 22%),
+          linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #fffdfd 20%,
+            #fff6fa 32%,
+            #fce3ef 43%,
+            #f3aacb 55%,
+            #df4b91 69%,
+            #bc176c 84%,
+            #8a124f 100%
+          )!important;
+        color:#ffffff!important;
+      }
+      .login-v3-hero::before{
+        content:'';
+        position:absolute;
+        left:-12%;right:-12%;top:31%;height:28%;
+        z-index:-1;
+        background:
+          linear-gradient(168deg,transparent 0 27%,rgba(255,255,255,.30) 28% 43%,transparent 44%),
+          linear-gradient(192deg,transparent 0 35%,rgba(255,255,255,.18) 36% 50%,transparent 51%);
+        transform:rotate(-1deg);
+        pointer-events:none;
+      }
+      .login-v3-hero::after{
+        content:'';
+        position:absolute;
+        width:430px;height:430px;
+        right:-165px;bottom:-205px;
+        z-index:-1;
+        border-radius:48% 52% 40% 60%;
+        border:2px solid rgba(255,255,255,.10);
+        box-shadow:
+          -55px -28px 0 -1px rgba(255,255,255,.035),
+          -110px -58px 0 -2px rgba(255,255,255,.025);
+        transform:rotate(28deg);
+        pointer-events:none;
+      }
+      .login-v3-hero .login-main-brand-logo{
+        width:min(430px,90%)!important;
+        max-height:215px!important;
+        margin:0 auto 22px!important;
+        filter:drop-shadow(0 7px 14px rgba(118,18,70,.10))!important;
+      }
+      .login-v3-hero .login-v3-kicker{
+        color:#7a1247!important;
+        text-shadow:none!important;
+        margin-top:2px!important;
+      }
+      .login-v3-hero h1{
+        color:#7a1247!important;
+        text-shadow:none!important;
+      }
+      .login-v3-hero .login-v3-description{
+        color:#4b293d!important;
+        text-shadow:none!important;
+      }
+      .login-v3-hero .login-v3-features{
+        margin-top:22px!important;
+        padding:18px 20px!important;
+        border-radius:16px!important;
+        background:rgba(111,15,61,.19)!important;
+        border:1px solid rgba(255,255,255,.20)!important;
+        backdrop-filter:blur(3px)!important;
+      }
+      .login-v3-hero .login-v3-features>div{
+        color:#ffffff!important;
+        text-shadow:0 1px 3px rgba(72,8,38,.28)!important;
+      }
+      .login-v3-hero .login-v3-features span{
+        background:rgba(255,255,255,.20)!important;
+        color:#ffffff!important;
+      }
+      @media(max-width:760px){
+        .login-v3-hero{
+          background:linear-gradient(180deg,#fff 0%,#fff7fb 34%,#ed83b4 67%,#a91460 100%)!important;
+        }
+        .login-v3-hero .login-v3-kicker,
+        .login-v3-hero h1,
+        .login-v3-hero .login-v3-description{color:#6f123f!important}
       }
     `;
     document.head.appendChild(style);

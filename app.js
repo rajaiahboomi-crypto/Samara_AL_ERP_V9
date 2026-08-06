@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.6';
-  const APP_BUILD_DATE = '06-Aug-2026 08:40 IST';
+  const APP_VERSION = '2.8.7';
+  const APP_BUILD_DATE = '06-Aug-2026 09:00 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.6';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.7';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -341,6 +341,109 @@
         .login-v3-hero h1,
         .login-v3-hero .login-v3-description{color:#6f123f!important}
       }
+
+
+      /* Left panel: white at top, flowing into Samara magenta */
+      .sidebar,.side-nav,.app-sidebar{
+        background:
+          radial-gradient(circle at 82% 4%,rgba(246,183,45,.12),transparent 18%),
+          linear-gradient(180deg,#ffffff 0%,#fffdfd 14%,#fff6fa 25%,#fce2ee 38%,#f4b2cf 52%,#e568a3 68%,#c62a79 84%,#9a1558 100%)!important;
+        color:#6f123f!important;
+      }
+      .sidebar .side-brand>div:last-child small{color:#7a1247!important}
+      .sidebar .nav-heading-button,
+      .sidebar .nav-heading-button *{color:#8a124f!important}
+      .sidebar .nav-submenu button{color:#5f334b!important}
+      .sidebar .nav-heading-button:hover,
+      .sidebar .nav-heading-button:focus,
+      .sidebar .nav-heading-button:active{background:rgba(176,18,100,.08)!important;color:#8a124f!important}
+      .sidebar .nav-section.expanded>.nav-heading-button,
+      .sidebar .nav-section.expanded>.nav-heading-button:hover,
+      .sidebar .nav-section.expanded>.nav-heading-button:focus,
+      .sidebar .nav-section.expanded>.nav-heading-button:active{
+        background:linear-gradient(90deg,#b01264 0%,#e03a7c 100%)!important;
+        color:#fff!important;box-shadow:inset 3px 0 0 #f6b72d!important;
+      }
+      .sidebar .nav-section.expanded>.nav-heading-button *{color:#fff!important}
+      .sidebar .nav-submenu button.active,
+      .sidebar .nav-submenu button.active:hover,
+      .sidebar .nav-submenu button.active:focus,
+      .sidebar .nav-submenu button.active:active{
+        background:linear-gradient(90deg,#e36d9f 0%,#ed8bb6 100%)!important;
+        color:#7a1247!important;box-shadow:inset 3px 0 0 #f6b72d!important;
+      }
+
+      /* Spacious meaningful submenu icons */
+      .sidebar .nav-submenu button{
+        position:relative!important;padding-left:46px!important;min-height:40px!important;
+        display:flex!important;align-items:center!important;gap:10px!important;
+      }
+      .sidebar .nav-submenu button::before{
+        position:absolute!important;left:15px!important;top:50%!important;transform:translateY(-50%)!important;
+        width:23px!important;height:23px!important;display:grid!important;place-items:center!important;
+        font-size:18px!important;line-height:1!important;color:#c21872!important;font-weight:800!important;
+      }
+      .sidebar .nav-submenu button[data-nav='Dashboard']::before{content:'⌂'}
+      .sidebar .nav-submenu button[data-nav='Notifications']::before{content:'♧'}
+      .sidebar .nav-submenu button[data-nav='Enquiries']::before{content:'▣'}
+      .sidebar .nav-submenu button[data-nav='Admissions']::before{content:'♥'}
+      .sidebar .nav-submenu button[data-nav='Patients']::before{content:'♙'}
+      .sidebar .nav-submenu button[data-nav='Discharge']::before{content:'↪'}
+      .sidebar .nav-submenu button[data-nav='Documents']::before{content:'▤'}
+      .sidebar .nav-submenu button[data-nav='Reports']::before,
+      .sidebar .nav-submenu button[data-nav='Intelligent Reports']::before{content:'▦'}
+      .sidebar .nav-submenu button[data-nav='Clinical Dashboard']::before,
+      .sidebar .nav-submenu button[data-nav='Clinical Alerts']::before,
+      .sidebar .nav-submenu button[data-nav='Shift Tasks']::before,
+      .sidebar .nav-submenu button[data-nav='Daily Care']::before,
+      .sidebar .nav-submenu button[data-nav='Vital Signs']::before,
+      .sidebar .nav-submenu button[data-nav='Medicines']::before,
+      .sidebar .nav-submenu button[data-nav='Physiotherapy']::before,
+      .sidebar .nav-submenu button[data-nav='Special Nurse']::before,
+      .sidebar .nav-submenu button[data-nav='Shift Handover']::before,
+      .sidebar .nav-submenu button[data-nav='Incidents']::before{content:'♥'}
+      .sidebar .nav-submenu button[data-nav='Food & Diet']::before{content:'♨'}
+      .sidebar .nav-submenu button[data-nav='Accounts Dashboard']::before,
+      .sidebar .nav-submenu button[data-nav='Charge Approvals']::before,
+      .sidebar .nav-submenu button[data-nav='Payments']::before,
+      .sidebar .nav-submenu button[data-nav='Final Billing']::before,
+      .sidebar .nav-submenu button[data-nav='Discharge Clearance']::before,
+      .sidebar .nav-submenu button[data-nav='Refunds']::before,
+      .sidebar .nav-submenu button[data-nav='Accounts Reports']::before{content:'₹'}
+
+      /* Main section symbols */
+      .sidebar .nav-heading-button{position:relative!important;padding-left:43px!important}
+      .sidebar .nav-heading-button::before{
+        position:absolute!important;left:14px!important;top:50%!important;transform:translateY(-50%)!important;
+        width:22px!important;text-align:center!important;font-size:18px!important;color:#c21872!important;
+      }
+      .sidebar .nav-section:nth-of-type(1)>.nav-heading-button::before{content:'⌂'}
+      .sidebar .nav-section:nth-of-type(2)>.nav-heading-button::before{content:'⚙'}
+      .sidebar .nav-section:nth-of-type(3)>.nav-heading-button::before{content:'♥'}
+      .sidebar .nav-section:nth-of-type(4)>.nav-heading-button::before{content:'▦'}
+      .sidebar .nav-section:nth-of-type(5)>.nav-heading-button::before{content:'♥'}
+      .sidebar .nav-section:nth-of-type(6)>.nav-heading-button::before{content:'♨'}
+      .sidebar .nav-section:nth-of-type(7)>.nav-heading-button::before{content:'₹'}
+      .sidebar .nav-section.expanded>.nav-heading-button::before{color:#fff!important}
+
+      /* Number badge on a dedicated strip, away from all labels */
+      .admission-numbered-row{padding-top:60px!important;overflow:visible!important}
+      .admission-numbered-row::before{
+        content:'';position:absolute!important;left:0!important;right:0!important;top:0!important;height:48px!important;
+        border-bottom:1px solid #f0d7e3!important;background:linear-gradient(90deg,#fffafd 0%,#fff2f8 100%)!important;
+        border-radius:14px 14px 0 0!important;z-index:0!important;
+      }
+      .admission-row-number{
+        left:14px!important;top:9px!important;z-index:4!important;
+        box-shadow:0 4px 10px rgba(176,18,100,.18)!important;
+      }
+      .admission-numbered-row>.field,
+      .admission-numbered-row>.medication-time-field,
+      .admission-numbered-row>.btn{position:relative!important;z-index:1!important}
+      .admission-numbered-row label{padding-left:0!important;margin-left:0!important}
+
+      .sidebar-footer .user-chip{background:linear-gradient(120deg,#b01264,#d93679)!important;color:#fff!important}
+      .sidebar-footer .btn.btn-secondary.full{background:rgba(255,255,255,.94)!important;color:#7a1247!important}
     `;
     document.head.appendChild(style);
   })();
@@ -2337,7 +2440,7 @@ Caring with Compassion. Living with Dignity.`;
         h('button',{type:'button',className:`mobile-drawer-home ${page===home?'active':''}`,onClick:()=>onNavigate(home)},'⌂  Dashboard'),
         h('div',{className:'mobile-drawer-scroll'},sections.map(section=>h('section',{className:'mobile-drawer-section',key:section.title},
           h('h4',null,section.title),
-          section.items.map(item=>h('button',{type:'button',key:item,className:page===item?'active':'',onClick:()=>onNavigate(item)},displayNavLabel(item,profile.role)))
+          section.items.map(item=>h('button',{type:'button',key:item,'data-nav':item,className:page===item?'active':'',onClick:()=>onNavigate(item)},displayNavLabel(item,profile.role)))
         ))),
         h('div',{className:'mobile-drawer-footer'},
           h('button',{type:'button',className:'mobile-signout-button',onClick:signOut},'⇥  Sign Out')

@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.4';
-  const APP_BUILD_DATE = '06-Aug-2026 08:30 IST';
+  const APP_VERSION = '2.8.5';
+  const APP_BUILD_DATE = '06-Aug-2026 08:50 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -158,8 +158,9 @@
       .badge.success,.status-badge.success,.pill.success{background:#fae7f0!important;color:#781345!important;border-color:#e2adc7!important}
       .field-toggle-button.make-required{background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c)!important;color:#fff!important}
       .medication-declaration{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:14px;align-items:end;margin:10px 0 14px;padding:14px;border:1px solid #ead0de;border-radius:14px;background:linear-gradient(135deg,#fffafd,#fff1f7)}
-      .medicine-order-row{grid-template-columns:38px minmax(170px,1.15fr) minmax(145px,1fr) minmax(110px,.75fr) minmax(150px,1fr) minmax(120px,.8fr) minmax(190px,1.2fr) minmax(135px,.9fr)!important}
-      @media(max-width:1100px){.medication-declaration{grid-template-columns:1fr}.medicine-order-row{grid-template-columns:1fr 1fr!important}.admission-row-number{grid-column:1/-1}}
+      .medicine-order-row{grid-template-columns:repeat(5,minmax(155px,1fr))!important}
+      @media(max-width:1250px){.medication-declaration{grid-template-columns:1fr}.medicine-order-row{grid-template-columns:repeat(3,minmax(160px,1fr))!important}}
+      @media(max-width:760px){.medicine-order-row{grid-template-columns:1fr!important}}
       .field-setting-status.optional{background:#fae7f0!important;color:#781345!important}
       .field-settings-autosave{color:#ffe5f1!important}
       .app-splash-progress span,.login-v3-progress span,
@@ -1606,10 +1607,59 @@ Caring with Compassion. Living with Dignity.`;
       .content .btn{
         min-height:38px;
       }
-            .admission-numbered-row{position:relative;padding-left:54px!important}
+      .admission-numbered-row{
+        position:relative!important;
+        padding:54px 12px 12px!important;
+        margin-top:10px!important;
+        border:1px solid #ead0de!important;
+        border-radius:14px!important;
+        background:linear-gradient(145deg,#ffffff,#fffafd)!important;
+        column-gap:10px!important;
+        row-gap:12px!important;
+        align-items:end!important;
+      }
       .admission-row-number{
-        position:absolute;left:12px;top:12px;width:30px;height:30px;border-radius:50%;
-        display:grid;place-items:center;background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c);color:#fff;font-weight:900
+        position:absolute!important;
+        left:14px!important;
+        top:10px!important;
+        width:30px!important;
+        height:30px!important;
+        border-radius:50%!important;
+        display:grid!important;
+        place-items:center!important;
+        background:linear-gradient(100deg,#7a1247,#b01264,#e03a7c)!important;
+        color:#fff!important;
+        font-weight:900!important;
+        line-height:1!important;
+        z-index:2!important;
+      }
+      .admission-numbered-row>.field,
+      .admission-numbered-row>.medication-time-field{
+        min-width:0!important;
+        width:100%!important;
+      }
+      .admission-numbered-row label{
+        display:block!important;
+        margin-bottom:6px!important;
+        line-height:1.2!important;
+        white-space:normal!important;
+      }
+      .admission-numbered-row input,
+      .admission-numbered-row select,
+      .admission-numbered-row textarea{
+        width:100%!important;
+        min-width:0!important;
+      }
+      .admission-numbered-row.care{
+        grid-template-columns:minmax(210px,1.25fr) minmax(180px,.85fr) minmax(180px,.85fr) minmax(250px,1.5fr) auto!important;
+      }
+      @media(max-width:1050px){
+        .admission-numbered-row.care{grid-template-columns:1fr 1fr!important}
+        .admission-numbered-row.care>.btn{grid-column:1/-1;justify-self:end}
+      }
+      @media(max-width:700px){
+        .admission-numbered-row{padding:52px 10px 10px!important}
+        .admission-numbered-row.care{grid-template-columns:1fr!important}
       }
       .admission-locked-row{
         display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:start;
@@ -1661,8 +1711,6 @@ Caring with Compassion. Living with Dignity.`;
       @media(max-width:700px){
         .admission-locked-row{grid-template-columns:36px 1fr}
         .admission-row-actions{grid-column:1/-1}
-        .admission-numbered-row{padding-left:12px!important;padding-top:48px!important}
-        .admission-row-number{top:10px}
       }
 
 .content .clinical-charge-note{

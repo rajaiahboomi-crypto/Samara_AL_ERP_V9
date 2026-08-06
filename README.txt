@@ -1,21 +1,28 @@
-SAMARA CARE ERP V9 – MEDICATION DECLARATION, PRESCRIBING DOCTOR & APP ICON
-Version 2.8.4
+SAMARA CARE ERP V9 – NUMBER LAYOUT AND APP ICON FIX
+Version 2.8.5
 
-INSTALLATION ORDER
-1. Run 66_medication_declaration_and_prescribing_doctor.sql once in Supabase SQL Editor.
-2. Replace app.js.
-3. Upload/replace the complete icons folder.
-4. Keep/upload assets/samara-logo.png.
-5. Commit and press Ctrl + Shift + R.
-6. For an installed PWA, uninstall/reinstall or clear the old app icon cache if the old SC icon remains.
+UPLOAD / REPLACE
+1. app.js
+2. index.html
+3. manifest.webmanifest
+4. service-worker.js
+5. Complete icons folder
+6. Keep/upload assets/samara-logo.png
 
-COMPLETED
-- Admission asks: Undergoing any prescribed medication?
-- If No, medication rows are hidden and admission can be completed without medicine entries.
-- Consent records: No prescribed medication declared at admission.
-- If Yes, every medicine has a mandatory Prescribed Doctor field.
-- Prescribed Doctor appears in the locked medicine summary and Admission Consent table.
-- Existing/returning patient name and mobile may be corrected during re-admission.
-- New Samara branded app icons replace the old SC icon.
+CORRECTED
+- Medicine and care-plan serial numbers now occupy their own header area.
+- Number circles no longer overlap labels or input fields.
+- Medicine fields wrap cleanly into additional rows according to screen width.
+- Master care-plan row is also aligned correctly.
+- Rebuilt all PWA/app icons using the approved Samara logo.
+- Added cache-busting icon URLs to the manifest, index and service worker.
 
-The new build advances correctly from 2.8.3 to 2.8.4.
+IMPORTANT FOR THE OLD SC ICON
+Windows and installed PWAs cache app icons separately. After uploading and committing:
+1. Press Ctrl + Shift + R.
+2. Close the installed Samara app.
+3. Uninstall the existing Samara PWA from Windows/Chrome.
+4. Reopen the website and install the app again.
+The newly installed app will use the Samara logo icon.
+
+No SQL is required for this correction.

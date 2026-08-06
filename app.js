@@ -70,8 +70,8 @@
 
 (() => {
   'use strict';
-  const APP_VERSION = '2.8.8';
-  const APP_BUILD_DATE = '06-Aug-2026 09:20 IST';
+  const APP_VERSION = '2.8.9';
+  const APP_BUILD_DATE = '06-Aug-2026 09:35 IST';
   const APP_SCHEMA_VERSION = '24';
   window.APP_VERSION = APP_VERSION;
   window.SAMARA_BUILD = Object.freeze({
@@ -81,7 +81,7 @@
   });
   console.info(`Samara Care ERP ${APP_VERSION} | Build: ${APP_BUILD_DATE} | Schema: ${APP_SCHEMA_VERSION}`);
   const h = React.createElement;
-  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.8';
+  const BRAND_LOGO_SRC='./assets/samara-logo.png?v=2.8.9';
   const BRAND_LOGO_URL=new URL(BRAND_LOGO_SRC,window.location.href).href;
   const BrandLogo=({className='samara-brand-logo',alt='Samara Assisted Living'})=>
     h('img',{src:BRAND_LOGO_SRC,className,alt,decoding:'async'});
@@ -487,7 +487,7 @@
         content:none!important;
       }
       .sidebar .nav-submenu button::before{
-        content:'◇'!important;
+        content:'•'!important;
         background:transparent!important;
         border:0!important;
         border-radius:0!important;
@@ -498,24 +498,24 @@
       /* Innovative submenu icons */
       .sidebar .nav-submenu button[data-nav='Dashboard']::before{content:'⌂'!important;color:#d81b72!important}
       .sidebar .nav-submenu button[data-nav='Notifications']::before{content:'🔔'!important;color:#f59b23!important}
-      .sidebar .nav-submenu button[data-nav='Enquiries']::before{content:'✉'!important;color:#b01264!important}
-      .sidebar .nav-submenu button[data-nav='Admissions']::before{content:'❤'!important;color:#e03a7c!important}
-      .sidebar .nav-submenu button[data-nav='Patients']::before{content:'♙'!important;color:#b01264!important}
+      .sidebar .nav-submenu button[data-nav='Enquiries']::before{content:'☎'!important;color:#b01264!important}
+      .sidebar .nav-submenu button[data-nav='Admissions']::before{content:'✚'!important;color:#e03a7c!important}
+      .sidebar .nav-submenu button[data-nav='Patients']::before{content:'♟'!important;color:#b01264!important}
       .sidebar .nav-submenu button[data-nav='Discharge']::before{content:'⇥'!important;color:#f36a4c!important}
-      .sidebar .nav-submenu button[data-nav='Documents']::before{content:'▤'!important;color:#8f4bc1!important}
+      .sidebar .nav-submenu button[data-nav='Documents']::before{content:'□'!important;color:#8f4bc1!important}
       .sidebar .nav-submenu button[data-nav='Reports']::before,
       .sidebar .nav-submenu button[data-nav='Intelligent Reports']::before{content:'▦'!important;color:#8f4bc1!important}
       .sidebar .nav-submenu button[data-nav='Medication Errors']::before{content:'⚠'!important;color:#f36a4c!important}
       .sidebar .nav-submenu button[data-nav='Recovery Timeline']::before{content:'↺'!important;color:#1da1a8!important}
 
-      .sidebar .nav-submenu button[data-nav='Clinical Dashboard']::before{content:'⚕'!important;color:#28b9a5!important}
+      .sidebar .nav-submenu button[data-nav='Clinical Dashboard']::before{content:'♩'!important;color:#28b9a5!important}
       .sidebar .nav-submenu button[data-nav='Clinical Alerts']::before{content:'🔔'!important;color:#f6b72d!important}
-      .sidebar .nav-submenu button[data-nav='Shift Tasks']::before{content:'☑'!important;color:#7967d8!important}
-      .sidebar .nav-submenu button[data-nav='Daily Care']::before{content:'♥'!important;color:#ff8aac!important}
-      .sidebar .nav-submenu button[data-nav='Vital Signs']::before{content:'⌁'!important;color:#6ab7ff!important;font-size:25px!important}
-      .sidebar .nav-submenu button[data-nav='Medicines']::before{content:'◒'!important;color:#23c6ae!important}
-      .sidebar .nav-submenu button[data-nav='Physiotherapy']::before{content:'⚝'!important;color:#26c7b2!important}
-      .sidebar .nav-submenu button[data-nav='Special Nurse']::before{content:'✚'!important;color:#00b9e8!important}
+      .sidebar .nav-submenu button[data-nav='Shift Tasks']::before{content:'☷'!important;color:#7967d8!important}
+      .sidebar .nav-submenu button[data-nav='Daily Care']::before{content:'♡'!important;color:#ff8aac!important}
+      .sidebar .nav-submenu button[data-nav='Vital Signs']::before{content:'∿'!important;color:#6ab7ff!important;font-size:25px!important}
+      .sidebar .nav-submenu button[data-nav='Medicines']::before{content:'◐'!important;color:#23c6ae!important}
+      .sidebar .nav-submenu button[data-nav='Physiotherapy']::before{content:'⚘'!important;color:#26c7b2!important}
+      .sidebar .nav-submenu button[data-nav='Special Nurse']::before{content:'✥'!important;color:#00b9e8!important}
       .sidebar .nav-submenu button[data-nav='Shift Handover']::before{content:'⇄'!important;color:#9b7ee8!important}
       .sidebar .nav-submenu button[data-nav='Incidents']::before{content:'⚠'!important;color:#ff7a45!important}
 
@@ -551,9 +551,20 @@
         background:rgba(255,255,255,.12)!important;
       }
       .sidebar .nav-section.expanded .nav-submenu button.active{
-        background:rgba(255,255,255,.20)!important;
-        color:#ffffff!important;
+        background:rgba(255,255,255,.38)!important;
+        color:#5d1039!important;
+        text-shadow:none!important;
         box-shadow:inset 3px 0 0 #f6b72d!important;
+      }
+
+      /* Admission submenu is on a light pink panel, therefore use dark text. */
+      .sidebar .nav-section:nth-of-type(-n+4).expanded .nav-submenu button{
+        color:#3f2a38!important;
+        text-shadow:none!important;
+      }
+      .sidebar .nav-section:nth-of-type(-n+4).expanded .nav-submenu button:hover,
+      .sidebar .nav-section:nth-of-type(-n+4).expanded .nav-submenu button:focus{
+        background:rgba(255,255,255,.34)!important;
       }
 
       /* Footer contrast adapts to the darkest gradient */
@@ -2495,6 +2506,8 @@ Caring with Compassion. Living with Dignity.`;
           },h('span',null,section.title),h('span',{className:'nav-chevron','aria-hidden':'true'},expanded?'−':'+')),
           expanded&&h('div',{className:'nav nav-submenu'},section.items.map(item=>h('button',{
             key:item,
+            type:'button',
+            'data-nav':item,
             className:page===item?'active':'',
             onClick:()=>setPage(item)
           },displayNavLabel(item,profile.role))))
